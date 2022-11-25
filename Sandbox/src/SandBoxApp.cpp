@@ -5,7 +5,9 @@ class Sandbox : public Pistachio::Application
 public:
 	Sandbox(){}
 	~Sandbox(){}
-
+	void Run() {
+		
+	}
 };
 
 Pistachio::Application* Pistachio::CreateApplication()
