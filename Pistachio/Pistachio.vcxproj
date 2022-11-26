@@ -58,13 +58,16 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_BUILD_DLL;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\gainput\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)Pistachio\vendor\gainput\lib\gainput-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy $(SolutionDir)bin\$(Configuration)-$(Platform)\Pistachio\Pistachio.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Sandbox</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -74,17 +77,21 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_BUILD_DLL;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\gainput\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)Pistachio\vendor\gainput\lib\gainput-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Pistachio\Event\ApplicationEvent.h" />
+    <ClInclude Include="src\Pistachio\Event\Event.h" />
+    <ClInclude Include="src\Pistachio\Event\KeyEvent.h" />
+    <ClInclude Include="src\Pistachio\Event\MouseButton.h" />
     <ClInclude Include="src\Pistachio\Log.h" />
     <ClInclude Include="src\Pistachio.h" />
     <ClInclude Include="src\Pistachio\Application.h" />
@@ -92,6 +99,7 @@
     <ClInclude Include="src\Pistachio\EntryPoint.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Pistachio\EntryPoint.cpp" />
     <ClCompile Include="src\Pistachio\Log.cpp" />
     <ClCompile Include="src\Pistachio\Application.cpp" />
   </ItemGroup>
