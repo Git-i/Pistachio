@@ -1,6 +1,5 @@
 #pragma once
 
-
 #ifdef PT_PLATFORM_WINDOWS
 extern Pistachio::Application* Pistachio::CreateApplication();
 
