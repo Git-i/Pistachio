@@ -92,6 +92,7 @@
     <ClInclude Include="src\Pistachio\Event\Event.h" />
     <ClInclude Include="src\Pistachio\Event\KeyEvent.h" />
     <ClInclude Include="src\Pistachio\Event\MouseButton.h" />
+    <ClInclude Include="src\Pistachio\Event\MouseEvent.h" />
     <ClInclude Include="src\Pistachio\Log.h" />
     <ClInclude Include="src\Pistachio.h" />
     <ClInclude Include="src\Pistachio\Application.h" />
