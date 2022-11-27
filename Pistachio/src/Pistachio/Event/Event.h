@@ -2,10 +2,6 @@
 
 #include "Pistachio/Core.h"
 
-
-#include<string>
-#include<functional>
-
 namespace Pistachio {
 
 	enum class EventType
