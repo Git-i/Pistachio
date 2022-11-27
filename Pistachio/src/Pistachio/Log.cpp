@@ -1,3 +1,5 @@
+#include "ptpch.h"
+
 #include "Log.h"
 #include <spdlog/sinks/stdout_color_sinks.h>
 namespace Pistachio
