@@ -63,7 +63,7 @@
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>gainput-d.lib;opengl32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\gainput\lib;$(SolutionDir)Pistachio\vendor\glfw\lib</AdditionalLibraryDirectories>
@@ -83,7 +83,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\gainput\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>

@@ -51,12 +51,14 @@ namespace Pistachio {
 
 	class PISTACHIO_API EventDispatcher
 	{
+	template<typename T>
+	using EventFn = std::function<bool(T&)>;
 	public:
 		EventDispatcher(Event& event)
 			: m_event(event) {}
 
 		template <typename T>
-		bool Dispactch(std::function<bool(T&)> func)
+		bool Dispactch(EventFn<T> func)
 		{
 			if (m_event.GetEventType() == T::GetStaticType())
 			{

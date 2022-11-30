@@ -2,6 +2,23 @@
 
 #include "Pistachio/Window.h"
 #include "GLFW/glfw3.h"
+void* WindowDataPtr = new void*;
+void* GetWindowDataPtr()
+{
+return WindowDataPtr;
+}
+void SetWindowDataPtr(void* value)
+{
+	WindowDataPtr = value;
+}
+struct WindowData
+{
+	unsigned int width;
+	unsigned int height;
+	const wchar_t* title;
+	bool vsync;
+	EventCallbackFn EventCallback;
+};
 
 namespace Pistachio {
 	class WindowsWindow : public Pistachio::Window
@@ -16,10 +33,12 @@ namespace Pistachio {
 
 		void SetVsync(bool enabled) override;
 		bool IsVsync() const override;
+		static void resize(int width, int height);
+		inline void SetEventCallback(const EventCallbackFn& event) { m_data.EventCallback = event; };
 	private:
-		GLFWwindow* m_window;
-		virtual void Init(const WindowInfo& info);
+		virtual int Init(const WindowInfo& info, HINSTANCE hInstance);
 		virtual void Shutdown();
-		WindowInfo m_data;
+		
+		WindowData m_data;
 	};
 }
