@@ -1,6 +1,6 @@
 #include "ptpch.h"
 #include "Pistachio.h"
-
+#pragma comment (linker, "/SUBSYSTEM:WINDOWS")
 class Sandbox : public Pistachio::Application
 {
 public:

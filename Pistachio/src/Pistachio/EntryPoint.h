@@ -3,11 +3,12 @@
 #ifdef PT_PLATFORM_WINDOWS
 extern Pistachio::Application* Pistachio::CreateApplication();
 
-int main(int argc, char** argv)
+int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
-	Pistachio::Log::Init();
-	auto app = Pistachio::CreateApplication();
-	app->Run();
-	delete app;
+    auto app = Pistachio::CreateApplication();
+    app->Run();
+    delete app;
+    return 0;
 }
+
 #endif // PT_PLATFORM_WINDOWS

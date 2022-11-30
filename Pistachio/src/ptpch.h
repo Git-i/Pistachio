@@ -12,6 +12,6 @@
 #include <unordered_set>
 
 #ifdef PT_PLATFORM_WINDOWS
-	#include <Windows.h>
+	#include <windows.h>
 #endif // PT_PLATFORM_WINDOWS
 
