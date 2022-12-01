@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Pistachio\Application.cpp">
+    <ClCompile Include="src\Pistachio\Core\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pistachio\Log.cpp">
+    <ClCompile Include="src\Pistachio\Core\Log.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ptpch.cpp">
@@ -27,9 +27,39 @@
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Pistachio\Core\Layer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Core\LayerStack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_impl_dx11.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_impl_win32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\ImGui\ImGuiLayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Pistachio\Application.h">
+    <ClInclude Include="src\Pistachio\Core\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Core.h">
@@ -38,10 +68,10 @@
     <ClInclude Include="src\Pistachio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Pistachio\EntryPoint.h">
+    <ClInclude Include="src\Pistachio\Core\EntryPoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Pistachio\Log.h">
+    <ClInclude Include="src\Pistachio\Core\Log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Event\Event.h">
@@ -62,10 +92,46 @@
     <ClInclude Include="src\ptpch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Pistachio\Window.h">
+    <ClInclude Include="src\Pistachio\Core\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Core\Layer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Core\LayerStack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui_impl_dx11.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui_impl_win32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_rectpack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_textedit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_truetype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\ImGui\ImGuiLayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

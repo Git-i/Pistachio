@@ -13,5 +13,6 @@
 
 #ifdef PT_PLATFORM_WINDOWS
 	#include <windows.h>
+	#include <d3d11.h>
 #endif // PT_PLATFORM_WINDOWS
 

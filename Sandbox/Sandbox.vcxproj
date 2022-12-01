@@ -110,14 +110,15 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)PT_PLATFORM_WINDOWS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)PT_PLATFORM_WINDOWS;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include\;$(SolutionDir)Pistachio\vendor\gainput\include;$(SolutionDir)Pistachio\vendor\glfw\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);$(SolutionDir)Pistachio\vendor\gainput\lib\gainputstatic-d.lib;</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);$(SolutionDir)Pistachio\vendor\gainput\lib\gainputstatic-d.lib;Pistachio.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Dev\Repos\Pistachio\bin\Debug-x64\Pistachio</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(SolutionDir)bin\$(Configuration)-$(Platform)\Pistachio\Pistachio.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\$(ProjectName)</Command>
