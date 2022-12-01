@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Pistachio/Application.h"
-#include "Pistachio/Log.h"
-
-#include "Pistachio/EntryPoint.h"
+#include "Pistachio/Core/Application.h"
+#include "Pistachio/Core/LayerStack.h"
+#include "Pistachio/Event/Event.h"
+#include "Pistachio/Core/Log.h"
+#include "Pistachio/ImGui/ImGuiLayer.h"
+#include "Pistachio/Core/EntryPoint.h"

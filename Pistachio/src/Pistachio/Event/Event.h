@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Pistachio/Core.h"
 
 namespace Pistachio {
@@ -45,6 +44,7 @@ namespace Pistachio {
 		{
 			return (category % GetCategory() == 0);
 		}
+		bool& Handled = m_handled;
 	protected:
 		bool m_handled = false;
 	};

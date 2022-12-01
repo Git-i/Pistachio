@@ -1,16 +1,16 @@
 #pragma once
 
-#include "Pistachio/Window.h"
-#include "GLFW/glfw3.h"
-void* WindowDataPtr = new void*;
-void* GetWindowDataPtr()
-{
-return WindowDataPtr;
-}
-void SetWindowDataPtr(void* value)
-{
-	WindowDataPtr = value;
-}
+#include "Pistachio/Core/Window.h"
+// Data
+
+extern ID3D11Device* g_pd3dDevice;
+extern ID3D11DeviceContext* g_pd3dDeviceContext;
+extern IDXGISwapChain* g_pSwapChain;
+extern ID3D11RenderTargetView* g_mainRenderTargetView;
+extern void* WindowDataPtr;
+void* GetWindowDataPtr();
+void SetWindowDataPtr(void* value);
+
 struct WindowData
 {
 	unsigned int width;
@@ -33,7 +33,6 @@ namespace Pistachio {
 
 		void SetVsync(bool enabled) override;
 		bool IsVsync() const override;
-		static void resize(int width, int height);
 		inline void SetEventCallback(const EventCallbackFn& event) { m_data.EventCallback = event; };
 	private:
 		virtual int Init(const WindowInfo& info, HINSTANCE hInstance);

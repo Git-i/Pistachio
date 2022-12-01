@@ -10,7 +10,7 @@ void* GetWindowDataPtr();
 
 	struct PlatformData {
 		#ifdef PT_PLATFORM_WINDOWS
-		HWND hwnd;
+		HWND hwnd = NULL;
 		#endif // PT_PLATFORM_WINDOWS
 	};
 
