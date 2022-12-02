@@ -5,6 +5,14 @@
 bool KeyRepeat = false;
 namespace Pistachio {
 	int LastKey = 0;
+	void OnMousseScroll(float xamount, float yamount)
+	{
+		WindowData& data = *(WindowData*)GetWindowDataPtr();
+		MouseScrolledEvent event(xamount, yamount);
+		if (data.EventCallback != NULL) {
+			data.EventCallback(event);
+		}
+	}
 	void OnResize(int width, int height)
 	{
 		WindowData& data = *(WindowData*)GetWindowDataPtr();

@@ -69,15 +69,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_CLOSE:
 	{
-		int id = MessageBox(hwnd, L"Do you want to Exit", L"Exit Application", MB_YESNO);
-		if (id == IDYES)
-		{
-			DestroyWindow(hwnd);
-		}
-		else
-		{
-
-		}
+		DestroyWindow(hwnd);
 		break;
 	}
 	case WM_KEYDOWN:
@@ -97,27 +89,33 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_LBUTTONDOWN:
 	{
-		Pistachio::OnMouseButtonPress(0);
+		if (!ImGui::GetIO().WantCaptureMouse)
+			Pistachio::OnMouseButtonPress(0);
 		break;
 	}
 	case WM_RBUTTONDOWN:
 	{
+		ImGuiIO& io = ImGui::GetIO();
+		if (!io.WantCaptureMouse)
 		Pistachio::OnMouseButtonPress(1);
 		break;
 
 	}
 	case WM_MBUTTONDOWN:
 	{
+		if (!ImGui::GetIO().WantCaptureMouse)
 		Pistachio::OnMouseButtonPress(2);
 		break;
 	}
 	case WM_LBUTTONUP:
 	{
+		if (!ImGui::GetIO().WantCaptureMouse)
 		Pistachio::OnMouseButtonRelease(0);
 		break;
 	}
 	case WM_RBUTTONUP:
 	{
+		if (!ImGui::GetIO().WantCaptureMouse)
 		Pistachio::OnMouseButtonRelease(1);
 		break;
 
@@ -136,6 +134,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			::SetWindowPos(hwnd, NULL, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
 		}
 		break;
+	case WM_MOUSEWHEEL:
+	{
+		GET_WHEEL_DELTA_WPARAM(wParam);
+		float xPos =0;
+		float yPos =0;
+		Pistachio::OnMousseScroll(xPos, yPos);
+		break;
+	}
+	case WM_DROPFILES: {
+		return 0;
+		break;
+	}
 	return 0;
 
 }
@@ -240,7 +250,7 @@ namespace Pistachio {
 		std::wcin.clear();
 		
 		
-	
+		DragAcceptFiles(pd.hwnd, true);
 		Pistachio::Log::Init();
 
 		return 0;
