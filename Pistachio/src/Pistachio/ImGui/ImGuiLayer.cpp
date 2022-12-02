@@ -15,12 +15,11 @@ namespace Pistachio {
 	ImGuiLayer::~ImGuiLayer()
 	{
 	}
+	void ImGuiLayer::OnUpdate()
+	{	
 		static bool show_demo_window = true;
 		static bool show_another_window = true;
 		FLOAT backgroundColor[4] = { 1.0f, 0.0f, 0.19f, 1.0f };
-	void ImGuiLayer::OnUpdate()
-	{	
-		ImGui::SetCurrentContext(ctx);
 		// Start the Dear ImGui frame
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -69,13 +68,13 @@ namespace Pistachio {
 	{
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
-		ctx = ImGui::CreateContext();
+		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 		ImGui::StyleColorsDark();
-
+		io.Fonts->AddFontFromFileTTF("Cascadia.ttf", 14);
 		// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
 		ImGuiStyle& style = ImGui::GetStyle();
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)

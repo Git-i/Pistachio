@@ -117,7 +117,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);$(SolutionDir)Pistachio\vendor\gainput\lib\gainputstatic-d.lib;Pistachio.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\Dev\Repos\Pistachio\bin\Debug-x64\Pistachio</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
@@ -139,7 +139,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);$(SolutionDir)Pistachio\vendor\gainput\lib\gainputstatic-d.lib;</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy $(SolutionDir)bin\$(Configuration)-$(Platform)\Pistachio\Pistachio.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\$(ProjectName)</Command>
