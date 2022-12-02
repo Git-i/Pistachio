@@ -15,7 +15,7 @@
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{c3a6bdf9-be64-4c23-8078-776722d68fdd}</ProjectGuid>
     <RootNamespace>Tempest</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>Pistachio</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -101,7 +101,6 @@
     <ClInclude Include="src\Pistachio\Event\ApplicationEvent.h" />
     <ClInclude Include="src\Pistachio\Event\Event.h" />
     <ClInclude Include="src\Pistachio\Event\KeyEvent.h" />
-    <ClInclude Include="src\Pistachio\Event\MouseButton.h" />
     <ClInclude Include="src\Pistachio\Event\MouseEvent.h" />
     <ClInclude Include="src\Pistachio\Core\Log.h" />
     <ClInclude Include="src\Pistachio.h" />

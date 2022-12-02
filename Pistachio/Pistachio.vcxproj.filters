@@ -80,9 +80,6 @@
     <ClInclude Include="src\Pistachio\Event\KeyEvent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Pistachio\Event\MouseButton.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Pistachio\Event\ApplicationEvent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
