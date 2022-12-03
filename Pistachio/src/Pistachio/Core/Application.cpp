@@ -2,7 +2,9 @@
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Application.h"
 #include "Pistachio/Event/Event.h"
+#include "Pistachio/Core/KeyState.h"
 #include "Pistachio/ImGui/ImGuiLayer.h"
+#include "Pistachio/Core/Input.h"
 
 namespace Pistachio {
 #define BIND_EVENT_FN(x) std::bind(&x, this, std::placeholders::_1)
@@ -34,8 +36,7 @@ namespace Pistachio {
 
 	void Application::OnEvent(Event& e)
 	{
-		EventDispatcher dispatcher(e);
-		//dispatcher.Dispatch<EventType>(BIND_EVENT_FN(FN_NAME));
+		//EventDispatcher dispatcher(e);
 		PT_CORE_TRACE("{0}", e);
 		for (auto it = m_layerstack.end(); it != m_layerstack.begin(); )
 		{
@@ -52,7 +53,7 @@ namespace Pistachio {
 			while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
 			{
 				TranslateMessage(&msg);
-				DispatchMessage(&msg);
+				DispatchMessageW(&msg);
 				if (msg.message == WM_QUIT)
 					m_Running = false;
 			}

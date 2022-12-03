@@ -74,7 +74,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_KEYDOWN:
 	{
-		Pistachio::OnKeyDown((int)wParam);
+		 Pistachio::OnKeyDown((int)wParam);
 		if ((int)wParam == Pistachio::LastKey)
 			KeyRepeat = true;
 		else
@@ -85,12 +85,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_KEYUP:
 	{
 		KeyRepeat = false;
+		Pistachio::KeyRepeatPoll = false;
 		break;
 	}
 	case WM_LBUTTONDOWN:
 	{
 		if (!ImGui::GetIO().WantCaptureMouse)
 			Pistachio::OnMouseButtonPress(0);
+		if (0x01 == Pistachio::LastKey)
+			KeyRepeat = true;
+		else
+			KeyRepeat = false;
+		Pistachio::LastKey = 0x01;
 		break;
 	}
 	case WM_RBUTTONDOWN:
@@ -98,6 +104,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		ImGuiIO& io = ImGui::GetIO();
 		if (!io.WantCaptureMouse)
 		Pistachio::OnMouseButtonPress(1);
+		if (0x02 == Pistachio::LastKey)
+			KeyRepeat = true;
+		else
+			KeyRepeat = false;
+		Pistachio::LastKey = 0x02;
 		break;
 
 	}
@@ -105,16 +116,25 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (!ImGui::GetIO().WantCaptureMouse)
 		Pistachio::OnMouseButtonPress(2);
+		if (0x04 == Pistachio::LastKey)
+			KeyRepeat = true;
+		else
+			KeyRepeat = false;
+		Pistachio::LastKey = 0x04;
 		break;
 	}
 	case WM_LBUTTONUP:
 	{
+		KeyRepeat = false;
+		Pistachio::KeyRepeatPoll = false;
 		if (!ImGui::GetIO().WantCaptureMouse)
 		Pistachio::OnMouseButtonRelease(0);
 		break;
 	}
 	case WM_RBUTTONUP:
 	{
+		KeyRepeat = false;
+		Pistachio::KeyRepeatPoll = false;
 		if (!ImGui::GetIO().WantCaptureMouse)
 		Pistachio::OnMouseButtonRelease(1);
 		break;
@@ -122,6 +142,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_MBUTTONUP:
 	{
+		KeyRepeat = false;
+		Pistachio::KeyRepeatPoll = false;
 		Pistachio::OnMouseButtonRelease(2);
 		break;
 	}
@@ -162,7 +184,7 @@ namespace Pistachio {
 	}
 	WindowsWindow::WindowsWindow(const WindowInfo& info)
 	{
-		Init(info, GetModuleHandle(NULL));
+		Init(info, GetModuleHandleA(NULL));
 	}
 	WindowsWindow::~WindowsWindow()
 	{
@@ -170,9 +192,10 @@ namespace Pistachio {
 	}
 	int WindowsWindow::Init(const WindowInfo& info, HINSTANCE hInstance)
 	{
+
 		SetWindowDataPtr(&m_data);
-		STARTUPINFO si;
-		GetStartupInfo(&si);
+		STARTUPINFOA si;
+		GetStartupInfoA(&si);
 		si.wShowWindow = SW_SHOWDEFAULT;
 		int nCmdShow = si.wShowWindow;
 		m_data.title = info.title;
@@ -182,12 +205,12 @@ namespace Pistachio {
 		// Register the window class.
 		const wchar_t CLASS_NAME[] = L"Sample Window Class";
 
-		WNDCLASSEX wc;
+		WNDCLASSEXW wc;
 
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = hInstance;
 		wc.lpszClassName = CLASS_NAME;
-		wc.cbSize = sizeof(WNDCLASSEX);
+		wc.cbSize = sizeof(WNDCLASSEXA);
 		wc.style = 0;
 		wc.cbClsExtra = 0;
 		wc.cbWndExtra = 0;
@@ -198,12 +221,11 @@ namespace Pistachio {
 		wc.lpszMenuName = NULL;
 		wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
-		RegisterClassEx(&wc);
-
-		pd.hwnd = CreateWindowEx(
+		RegisterClassExW(&wc);
+		pd.hwnd = CreateWindowExW(
 			0,
 			CLASS_NAME,
-			info.title,
+			(wchar_t*)info.title,
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT, CW_USEDEFAULT, info.width, info.height,
 			NULL,       
@@ -248,9 +270,7 @@ namespace Pistachio {
 		std::wcout.clear();
 		std::wcerr.clear();
 		std::wcin.clear();
-		
-		
-		DragAcceptFiles(pd.hwnd, true);
+	
 		Pistachio::Log::Init();
 
 		return 0;
@@ -265,7 +285,7 @@ namespace Pistachio {
 
 		CleanupDeviceD3D();
 		::DestroyWindow(pd.hwnd);
-		::UnregisterClassW(L"Sample Window Class", GetModuleHandle(NULL));
+		::UnregisterClassA("Sample Window Class", GetModuleHandleA(NULL));
 	}
 	void WindowsWindow::OnUpdate()
 	{

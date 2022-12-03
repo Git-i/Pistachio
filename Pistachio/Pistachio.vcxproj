@@ -23,14 +23,14 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -61,6 +61,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\gainput\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -69,7 +70,8 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\gainput\lib;$(SolutionDir)Pistachio\vendor\glfw\lib</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)bin\$(Configuration)-$(Platform)\Pistachio\Pistachio.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Sandbox</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -83,6 +85,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\gainput\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -92,10 +95,13 @@
       <AdditionalDependencies>opengl32.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)bin\$(Configuration)-$(Platform)\Pistachio\Pistachio.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Sandbox</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Pistachio\Core\KeyState.h" />
+    <ClInclude Include="src\Pistachio\Core\Input.h" />
     <ClInclude Include="src\Pistachio\Core\Layer.h" />
     <ClInclude Include="src\Pistachio\Core\LayerStack.h" />
     <ClInclude Include="src\Pistachio\Event\ApplicationEvent.h" />
@@ -108,6 +114,7 @@
     <ClInclude Include="src\Pistachio\Core.h" />
     <ClInclude Include="src\Pistachio\Core\EntryPoint.h" />
     <ClInclude Include="src\Pistachio\ImGui\ImGuiLayer.h" />
+    <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputPoll.h" />
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.h" />
     <ClInclude Include="src\Pistachio\Core\Window.h" />
     <ClInclude Include="src\ptpch.h" />
@@ -127,6 +134,8 @@
     <ClCompile Include="src\Pistachio\Core\Log.cpp" />
     <ClCompile Include="src\Pistachio\Core\Application.cpp" />
     <ClCompile Include="src\Pistachio\ImGui\ImGuiLayer.cpp" />
+    <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.cpp" />
+    <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputPoll.cpp" />
     <ClCompile Include="src\ptpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ptpch.h</PrecompiledHeaderFile>
