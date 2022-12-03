@@ -58,7 +58,7 @@ namespace Pistachio {
 			: m_event(event) {}
 
 		template <typename T>
-		bool Dispactch(EventFn<T> func)
+		bool Dispatch(EventFn<T> func)
 		{
 			if (m_event.GetEventType() == T::GetStaticType())
 			{

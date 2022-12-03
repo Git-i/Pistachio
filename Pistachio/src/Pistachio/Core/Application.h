@@ -4,6 +4,7 @@
 #include "Pistachio/Core/LayerStack.h"
 #include "Pistachio/Event/Event.h"
 #include "Pistachio/Core/Window.h"
+#include "Pistachio/Event/KeyEvent.h"
 
 namespace Pistachio {
 

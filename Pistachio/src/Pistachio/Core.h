@@ -1,5 +1,5 @@
 #pragma once
-
+typedef int KeyCode;
 #ifdef PT_PLATFORM_WINDOWS
 	#ifdef PISTACHIO_BUILD_DLL
 		#define PISTACHIO_API __declspec(dllexport)
