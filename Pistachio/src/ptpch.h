@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <utility>
+#include <bitset>
 
 #include <string>
 #include <vector>

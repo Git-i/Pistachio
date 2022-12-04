@@ -2,6 +2,7 @@
 #include "Pistachio/Core/Input.h"
 #include "WindowsInputCallbacks.h"
 #include "Pistachio/Core/Application.h"
+
 namespace Pistachio {
 	int LastKeyPoll = 0;
 	bool KeyRepeatPoll = false;

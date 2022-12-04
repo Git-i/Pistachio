@@ -12,8 +12,13 @@ namespace Pistachio {
 	bool WindowsInput::IsKeyJustPressedImpl(KeyCode code)
 	{
 		bool a = 0;
+		bool first = 1;
 		if (GetActiveWindow() == Application::Get().GetWindow().pd.hwnd)
-			a = (GetAsyncKeyState(code) && (!KeyRepeatPoll));
+			a = (GetAsyncKeyState(code) && (!(KeyRepeatPoll && LastKeyPoll == code)));
+		if (first == 1) {
+			LastKeyPoll = code;
+			first = 0;
+		}
 		if (GetAsyncKeyState(code)) {
 			if (code == Pistachio::LastKeyPoll)
 				KeyRepeatPoll = true;
