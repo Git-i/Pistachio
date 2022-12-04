@@ -9,6 +9,9 @@
 #include "Pistachio/Event/KeyEvent.h"
 #include "Pistachio/Event/MouseEvent.h"
 #include "Pistachio/Platform/Windows/WindowsInputCallbacks.h"
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "dxgi.lib")
 
 ID3D11Device* g_pd3dDevice = NULL;
 ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
@@ -69,7 +72,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_CLOSE:
 	{
-		DestroyWindow(hwnd);
+		int id = MessageBoxW(hwnd, L"Do you want to Exit", L"Exit Application", MB_ICONWARNING | MB_YESNO);
+		if (id == IDYES)
+		{
+			DestroyWindow(hwnd);
+		}
+		else
+		{
+		}
 		break;
 	}
 	case WM_KEYDOWN:
@@ -168,7 +178,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return 0;
 		break;
 	}
-	return 0;
+	default:
+	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 
 }
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -192,7 +203,6 @@ namespace Pistachio {
 	}
 	int WindowsWindow::Init(const WindowInfo& info, HINSTANCE hInstance)
 	{
-
 		SetWindowDataPtr(&m_data);
 		STARTUPINFOA si;
 		GetStartupInfoA(&si);
@@ -246,6 +256,7 @@ namespace Pistachio {
 		}
 		ShowWindow(pd.hwnd, nCmdShow);
 		UpdateWindow(pd.hwnd);
+#if _DEBUG
 		if (AllocConsole() == 0)
 		{
 			// Handle error here. Use ::GetLastError() to get the error.
@@ -270,7 +281,7 @@ namespace Pistachio {
 		std::wcout.clear();
 		std::wcerr.clear();
 		std::wcin.clear();
-	
+#endif
 		Pistachio::Log::Init();
 
 		return 0;

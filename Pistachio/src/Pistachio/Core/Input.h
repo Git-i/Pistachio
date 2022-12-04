@@ -16,8 +16,8 @@ namespace Pistachio {
 		inline static bool IsKeyJustPressed(KeyCode code) { return s_Instance->IsKeyJustPressedImpl(code); }
 		inline static bool IsMouseButtonPressed(MouseButton code) { return s_Instance->IsKeyPressedImpl(code); }
 		inline static bool IsMouseButtonJustPressed(MouseButton code) { return s_Instance->IsKeyJustPressedImpl(code); }
-		inline static int GetMouseX(bool WindowCoordinates = false) { return s_Instance->GetMouseXImpl(WindowCoordinates); }
-		inline static int GetMouseY(bool WindowCoordinates = false) { return s_Instance->GetMouseYImpl(WindowCoordinates); }
+		inline static int GetMouseX(bool WindowCoordinates = true) { return s_Instance->GetMouseXImpl(WindowCoordinates); }
+		inline static int GetMouseY(bool WindowCoordinates = true) { return s_Instance->GetMouseYImpl(WindowCoordinates); }
 	protected:
 		virtual bool IsKeyPressedImpl(KeyCode code) = 0;
 		virtual int GetMouseXImpl(bool) = 0;
