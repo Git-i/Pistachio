@@ -49,3 +49,12 @@ void Pistachio::OnMouseButtonRelease(int button)
 		data.EventCallback(event);
 	}
 }
+
+void Pistachio::OnMouseMove(int x, int y)
+{
+	WindowData& data = *(WindowData*)GetWindowDataPtr();
+	Pistachio::MouseMovedEvent event(x, y);
+	if (data.EventCallback != NULL) {
+		data.EventCallback(event);
+	}
+}

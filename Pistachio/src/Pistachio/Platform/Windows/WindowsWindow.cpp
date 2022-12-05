@@ -9,9 +9,6 @@
 #include "Pistachio/Event/KeyEvent.h"
 #include "Pistachio/Event/MouseEvent.h"
 #include "Pistachio/Platform/Windows/WindowsInputCallbacks.h"
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "dxgi.lib")
 
 ID3D11Device* g_pd3dDevice = NULL;
 ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
@@ -27,13 +24,11 @@ void SetWindowDataPtr(void* value)
 {
 	WindowDataPtr = value;
 }
-
 // Forward declarations of helper functions
 bool CreateDeviceD3D(HWND hWnd);
 void CleanupDeviceD3D();
 void CreateRenderTarget();
 void CleanupRenderTarget();
-
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -43,20 +38,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return true;
 	switch (uMsg)
 	{
+	case WM_MOUSEMOVE:
+	{
+		int x = LOWORD(lParam);
+		int y = HIWORD(lParam);
+		Pistachio::OnMouseMove(x, y);
+		break;
+	}
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
 		break;
-	case WM_PAINT:
-	{
-		PAINTSTRUCT paintStruct;
-		HDC hdc = BeginPaint(hwnd, &paintStruct);
-		// All painting occurs here, between BeginPaint and EndPaint.
-		FillRect(hdc, &paintStruct.rcPaint, (HBRUSH)(COLOR_WINDOW));
-
-		EndPaint(hwnd, &paintStruct);
-		break;
-	}
 	case WM_SIZE:
 	{
 		UINT width = LOWORD(lParam);
@@ -65,7 +57,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED)
 		{
 			CleanupRenderTarget();
-			g_pSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
+			g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 			CreateRenderTarget();
 		}
 		break;
@@ -79,6 +71,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		else
 		{
+			return 0;
 		}
 		break;
 	}
@@ -174,12 +167,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		Pistachio::OnMousseScroll(xPos, yPos);
 		break;
 	}
-	case WM_DROPFILES: {
-		return 0;
-		break;
-	}
-	default:
-	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 
 }
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -227,7 +214,7 @@ namespace Pistachio {
 		wc.hInstance = hInstance;
 		wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-		wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); // (HBRUSH) CreateSolidBrush(RGB(10, 20, 30)); // 
+		wc.hbrBackground = NULL;
 		wc.lpszMenuName = NULL;
 		wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
@@ -243,7 +230,6 @@ namespace Pistachio {
 			hInstance,  
 			NULL        
 		);
-
 		if (pd.hwnd == NULL)
 		{
 			return 0;
@@ -254,8 +240,7 @@ namespace Pistachio {
 			::UnregisterClassW(wc.lpszClassName, wc.hInstance);
 			return 1;
 		}
-		ShowWindow(pd.hwnd, nCmdShow);
-		UpdateWindow(pd.hwnd);
+
 #if _DEBUG
 		if (AllocConsole() == 0)
 		{
@@ -282,6 +267,7 @@ namespace Pistachio {
 		std::wcerr.clear();
 		std::wcin.clear();
 #endif
+		ShowWindow(pd.hwnd, SW_SHOW);
 		Pistachio::Log::Init();
 
 		return 0;
