@@ -12,4 +12,5 @@ namespace Pistachio {
 	void OnKeyDown(int code);
 	void OnMouseButtonPress(int button);
 	void OnMouseButtonRelease(int button);
+	void OnMouseMove(int x, int y);
 }

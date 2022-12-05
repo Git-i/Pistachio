@@ -7,11 +7,11 @@ namespace Pistachio {
 	class MouseMovedEvent : public Event
 	{
 	public:
-		MouseMovedEvent(const float x, const float y)
+		MouseMovedEvent(const int x, const int y)
 			: m_MouseX(x), m_MouseY(y) {}
 
-		float GetX() const { return m_MouseX; }
-		float GetY() const { return m_MouseY; }
+		int GetX() const { return m_MouseX; }
+		int GetY() const { return m_MouseY; }
 
 		std::string ToString() const override
 		{
@@ -21,7 +21,7 @@ namespace Pistachio {
 		EVENT_CLASS_TYPE(MouseMoved)
 		EVENT_CLASS_CATEGORY(EventCategoryMouse)
 	private:
-		float m_MouseX, m_MouseY;
+		int m_MouseX, m_MouseY;
 	};
 
 	class MouseScrolledEvent : public Event
