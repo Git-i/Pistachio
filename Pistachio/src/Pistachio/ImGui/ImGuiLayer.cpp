@@ -6,7 +6,6 @@
 #include "imgui_impl_win32.h"
 #include "Pistachio/Core/Application.h"
 
-ImGuiContext* ctx = NULL;
 namespace Pistachio {
 	ImGuiLayer::ImGuiLayer()
 		: Layer("ImGuiLayer")
@@ -15,11 +14,9 @@ namespace Pistachio {
 	ImGuiLayer::~ImGuiLayer()
 	{
 	}
-		FLOAT backgroundColor[4] = { 0.2f, 0.2f, 0.19f, 1.0f };
-	void ImGuiLayer::OnUpdate()
-	{	
-			g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
-			g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, backgroundColor);
+		
+		void ImGuiLayer::OnUpdate()
+		{
 			// Start the Dear ImGui frame
 			ImGui_ImplDX11_NewFrame();
 			ImGui_ImplWin32_NewFrame();
@@ -46,13 +43,15 @@ namespace Pistachio {
 			}
 
 			ImGui::Render();
+			
+			
 			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 			{
 				ImGui::UpdatePlatformWindows();
 				ImGui::RenderPlatformWindowsDefault();
 			}
-			g_pSwapChain->Present(((WindowData*)GetWindowDataPtr())->vsync, 0);
+			
 	}
 	void ImGuiLayer::OnEvent(Event& event)
 	{

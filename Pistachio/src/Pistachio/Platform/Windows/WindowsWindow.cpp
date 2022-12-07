@@ -219,12 +219,18 @@ namespace Pistachio {
 		wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
 		RegisterClassExW(&wc);
+		RECT wr;
+		wr.left = 100;
+		wr.right = info.width + 100;
+		wr.top = 100;
+		wr.bottom = 100 + info.height;
+		AdjustWindowRectEx(&wr, WS_OVERLAPPEDWINDOW, FALSE, 0);
 		pd.hwnd = CreateWindowExW(
 			0,
 			CLASS_NAME,
 			(wchar_t*)info.title,
 			WS_OVERLAPPEDWINDOW,
-			CW_USEDEFAULT, CW_USEDEFAULT, info.width, info.height,
+			CW_USEDEFAULT, CW_USEDEFAULT, wr.right-wr.left, wr.bottom-wr.top,
 			NULL,       
 			NULL,       
 			hInstance,  
@@ -286,7 +292,70 @@ namespace Pistachio {
 	}
 	void WindowsWindow::OnUpdate()
 	{
-		
+		struct Vertex
+		{
+			float x, y;
+		};
+		Vertex vertices[3]
+		{
+			{0.0f, 0.5f},
+			{0.5f, -0.5},
+			{-0.5, -0.5}
+		};
+		ID3D11Buffer* pVertexBuffer = NULL;
+		D3D11_BUFFER_DESC bd = {};
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bd.CPUAccessFlags = 0;
+		bd.MiscFlags = 0;
+		bd.ByteWidth = sizeof(vertices);
+		bd.StructureByteStride = sizeof(Vertex);
+		D3D11_SUBRESOURCE_DATA sd = {};
+		sd.pSysMem = vertices;
+		g_pd3dDevice->CreateBuffer(&bd, &sd, &pVertexBuffer);
+		UINT stride = sizeof(Vertex);
+		UINT offset = 0;
+
+		ID3D11InputLayout* pLayout = NULL;
+		const D3D11_INPUT_ELEMENT_DESC ied[]
+		{
+			{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}
+		};
+		g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
+		ID3D11VertexShader* pVertexShader = NULL;
+		ID3DBlob* pBlob = NULL;
+		ID3D11PixelShader* pPixelShader = NULL;
+		D3DReadFileToBlob(L"PixelShader.cso", &pBlob);
+		g_pd3dDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pPixelShader);
+		g_pd3dDeviceContext->PSSetShader(pPixelShader, nullptr, 0);
+
+		pBlob = NULL;
+		D3DReadFileToBlob(L"VertexShader.cso", &pBlob);
+		g_pd3dDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pVertexShader);
+		g_pd3dDeviceContext->VSSetShader(pVertexShader, nullptr, 0);
+
+		g_pd3dDevice->CreateInputLayout(ied, 1, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pLayout);
+
+		g_pd3dDeviceContext->IASetInputLayout(pLayout);
+		g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		D3D11_VIEWPORT vp;
+		vp.Width = (FLOAT)((WindowData*)GetWindowDataPtr())->width;
+		vp.Height = (FLOAT)((WindowData*)GetWindowDataPtr())->height;
+		vp.MinDepth = 0;
+		vp.MaxDepth = 1;
+		vp.TopLeftX = 0;
+		vp.TopLeftY = 0;
+		g_pd3dDeviceContext->RSSetViewports(1, &vp);
+
+		g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
+		FLOAT backgroundColor[4] = { 0.2f, 0.2f, 0.19f, 1.0f };
+		g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, backgroundColor);
+		g_pd3dDeviceContext->Draw(3, 0);
+	}
+	void WindowsWindow::EndFrame() const
+	{
+		g_pSwapChain->Present(m_data.vsync, 0);
 	}
 	void WindowsWindow::SetVsync(bool enabled)
 	{
@@ -313,12 +382,12 @@ bool CreateDeviceD3D(HWND hWnd)
 	sd.SampleDesc.Count = 1;
 	sd.SampleDesc.Quality = 0;
 	sd.Windowed = TRUE;
-	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
 	UINT createDeviceFlags = 0;
-	//createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 	D3D_FEATURE_LEVEL featureLevel;
-	const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
+	const D3D_FEATURE_LEVEL featureLevelArray[3] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
 	if (D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext) != S_OK)
 		return false;
 

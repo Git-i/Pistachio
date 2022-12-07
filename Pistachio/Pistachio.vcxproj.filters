@@ -143,8 +143,12 @@
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputPoll.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Pistachio\Core\KeyState.h">
+    <ClInclude Include="src\Pistachio\Core\KeyCodes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="src\Pistachio\Shaders\VertexShader.hlsl" />
+    <FxCompile Include="src\Pistachio\Shaders\PixelShader.hlsl" />
   </ItemGroup>
 </Project>

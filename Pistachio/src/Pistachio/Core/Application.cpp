@@ -2,7 +2,7 @@
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Application.h"
 #include "Pistachio/Event/Event.h"
-#include "Pistachio/Core/KeyState.h"
+#include "Pistachio/Core/KeyCodes.h"
 #include "Pistachio/ImGui/ImGuiLayer.h"
 #include "Pistachio/Core/Input.h"
 
@@ -62,6 +62,7 @@ namespace Pistachio {
 			m_Window->OnUpdate();
 			for (Layer* layer : m_layerstack)
 				layer->OnUpdate();
+			m_Window->EndFrame();
 		}
 	}
 }

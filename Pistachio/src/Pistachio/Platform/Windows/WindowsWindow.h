@@ -23,7 +23,7 @@ namespace Pistachio {
 		void OnUpdate() override;
 		inline unsigned int GetWidth() const override { return m_data.width; }
 		inline unsigned int GetHeight() const override { return m_data.height; }
-
+		void EndFrame() const override;
 		void SetVsync(bool enabled) override;
 		bool IsVsync() const override;
 		inline void SetEventCallback(const EventCallbackFn& event) { m_data.EventCallback = event; }
