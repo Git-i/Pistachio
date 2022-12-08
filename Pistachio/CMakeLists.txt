@@ -8,6 +8,8 @@ set(Header_Files
     "src/Pistachio/Core.h"
     "src/Pistachio/Core/Application.h"
     "src/Pistachio/Core/EntryPoint.h"
+    "src/Pistachio/Core/Input.h"
+    "src/Pistachio/Core/KeyCodes.h"
     "src/Pistachio/Core/Layer.h"
     "src/Pistachio/Core/LayerStack.h"
     "src/Pistachio/Core/Log.h"
@@ -18,7 +20,13 @@ set(Header_Files
     "src/Pistachio/Event/MouseEvent.h"
     "src/Pistachio/ImGui/ImGuiLayer.h"
     "src/Pistachio/Platform/Windows/WindowsInputCallbacks.h"
+    "src/Pistachio/Platform/Windows/WindowsInputPoll.h"
     "src/Pistachio/Platform/Windows/WindowsWindow.h"
+    "src/Pistachio/Renderer/Buffer.h"
+    "src/Pistachio/Renderer/DirectX11/DX11Buffer.h"
+    "src/Pistachio/Renderer/DirectX11/DX11Shader.h"
+    "src/Pistachio/Renderer/RendererBase.h"
+    "src/Pistachio/Renderer/Shader.h"
     "src/ptpch.h"
     "vendor/imgui/imconfig.h"
     "vendor/imgui/imgui.h"
@@ -37,7 +45,14 @@ set(Source_Files
     "src/Pistachio/Core/LayerStack.cpp"
     "src/Pistachio/Core/Log.cpp"
     "src/Pistachio/ImGui/ImGuiLayer.cpp"
+    "src/Pistachio/Platform/Windows/WindowsInputCallbacks.cpp"
+    "src/Pistachio/Platform/Windows/WindowsInputPoll.cpp"
     "src/Pistachio/Platform/Windows/WindowsWindow.cpp"
+    "src/Pistachio/Renderer/Buffer.cpp"
+    "src/Pistachio/Renderer/DirectX11/DX11Buffer.cpp"
+    "src/Pistachio/Renderer/DirectX11/DX11Shader.cpp"
+    "src/Pistachio/Renderer/RendererBase.cpp"
+    "src/Pistachio/Renderer/Shader.cpp"
     "src/ptpch.cpp"
     "vendor/imgui/imgui.cpp"
     "vendor/imgui/imgui_demo.cpp"
@@ -57,7 +72,7 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
+add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/src/ptpch.h>"
@@ -80,6 +95,21 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
 )
 ################################################################################
+# MSVC runtime library
+################################################################################
+get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY)
+string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
+    $<$<CONFIG:Debug>:
+        MultiThreadedDebug
+    >
+    $<$<CONFIG:Release>:
+        MultiThreaded
+    >
+    $<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
+)
+set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
+
+################################################################################
 # Include directories
 ################################################################################
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -97,14 +127,12 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         "_DEBUG"
     ">"
     "$<$<CONFIG:Release>:"
-        "NDEBUG"
+        "NDEBUG;"
+        "PISTACHIO_BUILD_DLL"
     ">"
     "_CONSOLE;"
     "PT_PLATFORM_WINDOWS;"
-    "PISTACHIO_BUILD_DLL;"
-    ";"
-    "UNICODE;"
-    "_UNICODE"
+    "PISTACHIO_RENDER_API_DX11"
 )
 
 ################################################################################
@@ -127,30 +155,15 @@ if(MSVC)
             /OPT:REF;
             /OPT:ICF
         >
-        /DEBUG;
         /SUBSYSTEM:WINDOWS
     )
 endif()
 
 ################################################################################
-# Post build events
-################################################################################
-add_custom_command_if(
-    TARGET ${PROJECT_NAME}
-    POST_BUILD
-    COMMANDS
-    COMMAND   $<CONFIG:Debug> copy $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>bin\\$<CONFIG>-${CMAKE_VS_PLATFORM_NAME}\\Pistachio\\Pistachio.dll $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>bin\\$<CONFIG>-${CMAKE_VS_PLATFORM_NAME}\\Sandbox
-    COMMAND $<CONFIG:Release> copy $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>bin\\$<CONFIG>-${CMAKE_VS_PLATFORM_NAME}\\Pistachio\\Pistachio.dll $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>bin\\$<CONFIG>-${CMAKE_VS_PLATFORM_NAME}\\Sandbox
-)
-
-################################################################################
 # Dependencies
 ################################################################################
 set(ADDITIONAL_LIBRARY_DEPENDENCIES
-    "opengl32;"
-    "d3d11;"
-    "d3dcompiler;"
-    "dxgi"
+    "d3d11"
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 

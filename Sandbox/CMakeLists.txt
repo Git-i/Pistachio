@@ -34,15 +34,26 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
 )
 ################################################################################
+# MSVC runtime library
+################################################################################
+get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY)
+string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
+    $<$<CONFIG:Debug>:
+        MultiThreadedDebug
+    >
+    $<$<CONFIG:Release>:
+        MultiThreaded
+    >
+    $<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
+)
+set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
+
+################################################################################
 # Include directories
 ################################################################################
 target_include_directories(${PROJECT_NAME} PUBLIC
-    "$<$<CONFIG:Debug>:"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../Pistachio/vendor/glfw/include"
-    ">"
     "${CMAKE_CURRENT_SOURCE_DIR}/../Pistachio/src;"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../Pistachio/vendor/spdlog/include;"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../Pistachio/vendor/gainput/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../Pistachio/vendor/spdlog/include"
 )
 
 ################################################################################
@@ -57,9 +68,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         "NDEBUG"
     ">"
     "_CONSOLE;"
-    "%(PreprocessorDefinitions)PT_PLATFORM_WINDOWS;"
-    "UNICODE;"
-    "_UNICODE"
+    "%(PreprocessorDefinitions)PT_PLATFORM_WINDOWS"
 )
 
 ################################################################################
@@ -92,17 +101,6 @@ if(MSVC)
         /SUBSYSTEM:WINDOWS
     )
 endif()
-
-################################################################################
-# Post build events
-################################################################################
-add_custom_command_if(
-    TARGET ${PROJECT_NAME}
-    POST_BUILD
-    COMMANDS
-    COMMAND   $<CONFIG:Debug> copy $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>bin\\$<CONFIG>-${CMAKE_VS_PLATFORM_NAME}\\Pistachio\\Pistachio.dll $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>bin\\$<CONFIG>-${CMAKE_VS_PLATFORM_NAME}\\${PROJECT_NAME}
-    COMMAND $<CONFIG:Release> copy $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>bin\\$<CONFIG>-${CMAKE_VS_PLATFORM_NAME}\\Pistachio\\Pistachio.dll $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>bin\\$<CONFIG>-${CMAKE_VS_PLATFORM_NAME}\\${PROJECT_NAME}
-)
 
 ################################################################################
 # Dependencies
