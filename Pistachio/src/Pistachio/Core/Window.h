@@ -32,7 +32,7 @@ using EventCallbackFn = std::function<void(Pistachio::Event& e)>;
 			unsigned int height;
 			const char* title;
 			bool vsync;
-			WindowInfo(unsigned int w = 800, unsigned int h = 600, const char* t = "Pistachio Engine", bool Vsync = true)
+			WindowInfo(unsigned int w = 1280, unsigned int h = 720, const char* t = "Pistachio Engine", bool Vsync = true)
 				: width(w), height(h), title(t), vsync(Vsync) {}
 		};
 		class PISTACHIO_API Window

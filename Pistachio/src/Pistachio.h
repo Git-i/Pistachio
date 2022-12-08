@@ -1,5 +1,5 @@
 #pragma once
-
+#include "ptpch.h"
 #include "Pistachio/Core/Application.h"
 #include "Pistachio/Core/LayerStack.h"
 #include "Pistachio/Event/Event.h"

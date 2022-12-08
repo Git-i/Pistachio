@@ -9,11 +9,10 @@
 #include "Pistachio/Event/KeyEvent.h"
 #include "Pistachio/Event/MouseEvent.h"
 #include "Pistachio/Platform/Windows/WindowsInputCallbacks.h"
+#include "Pistachio/Renderer/RendererBase.h"
+#include "Pistachio/Renderer/Buffer.h"
+#include "Pistachio/Renderer/Shader.h"
 
-ID3D11Device* g_pd3dDevice = NULL;
-ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
-IDXGISwapChain* g_pSwapChain = NULL;
-ID3D11RenderTargetView* g_mainRenderTargetView = NULL;
 void* WindowDataPtr = new void*;
 
 void* GetWindowDataPtr()
@@ -24,11 +23,8 @@ void SetWindowDataPtr(void* value)
 {
 	WindowDataPtr = value;
 }
-// Forward declarations of helper functions
-bool CreateDeviceD3D(HWND hWnd);
-void CleanupDeviceD3D();
-void CreateRenderTarget();
-void CleanupRenderTarget();
+
+
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -54,11 +50,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		UINT width = LOWORD(lParam);
 		UINT height = HIWORD(lParam);
 		Pistachio::OnResize(width, height);
-		if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED)
+		if (!Pistachio::Renderer::IsDeviceNull && wParam != SIZE_MINIMIZED)
 		{
-			CleanupRenderTarget();
-			g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-			CreateRenderTarget();
+			Pistachio::Renderer::Resize((FLOAT)width, (FLOAT)height);
 		}
 		break;
 	}
@@ -161,9 +155,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_MOUSEWHEEL:
 	{
-		GET_WHEEL_DELTA_WPARAM(wParam);
+		
 		float xPos =0;
-		float yPos =0;
+		float yPos = GET_WHEEL_DELTA_WPARAM(wParam);
 		Pistachio::OnMousseScroll(xPos, yPos);
 		break;
 	}
@@ -240,12 +234,7 @@ namespace Pistachio {
 		{
 			return 0;
 		}
-		if (!CreateDeviceD3D(pd.hwnd))
-		{
-			CleanupDeviceD3D();
-			::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-			return 1;
-		}
+		
 
 #if _DEBUG
 		if (AllocConsole() == 0)
@@ -272,9 +261,12 @@ namespace Pistachio {
 		std::wcout.clear();
 		std::wcerr.clear();
 		std::wcin.clear();
+
+		SetConsoleTitleW(L"Pistachio Application Debug Console");
 #endif
 		ShowWindow(pd.hwnd, SW_SHOW);
 		Pistachio::Log::Init();
+		Renderer::Init(pd.hwnd);
 
 		return 0;
 
@@ -286,76 +278,71 @@ namespace Pistachio {
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
 
-		CleanupDeviceD3D();
+		Renderer::Shutdown();
 		::DestroyWindow(pd.hwnd);
-		::UnregisterClassA("Sample Window Class", GetModuleHandleA(NULL));
+		::UnregisterClassW(L"Sample Window Class", GetModuleHandleA(NULL));
 	}
 	void WindowsWindow::OnUpdate()
 	{
 		struct Vertex
 		{
-			float x, y;
+			float x, y, r, g, b;
 		};
-		Vertex vertices[3]
+		Vertex vertices[6]
 		{
-			{0.0f, 0.5f},
-			{0.5f, -0.5},
-			{-0.5, -0.5}
+			{ 0.0f,  0.5f, 1.0f, 0,   0.19f,   },
+			{ 0.5f, -0.5f, 1.0f, 0,   1.0f, },
+			{-0.5f, -0.5f, 1.0f, 0,   1.0f, },
+			{-0.3f,  0.3f, 1.0f, 0,   0.19f,   },
+			{ 0.3f,  0.3f, 1.0f, 0.0f, 0.19f,   },
+			{ 0.0f, -0.8f, 1.0f, 0,   1.0f, }
 		};
-		ID3D11Buffer* pVertexBuffer = NULL;
-		D3D11_BUFFER_DESC bd = {};
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = 0;
-		bd.MiscFlags = 0;
-		bd.ByteWidth = sizeof(vertices);
-		bd.StructureByteStride = sizeof(Vertex);
-		D3D11_SUBRESOURCE_DATA sd = {};
-		sd.pSysMem = vertices;
-		g_pd3dDevice->CreateBuffer(&bd, &sd, &pVertexBuffer);
-		UINT stride = sizeof(Vertex);
-		UINT offset = 0;
-
-		ID3D11InputLayout* pLayout = NULL;
-		const D3D11_INPUT_ELEMENT_DESC ied[]
+		const unsigned short indices[]
 		{
-			{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}
+			0, 1, 2,
+			0, 2, 3,
+			0, 4, 1,
+			2, 1, 5
 		};
-		g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
-		ID3D11VertexShader* pVertexShader = NULL;
-		ID3DBlob* pBlob = NULL;
-		ID3D11PixelShader* pPixelShader = NULL;
-		D3DReadFileToBlob(L"PixelShader.cso", &pBlob);
-		g_pd3dDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pPixelShader);
-		g_pd3dDeviceContext->PSSetShader(pPixelShader, nullptr, 0);
+		VertexBuffer vertexbuffer;
+		vertexbuffer.Initialize(vertices, sizeof(vertices), sizeof(Vertex));
 
-		pBlob = NULL;
-		D3DReadFileToBlob(L"VertexShader.cso", &pBlob);
-		g_pd3dDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pVertexShader);
-		g_pd3dDeviceContext->VSSetShader(pVertexShader, nullptr, 0);
+		IndexBuffer indexbuffer;
+		indexbuffer.Initialize(indices, sizeof(indices), sizeof(unsigned short));
 
-		g_pd3dDevice->CreateInputLayout(ied, 1, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pLayout);
+		vertexbuffer.Bind();
+		indexbuffer.Bind();
 
-		g_pd3dDeviceContext->IASetInputLayout(pLayout);
-		g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		Shader BasicShader(L"VertexShader.cso", L"PixelShader.cso");
+		BasicShader.Bind(ShaderType::Vertex);
+		BasicShader.Bind(ShaderType::Pixel);
 
-		D3D11_VIEWPORT vp;
-		vp.Width = (FLOAT)((WindowData*)GetWindowDataPtr())->width;
-		vp.Height = (FLOAT)((WindowData*)GetWindowDataPtr())->height;
-		vp.MinDepth = 0;
-		vp.MaxDepth = 1;
-		vp.TopLeftX = 0;
-		vp.TopLeftY = 0;
-		g_pd3dDeviceContext->RSSetViewports(1, &vp);
+		BufferLayout layout[] = {
+			{"POSITION", BufferLayoutFormat::FLOAT2, 0},
+			{"COLOR", BufferLayoutFormat::FLOAT3, 8}
+		};
+		
+		BasicShader.CreateLayout(layout, 2);
+		
+		//Set Some Necessary Flags-----------------------------------------------------------
+		
+		//Set the Primitive Topology
+		Renderer::g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
-		FLOAT backgroundColor[4] = { 0.2f, 0.2f, 0.19f, 1.0f };
-		g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, backgroundColor);
-		g_pd3dDeviceContext->Draw(3, 0);
+		//Set Render Target
+		Renderer::g_pd3dDeviceContext->OMSetRenderTargets(1, &Renderer::g_mainRenderTargetView, NULL);
+
+		//----------------------------------------------------------------------------------
+
+		//Clear The Back Buffer (This could be done atop the main loop)
+		Renderer::ClearView();
+
+		//Draw our Triangles
+		Renderer::g_pd3dDeviceContext->DrawIndexed(12, 0, 0);
 	}
 	void WindowsWindow::EndFrame() const
 	{
-		g_pSwapChain->Present(m_data.vsync, 0);
+		Renderer::g_pSwapChain->Present(m_data.vsync, 0);
 	}
 	void WindowsWindow::SetVsync(bool enabled)
 	{
@@ -365,53 +352,4 @@ namespace Pistachio {
 		return m_data.vsync;
 	}
 }
-bool CreateDeviceD3D(HWND hWnd)
-{
-	// Setup swap chain
-	DXGI_SWAP_CHAIN_DESC sd;
-	ZeroMemory(&sd, sizeof(sd));
-	sd.BufferCount = 2;
-	sd.BufferDesc.Width = 0;
-	sd.BufferDesc.Height = 0;
-	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	sd.BufferDesc.RefreshRate.Numerator = 60;
-	sd.BufferDesc.RefreshRate.Denominator = 1;
-	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	sd.OutputWindow = hWnd;
-	sd.SampleDesc.Count = 1;
-	sd.SampleDesc.Quality = 0;
-	sd.Windowed = TRUE;
-	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-	UINT createDeviceFlags = 0;
-	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-	D3D_FEATURE_LEVEL featureLevel;
-	const D3D_FEATURE_LEVEL featureLevelArray[3] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
-	if (D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext) != S_OK)
-		return false;
-
-	CreateRenderTarget();
-	return true;
-}
-
-void CleanupDeviceD3D()
-{
-	CleanupRenderTarget();
-	if (g_pSwapChain) { g_pSwapChain->Release(); g_pSwapChain = NULL; }
-	if (g_pd3dDeviceContext) { g_pd3dDeviceContext->Release(); g_pd3dDeviceContext = NULL; }
-	if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = NULL; }
-}
-
-void CreateRenderTarget()
-{
-	ID3D11Texture2D* pBackBuffer;
-	g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-	g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
-	pBackBuffer->Release();
-}
-
-void CleanupRenderTarget()
-{
-	if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = NULL; }
-}

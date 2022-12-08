@@ -206,7 +206,7 @@ CODE
 
      // Initialize helper Platform and Renderer backends (here we are using imgui_impl_win32.cpp and imgui_impl_dx11.cpp)
      ImGui_ImplWin32_Init(hwnd);
-     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+     ImGui_ImplDX11_Init(Renderer::g_pd3dDevice, Renderer::g_pd3dDeviceContext);
 
      // Application main loop
      while (true)
@@ -222,7 +222,7 @@ CODE
          // Render dear imgui into screen
          ImGui::Render();
          ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-         g_pSwapChain->Present(1, 0);
+         Renderer::g_pSwapChain->Present(1, 0);
      }
 
      // Shutdown
