@@ -1,5 +1,6 @@
-#include "ptpch.h"
+#define PISTACHIO_RENDER_API_DX11
 #include "Pistachio.h"
+
 
 class Sandbox : public Pistachio::Application
 {

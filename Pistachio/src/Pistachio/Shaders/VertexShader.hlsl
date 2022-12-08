@@ -1,4 +1,13 @@
-float4 main(float2 pos : POSITION) : SV_POSITION
+struct VS_OUT
 {
-	return float4(pos.x, pos.y, 0.0f, 1.0f);
+	float4 color : COLOR;
+	float4 position : SV_POSITION;
+};
+
+VS_OUT main(float2 pos : POSITION, float4 color : COLOR)
+{
+	VS_OUT vso;
+	vso.color = color;
+	vso.position = float4(pos, 0.0f, 1.0f);
+	return vso;
 }

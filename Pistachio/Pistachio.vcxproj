@@ -57,7 +57,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_BUILD_DLL;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\gainput\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -85,7 +85,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_BUILD_DLL;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_BUILD_DLL;PISTACHIO_RENDER_API_DX11</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\gainput\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -105,10 +105,12 @@
       </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Shader.h" />
+    <ClInclude Include="src\Pistachio\Renderer\Shader.h" />
     <ClInclude Include="src\Pistachio\Core\KeyCodes.h" />
     <ClInclude Include="src\Pistachio\Core\Input.h" />
     <ClInclude Include="src\Pistachio\Core\Layer.h" />
@@ -126,8 +128,11 @@
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputPoll.h" />
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.h" />
     <ClInclude Include="src\Pistachio\Core\Window.h" />
+    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.h" />
     <ClInclude Include="src\ptpch.h" />
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsWindow.h" />
+    <ClInclude Include="src\Pistachio\Renderer\Buffer.h" />
+    <ClInclude Include="src\Pistachio\Renderer\RendererBase.h" />
     <ClInclude Include="vendor\imgui\imconfig.h" />
     <ClInclude Include="vendor\imgui\imgui.h" />
     <ClInclude Include="vendor\imgui\imgui_impl_dx11.h" />
@@ -138,6 +143,8 @@
     <ClInclude Include="vendor\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\Shader.cpp" />
     <ClCompile Include="src\Pistachio\Core\Layer.cpp" />
     <ClCompile Include="src\Pistachio\Core\LayerStack.cpp" />
     <ClCompile Include="src\Pistachio\Core\Log.cpp" />
@@ -145,12 +152,15 @@
     <ClCompile Include="src\Pistachio\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputPoll.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.cpp" />
     <ClCompile Include="src\ptpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ptpch.h</PrecompiledHeaderFile>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsWindow.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\Buffer.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\RendererBase.cpp" />
     <ClCompile Include="vendor\imgui\imgui.cpp" />
     <ClCompile Include="vendor\imgui\imgui_demo.cpp" />
     <ClCompile Include="vendor\imgui\imgui_draw.cpp" />
