@@ -6,3 +6,6 @@
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/ImGui/ImGuiLayer.h"
 #include "Pistachio/Core/EntryPoint.h"
+#include "Pistachio/Core/Input.h"
+#include "Pistachio/Core/KeyCodes.h"
+#include "Pistachio/Renderer/Renderer.h"

@@ -9,10 +9,10 @@
 #include "Pistachio/Event/KeyEvent.h"
 #include "Pistachio/Event/MouseEvent.h"
 #include "Pistachio/Platform/Windows/WindowsInputCallbacks.h"
-#include "Pistachio/Renderer/RendererBase.h"
+#include "Pistachio/Renderer/Renderer.h"
 #include "Pistachio/Renderer/Buffer.h"
 #include "Pistachio/Renderer/Shader.h"
-
+#include "Pistachio/Renderer/Camera.h"
 void* WindowDataPtr = new void*;
 
 void* GetWindowDataPtr()
@@ -34,135 +34,135 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return true;
 	switch (uMsg)
 	{
-	case WM_MOUSEMOVE:
-	{
-		int x = LOWORD(lParam);
-		int y = HIWORD(lParam);
-		Pistachio::OnMouseMove(x, y);
-		break;
-	}
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
-		break;
-	case WM_SIZE:
-	{
-		UINT width = LOWORD(lParam);
-		UINT height = HIWORD(lParam);
-		Pistachio::OnResize(width, height);
-		if (!Pistachio::Renderer::IsDeviceNull && wParam != SIZE_MINIMIZED)
+		case WM_MOUSEMOVE:
 		{
-			Pistachio::Renderer::Resize((FLOAT)width, (FLOAT)height);
+			int x = LOWORD(lParam);
+			int y = HIWORD(lParam);
+			Pistachio::OnMouseMove(x, y);
+			break;
 		}
-		break;
-	}
-	case WM_CLOSE:
-	{
-		int id = MessageBoxW(hwnd, L"Do you want to Exit", L"Exit Application", MB_ICONWARNING | MB_YESNO);
-		if (id == IDYES)
-		{
-			DestroyWindow(hwnd);
-		}
-		else
-		{
+		case WM_DESTROY:
+			PostQuitMessage(0);
 			return 0;
-		}
-		break;
-	}
-	case WM_KEYDOWN:
-	{
-		 Pistachio::OnKeyDown((int)wParam);
-		if ((int)wParam == Pistachio::LastKey)
-			KeyRepeat = true;
-		else
-			KeyRepeat = false;
-		Pistachio::LastKey = (int)wParam;
-		break;
-	}
-	case WM_KEYUP:
-	{
-		KeyRepeat = false;
-		Pistachio::KeyRepeatPoll = false;
-		break;
-	}
-	case WM_LBUTTONDOWN:
-	{
-		if (!ImGui::GetIO().WantCaptureMouse)
-			Pistachio::OnMouseButtonPress(0);
-		if (0x01 == Pistachio::LastKey)
-			KeyRepeat = true;
-		else
-			KeyRepeat = false;
-		Pistachio::LastKey = 0x01;
-		break;
-	}
-	case WM_RBUTTONDOWN:
-	{
-		ImGuiIO& io = ImGui::GetIO();
-		if (!io.WantCaptureMouse)
-		Pistachio::OnMouseButtonPress(1);
-		if (0x02 == Pistachio::LastKey)
-			KeyRepeat = true;
-		else
-			KeyRepeat = false;
-		Pistachio::LastKey = 0x02;
-		break;
-
-	}
-	case WM_MBUTTONDOWN:
-	{
-		if (!ImGui::GetIO().WantCaptureMouse)
-		Pistachio::OnMouseButtonPress(2);
-		if (0x04 == Pistachio::LastKey)
-			KeyRepeat = true;
-		else
-			KeyRepeat = false;
-		Pistachio::LastKey = 0x04;
-		break;
-	}
-	case WM_LBUTTONUP:
-	{
-		KeyRepeat = false;
-		Pistachio::KeyRepeatPoll = false;
-		if (!ImGui::GetIO().WantCaptureMouse)
-		Pistachio::OnMouseButtonRelease(0);
-		break;
-	}
-	case WM_RBUTTONUP:
-	{
-		KeyRepeat = false;
-		Pistachio::KeyRepeatPoll = false;
-		if (!ImGui::GetIO().WantCaptureMouse)
-		Pistachio::OnMouseButtonRelease(1);
-		break;
-
-	}
-	case WM_MBUTTONUP:
-	{
-		KeyRepeat = false;
-		Pistachio::KeyRepeatPoll = false;
-		Pistachio::OnMouseButtonRelease(2);
-		break;
-	}
-	case WM_DPICHANGED:
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DpiEnableScaleViewports)
+			break;
+		case WM_SIZE:
 		{
-			//const int dpi = HIWORD(wParam);
-			//printf("WM_DPICHANGED to %d (%.0f%%)\n", dpi, (float)dpi / 96.0f * 100.0f);
-			const RECT* suggested_rect = (RECT*)lParam;
-			::SetWindowPos(hwnd, NULL, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
+			UINT width = LOWORD(lParam);
+			UINT height = HIWORD(lParam);
+			Pistachio::OnResize(width, height);
+			if (!Pistachio::RendererBase::IsDeviceNull && wParam != SIZE_MINIMIZED)
+			{
+				Pistachio::RendererBase::Resize((FLOAT)width, (FLOAT)height);
+			}
+			break;
 		}
-		break;
-	case WM_MOUSEWHEEL:
-	{
-		
-		float xPos =0;
-		float yPos = GET_WHEEL_DELTA_WPARAM(wParam);
-		Pistachio::OnMousseScroll(xPos, yPos);
-		break;
-	}
+		case WM_CLOSE:
+		{
+			int id = MessageBoxW(hwnd, L"Do you want to Exit", L"Exit Application", MB_ICONWARNING | MB_YESNO);
+			if (id == IDYES)
+			{
+				DestroyWindow(hwnd);
+			}
+			else
+			{
+				return 0;
+			}
+			break;
+		}
+		case WM_KEYDOWN:
+		{
+			 Pistachio::OnKeyDown((int)wParam);
+			if ((int)wParam == Pistachio::LastKey)
+				KeyRepeat = true;
+			else
+				KeyRepeat = false;
+			Pistachio::LastKey = (int)wParam;
+			break;
+		}
+		case WM_KEYUP:
+		{
+			KeyRepeat = false;
+			Pistachio::KeyRepeatPoll = false;
+			break;
+		}
+		case WM_LBUTTONDOWN:
+		{
+			if (!ImGui::GetIO().WantCaptureMouse)
+				Pistachio::OnMouseButtonPress(0);
+			if (0x01 == Pistachio::LastKey)
+				KeyRepeat = true;
+			else
+				KeyRepeat = false;
+			Pistachio::LastKey = 0x01;
+			break;
+		}
+		case WM_RBUTTONDOWN:
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			if (!io.WantCaptureMouse)
+			Pistachio::OnMouseButtonPress(1);
+			if (0x02 == Pistachio::LastKey)
+				KeyRepeat = true;
+			else
+				KeyRepeat = false;
+			Pistachio::LastKey = 0x02;
+			break;
 
-}
+		}
+		case WM_MBUTTONDOWN:
+		{
+			if (!ImGui::GetIO().WantCaptureMouse)
+			Pistachio::OnMouseButtonPress(2);
+			if (0x04 == Pistachio::LastKey)
+				KeyRepeat = true;
+			else
+				KeyRepeat = false;
+			Pistachio::LastKey = 0x04;
+			break;
+		}
+		case WM_LBUTTONUP:
+		{
+			KeyRepeat = false;
+			Pistachio::KeyRepeatPoll = false;
+			if (!ImGui::GetIO().WantCaptureMouse)
+			Pistachio::OnMouseButtonRelease(0);
+			break;
+		}
+		case WM_RBUTTONUP:
+		{
+			KeyRepeat = false;
+			Pistachio::KeyRepeatPoll = false;
+			if (!ImGui::GetIO().WantCaptureMouse)
+			Pistachio::OnMouseButtonRelease(1);
+			break;
+
+		}
+		case WM_MBUTTONUP:
+		{
+			KeyRepeat = false;
+			Pistachio::KeyRepeatPoll = false;
+			Pistachio::OnMouseButtonRelease(2);
+			break;
+		}
+		case WM_DPICHANGED:
+			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DpiEnableScaleViewports)
+			{
+				//const int dpi = HIWORD(wParam);
+				//printf("WM_DPICHANGED to %d (%.0f%%)\n", dpi, (float)dpi / 96.0f * 100.0f);
+				const RECT* suggested_rect = (RECT*)lParam;
+				::SetWindowPos(hwnd, NULL, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
+			}
+			break;
+		case WM_MOUSEWHEEL:
+		{
+		
+			float xPos =0;
+			float yPos = GET_WHEEL_DELTA_WPARAM(wParam);
+			Pistachio::OnMousseScroll(xPos, yPos);
+			break;
+		}
+
+	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
@@ -266,7 +266,7 @@ namespace Pistachio {
 #endif
 		ShowWindow(pd.hwnd, SW_SHOW);
 		Pistachio::Log::Init();
-		Renderer::Init(pd.hwnd);
+		RendererBase::Init(pd.hwnd);
 
 		return 0;
 
@@ -278,76 +278,25 @@ namespace Pistachio {
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
 
-		Renderer::Shutdown();
+		RendererBase::Shutdown();
 		::DestroyWindow(pd.hwnd);
 		::UnregisterClassW(L"Sample Window Class", GetModuleHandleA(NULL));
 	}
-	void WindowsWindow::OnUpdate()
+	void WindowsWindow::OnUpdate(float delta)
 	{
-		struct Vertex
-		{
-			float x, y, r, g, b;
-		};
-		Vertex vertices[6]
-		{
-			{ 0.0f,  0.5f, 1.0f, 0,   0.19f,   },
-			{ 0.5f, -0.5f, 1.0f, 0,   1.0f, },
-			{-0.5f, -0.5f, 1.0f, 0,   1.0f, },
-			{-0.3f,  0.3f, 1.0f, 0,   0.19f,   },
-			{ 0.3f,  0.3f, 1.0f, 0.0f, 0.19f,   },
-			{ 0.0f, -0.8f, 1.0f, 0,   1.0f, }
-		};
-		const unsigned short indices[]
-		{
-			0, 1, 2,
-			0, 2, 3,
-			0, 4, 1,
-			2, 1, 5
-		};
-		VertexBuffer vertexbuffer;
-		vertexbuffer.Initialize(vertices, sizeof(vertices), sizeof(Vertex));
-
-		IndexBuffer indexbuffer;
-		indexbuffer.Initialize(indices, sizeof(indices), sizeof(unsigned short));
-
-		vertexbuffer.Bind();
-		indexbuffer.Bind();
-
-		Shader BasicShader(L"VertexShader.cso", L"PixelShader.cso");
-		BasicShader.Bind(ShaderType::Vertex);
-		BasicShader.Bind(ShaderType::Pixel);
-
-		BufferLayout layout[] = {
-			{"POSITION", BufferLayoutFormat::FLOAT2, 0},
-			{"COLOR", BufferLayoutFormat::FLOAT3, 8}
-		};
-		
-		BasicShader.CreateLayout(layout, 2);
-		
-		//Set Some Necessary Flags-----------------------------------------------------------
-		
-		//Set the Primitive Topology
-		Renderer::g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		//Set Render Target
-		Renderer::g_pd3dDeviceContext->OMSetRenderTargets(1, &Renderer::g_mainRenderTargetView, NULL);
-
-		//----------------------------------------------------------------------------------
-
-		//Clear The Back Buffer (This could be done atop the main loop)
-		Renderer::ClearView();
-
-		//Draw our Triangles
-		Renderer::g_pd3dDeviceContext->DrawIndexed(12, 0, 0);
+#ifdef _DEBUG
+		char buf[20];
+		int a = int(1/delta);
+		_itoa_s(a, buf, 10);
+		std::string title = std::string("FPS: ") + buf;
+		SetWindowTextW(pd.hwnd, (wchar_t*)title.c_str());
+#endif // _DEBUG
 	}
-	void WindowsWindow::EndFrame() const
+	void WindowsWindow::SetVsync(unsigned int enabled)
 	{
-		Renderer::g_pSwapChain->Present(m_data.vsync, 0);
+		m_data.vsync = enabled;
 	}
-	void WindowsWindow::SetVsync(bool enabled)
-	{
-	}
-	bool WindowsWindow::IsVsync() const
+	unsigned int WindowsWindow::IsVsync() const
 	{
 		return m_data.vsync;
 	}

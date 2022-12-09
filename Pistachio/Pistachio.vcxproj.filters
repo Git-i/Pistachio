@@ -78,6 +78,15 @@
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Pistachio\Core\Application.h">
@@ -174,6 +183,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Renderer\Renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Renderer\Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Core\Timestep.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

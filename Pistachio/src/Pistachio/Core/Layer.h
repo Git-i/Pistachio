@@ -10,7 +10,7 @@ namespace Pistachio {
 
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
-		virtual void OnUpdate() {}
+		virtual void OnUpdate(float delta) {}
 		virtual void OnEvent(Event& event) {}
 
 		inline const char* GetName() const { return m_DebugName; }

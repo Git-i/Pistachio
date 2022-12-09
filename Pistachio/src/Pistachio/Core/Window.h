@@ -20,7 +20,7 @@ using EventCallbackFn = std::function<void(Pistachio::Event& e)>;
 		unsigned int width = 0;
 		unsigned int height = 0;
 		const char* title;
-		bool vsync = true;
+		unsigned int vsync = 1;
 		EventCallbackFn EventCallback;
 	};
 
@@ -31,8 +31,8 @@ using EventCallbackFn = std::function<void(Pistachio::Event& e)>;
 			unsigned int width;
 			unsigned int height;
 			const char* title;
-			bool vsync;
-			WindowInfo(unsigned int w = 1280, unsigned int h = 720, const char* t = "Pistachio Engine", bool Vsync = true)
+			unsigned int vsync;
+			WindowInfo(unsigned int w = 1280, unsigned int h = 720, const char* t = "Pistachio Engine", unsigned int Vsync = 1)
 				: width(w), height(h), title(t), vsync(Vsync) {}
 		};
 		class PISTACHIO_API Window
@@ -40,15 +40,14 @@ using EventCallbackFn = std::function<void(Pistachio::Event& e)>;
 		public:
 
 			virtual ~Window() {}
-			virtual void OnUpdate() = 0;
+			virtual void OnUpdate(float) = 0;
 
 			virtual unsigned int GetWidth() const = 0;
 			virtual unsigned int GetHeight() const = 0;
 
-			virtual void SetVsync(bool enabled) = 0;
+			virtual void SetVsync(unsigned int enabled) = 0;
 			virtual void SetEventCallback(const EventCallbackFn& event) = 0;
-			virtual bool IsVsync() const = 0;
-			virtual void EndFrame() const = 0;
+			virtual unsigned int IsVsync() const = 0;
 			static Window* Create(const WindowInfo& info = WindowInfo());
 			PlatformData pd;
 		protected:

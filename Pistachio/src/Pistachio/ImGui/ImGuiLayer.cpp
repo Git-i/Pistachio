@@ -15,7 +15,7 @@ namespace Pistachio {
 	{
 	}
 		
-		void ImGuiLayer::OnUpdate()
+		void ImGuiLayer::OnUpdate(float delta)
 		{
 			// Start the Dear ImGui frame
 			ImGui_ImplDX11_NewFrame();
@@ -133,6 +133,6 @@ namespace Pistachio {
 		colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 
 		ImGui_ImplWin32_Init(Application::Get().GetWindow().pd.hwnd);
-		ImGui_ImplDX11_Init(Renderer::g_pd3dDevice, Renderer::g_pd3dDeviceContext);
+		ImGui_ImplDX11_Init(RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());
 	}
 }

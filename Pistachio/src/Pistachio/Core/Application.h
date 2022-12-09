@@ -6,6 +6,10 @@
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Event/KeyEvent.h"
 
+#include "Pistachio/Renderer/Renderer.h"
+#include "Pistachio/Renderer/Buffer.h"
+#include "Pistachio/Renderer/Shader.h"
+#include "Pistachio/Renderer/Camera.h"
 namespace Pistachio {
 
 	class PISTACHIO_API Application
@@ -25,6 +29,10 @@ namespace Pistachio {
 		std::unique_ptr<Window> m_Window;
 		bool m_Running = true;
 		static Application* s_Instance;
+		LARGE_INTEGER frequency;
+		double period;
+		double lastFrameTime = 0.0f;
+		LARGE_INTEGER ticks;
 	};
 
 	Application* CreateApplication();

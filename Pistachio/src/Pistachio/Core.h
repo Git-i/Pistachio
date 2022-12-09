@@ -36,3 +36,4 @@ typedef int KeyCode;
 #pragma message(__FILE__ "(" STRING(__LINE__) "): warning: DirectX 12 is Currently not supported, defaulting to DX11")
 #define PISTACHIO_RENDER_API_DX11
 #endif // PISTACHIO_RENDER_API_DX12
+#define BIND_EVENT_FN(x) std::bind(&x, this, std::placeholders::_1)
