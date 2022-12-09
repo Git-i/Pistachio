@@ -1,13 +1,6 @@
 #pragma once
-#include "RendererBase.h"
 
 namespace Pistachio {
-
-#ifdef PISTACHIO_RENDER_API_DX11
-	
-#endif // PISTACHIO_RENDER_API_DX11
-
-	
 	class VertexBuffer
 	{
 	public:
@@ -31,9 +24,23 @@ namespace Pistachio {
 		void Bind();
 		void UnBind();
 		void Initialize(const void* indices, unsigned int size, unsigned int stride);
+		inline unsigned short GetCount() { return count; }
 	private:
+		unsigned short count;
 		#ifdef PISTACHIO_RENDER_API_DX11
 			ID3D11Buffer* pIndexBuffer = NULL;
 		#endif // PISTACHIO_RENDER_API_DX11
+	};
+	struct Buffer
+	{
+	public:
+		VertexBuffer* vb;
+		IndexBuffer* ib;
+		Buffer(VertexBuffer* Vb, IndexBuffer* Ib) : vb(Vb), ib(Ib) {}
+		inline const void Bind()
+		{
+			vb->Bind();
+			ib->Bind();
+		}
 	};
 }

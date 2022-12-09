@@ -4,7 +4,6 @@
 namespace Pistachio {
 	LayerStack::LayerStack()
 	{
-		m_LayerInsert = m_Layers.begin();
 	}
 
 	LayerStack::~LayerStack()
@@ -15,12 +14,13 @@ namespace Pistachio {
 
 	void LayerStack::PushLayer(Layer* layer)
 	{
-		m_LayerInsert = m_Layers.emplace(m_LayerInsert, layer);
+		m_Layers.emplace(m_Layers.begin() + m_LayerCount, layer);
+		m_LayerCount++;
 	}
 
 	void LayerStack::PushOverlay(Layer* overlay)
 	{
-		m_Layers.emplace_back(overlay);
+		m_Layers.push_back(overlay);
 	}
 
 	void LayerStack::PopLayer(Layer* layer)
@@ -29,7 +29,7 @@ namespace Pistachio {
 		if (it != m_Layers.end())
 		{
 			m_Layers.erase(it);
-			m_LayerInsert--;
+			m_LayerCount--;
 		}
 	}
 

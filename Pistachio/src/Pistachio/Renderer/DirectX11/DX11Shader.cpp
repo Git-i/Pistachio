@@ -27,7 +27,7 @@ ID3D11VertexShader* DX11Shader::CreateVertexShader(const wchar_t* VertexSource, 
 {
 	ID3D11VertexShader* pVertexShader = NULL;
 	D3DReadFileToBlob(VertexSource, pBlob);
-	Pistachio::Renderer::g_pd3dDevice->CreateVertexShader((*pBlob)->GetBufferPointer(), (*pBlob)->GetBufferSize(), nullptr, &pVertexShader);
+	Pistachio::RendererBase::Getd3dDevice()->CreateVertexShader((*pBlob)->GetBufferPointer(), (*pBlob)->GetBufferSize(), nullptr, &pVertexShader);
 	return pVertexShader;
 }
 
@@ -35,7 +35,7 @@ ID3D11PixelShader* DX11Shader::CreatePixelShader(const wchar_t* FragmentSource, 
 {
 	ID3D11PixelShader* pPixelShader = NULL;
 	D3DReadFileToBlob(FragmentSource, pBlob);
-	Pistachio::Renderer::g_pd3dDevice->CreatePixelShader((*pBlob)->GetBufferPointer(), (*pBlob)->GetBufferSize(), nullptr, &pPixelShader);
+	Pistachio::RendererBase::Getd3dDevice()->CreatePixelShader((*pBlob)->GetBufferPointer(), (*pBlob)->GetBufferSize(), nullptr, &pPixelShader);
 	return pPixelShader;
 }
 
@@ -47,7 +47,23 @@ ID3D11InputLayout* DX11Shader::CreateInputLayout(Pistachio::BufferLayout* layout
 	for (int i = 0; i < nAttribures; i++) {
 		ied.push_back(D3D11_INPUT_ELEMENT_DESC{ layout[i].Name, 0, DXGIFormat(layout[i].Format), 0, layout[i].Offset, D3D11_INPUT_PER_VERTEX_DATA, 0 });
 	}
-	Pistachio::Renderer::g_pd3dDevice->CreateInputLayout(&ied.front(), nAttribures, v, s, &pInputLayout);
-	Pistachio::Renderer::g_pd3dDeviceContext->IASetInputLayout(pInputLayout);
+	Pistachio::RendererBase::Getd3dDevice()->CreateInputLayout(&ied.front(), nAttribures, v, s, &pInputLayout);
+	Pistachio::RendererBase::Getd3dDeviceContext()->IASetInputLayout(pInputLayout);
 	return pInputLayout;
+}
+
+void DX11Shader::CreateConstantBuffer(Pistachio::ConstantBuffer& cb, ID3D11Device* device, ID3D11DeviceContext* context)
+{
+	ID3D11Buffer* constBuffer;
+	D3D11_BUFFER_DESC cbd = {};
+	cbd.ByteWidth = sizeof(cb);
+	cbd.Usage = D3D11_USAGE_DYNAMIC;
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
+	cbd.MiscFlags = 0;
+	cbd.StructureByteStride = sizeof(Pistachio::ConstantBuffer);
+	D3D11_SUBRESOURCE_DATA sd;
+	sd.pSysMem = &cb;
+	device->CreateBuffer(&cbd, &sd, &constBuffer);
+	context->VSSetConstantBuffers(0, 1, &constBuffer);
 }

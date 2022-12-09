@@ -7,7 +7,7 @@
 #include "Pistachio/Core/Input.h"
 
 namespace Pistachio {
-#define BIND_EVENT_FN(x) std::bind(&x, this, std::placeholders::_1)
+
 	Application* Application::s_Instance = nullptr;
 	Application::Application()
 	{
@@ -16,6 +16,8 @@ namespace Pistachio {
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 		PushOverlay(new Pistachio::ImGuiLayer());
+		QueryPerformanceFrequency(&frequency);
+		period = 1 / (float)frequency.QuadPart;
 	}
 
 	Application::~Application()
@@ -49,6 +51,10 @@ namespace Pistachio {
 	void Application::Run()
 	{
 		while (m_Running) {
+			QueryPerformanceCounter(&ticks);
+			double time = (ticks.QuadPart * period);
+			float delta = (float)(time - lastFrameTime);
+			lastFrameTime = time;
 			MSG msg = {};
 			while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
 			{
@@ -59,10 +65,10 @@ namespace Pistachio {
 			}
 			if (!m_Running)
 				break;
-			m_Window->OnUpdate();
+			m_Window->OnUpdate(delta);
 			for (Layer* layer : m_layerstack)
-				layer->OnUpdate();
-			m_Window->EndFrame();
+				layer->OnUpdate(delta);
+			Renderer::EndScene();
 		}
 	}
 }

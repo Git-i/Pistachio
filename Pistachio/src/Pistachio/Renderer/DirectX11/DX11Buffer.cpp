@@ -15,7 +15,7 @@ namespace Pistachio {
 		bd.StructureByteStride = stride;
 		D3D11_SUBRESOURCE_DATA sd = {};
 		sd.pSysMem = vertices;
-		Renderer::g_pd3dDevice->CreateBuffer(&bd, &sd, &pVertexBuffer);
+		RendererBase::Getd3dDevice()->CreateBuffer(&bd, &sd, &pVertexBuffer);
 		return pVertexBuffer;
 	}
 	ID3D11Buffer* DX11Buffer::CreateIndexBuffer(const void* indices, unsigned int size, unsigned int stride)
@@ -30,7 +30,7 @@ namespace Pistachio {
 		bd.StructureByteStride = stride;
 		D3D11_SUBRESOURCE_DATA sd = {};
 		sd.pSysMem = indices;
-		Renderer::g_pd3dDevice->CreateBuffer(&bd, &sd, &pIndexBuffer);
+		RendererBase::Getd3dDevice()->CreateBuffer(&bd, &sd, &pIndexBuffer);
 		return pIndexBuffer;
 	}
 	

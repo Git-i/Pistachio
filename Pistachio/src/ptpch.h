@@ -12,9 +12,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#ifdef PT_PLATFORM_WINDOWS
+#if defined(PT_PLATFORM_WINDOWS)
 	#include <windows.h>
 	#include <d3d11.h>
 	#include <d3dcompiler.h>
+	#include <DirectXMath.h>
 #endif // PT_PLATFORM_WINDOWS
 

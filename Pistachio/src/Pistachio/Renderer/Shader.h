@@ -1,6 +1,10 @@
 #pragma once
 
 namespace Pistachio {
+	struct ConstantBuffer
+	{
+		DirectX::XMMATRIX transform;
+	};
 	enum class ShaderType
 	{
 		Vertex = 0,
@@ -36,17 +40,17 @@ namespace Pistachio {
 		switch (format)
 		{
 		case BufferLayoutFormat::FLOAT4: return 4 * 4;
-		case BufferLayoutFormat::UINT4: return 4 * 4;
-		case BufferLayoutFormat::INT4: return 4 * 4;
+		case BufferLayoutFormat::UINT4:  return 4 * 4;
+		case BufferLayoutFormat::INT4:   return 4 * 4;
 		case BufferLayoutFormat::FLOAT3: return 4 * 3;
-		case BufferLayoutFormat::UINT3: return 4 * 3;
-		case BufferLayoutFormat::INT3: return 4 * 3;
+		case BufferLayoutFormat::UINT3:  return 4 * 3;
+		case BufferLayoutFormat::INT3:   return 4 * 3;
 		case BufferLayoutFormat::FLOAT2: return 4 * 2;
-		case BufferLayoutFormat::UINT2: return 4 * 2;
-		case BufferLayoutFormat::INT2: return 4 * 2;
-		case BufferLayoutFormat::FLOAT: return 4;
-		case BufferLayoutFormat::UINT: return 4;
-		case BufferLayoutFormat::INT: return 4;
+		case BufferLayoutFormat::UINT2:  return 4 * 2;
+		case BufferLayoutFormat::INT2:   return 4 * 2;
+		case BufferLayoutFormat::FLOAT:  return 4;
+		case BufferLayoutFormat::UINT:   return 4;
+		case BufferLayoutFormat::INT:    return 4;
 		default:
 			break;
 		}
@@ -58,6 +62,7 @@ namespace Pistachio {
 		Shader(const wchar_t* vsrc, const wchar_t* fsrc);
 		void CreateLayout(BufferLayout* layout, int nAttributes);
 		void Bind(ShaderType type);
+		void SetUniformBuffer(ConstantBuffer& cb);
 	private:
 #ifdef PISTACHIO_RENDER_API_DX11
 		ID3DBlob* pBlob = NULL;
@@ -65,7 +70,6 @@ namespace Pistachio {
 		ID3D11PixelShader* pPixelShader = NULL;
 		ID3D11InputLayout* pInputLayout = NULL;
 #endif // PISTACHIO_RENDER_API_DX11
-
 	};
 }
 

@@ -9,7 +9,7 @@ namespace Pistachio {
 		ImGuiLayer();
 		~ImGuiLayer();
 
-		void OnUpdate() override;
+		void OnUpdate(float delta) override;
 		void OnEvent(Event& event) override;
 		void OnAttach() override;
 	private:

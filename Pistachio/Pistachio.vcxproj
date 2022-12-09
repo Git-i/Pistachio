@@ -109,7 +109,11 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Pistachio\Core\Timestep.h" />
+    <ClInclude Include="src\Pistachio\Renderer\Camera.h" />
+    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Shader.h" />
+    <ClInclude Include="src\Pistachio\Renderer\Renderer.h" />
     <ClInclude Include="src\Pistachio\Renderer\Shader.h" />
     <ClInclude Include="src\Pistachio\Core\KeyCodes.h" />
     <ClInclude Include="src\Pistachio\Core\Input.h" />
@@ -143,7 +147,10 @@
     <ClInclude Include="vendor\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Pistachio\Renderer\Camera.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Shader.cpp" />
     <ClCompile Include="src\Pistachio\Core\Layer.cpp" />
     <ClCompile Include="src\Pistachio\Core\LayerStack.cpp" />
