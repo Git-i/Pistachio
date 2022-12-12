@@ -13,11 +13,13 @@ namespace Pistachio {
 	{
 		s_Instance = this;
 		void* n = GetWindowDataPtr();
-		m_Window = std::unique_ptr<Window>(Window::Create());
+		m_Window = Scope<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 		PushOverlay(new Pistachio::ImGuiLayer());
 		QueryPerformanceFrequency(&frequency);
 		period = 1 / (float)frequency.QuadPart;
+		QueryPerformanceCounter(&ticks);
+		InitTime = (ticks.QuadPart * period);
 	}
 
 	Application::~Application()
@@ -52,7 +54,7 @@ namespace Pistachio {
 	{
 		while (m_Running) {
 			QueryPerformanceCounter(&ticks);
-			double time = (ticks.QuadPart * period);
+			double time = (ticks.QuadPart * period) - InitTime;
 			float delta = (float)(time - lastFrameTime);
 			lastFrameTime = time;
 			MSG msg = {};
@@ -68,6 +70,17 @@ namespace Pistachio {
 			m_Window->OnUpdate(delta);
 			for (Layer* layer : m_layerstack)
 				layer->OnUpdate(delta);
+			for (Layer* layer : m_layerstack)
+				layer->OnImGuiRender();
+			ImGui::Render();
+
+
+			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+			{
+				ImGui::UpdatePlatformWindows();
+				ImGui::RenderPlatformWindowsDefault();
+			}
 			Renderer::EndScene();
 		}
 	}

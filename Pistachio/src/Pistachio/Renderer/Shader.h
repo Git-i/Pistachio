@@ -3,6 +3,7 @@
 namespace Pistachio {
 	struct ConstantBuffer
 	{
+		DirectX::XMMATRIX cameraTransform;
 		DirectX::XMMATRIX transform;
 	};
 	enum class ShaderType
@@ -63,13 +64,15 @@ namespace Pistachio {
 		void CreateLayout(BufferLayout* layout, int nAttributes);
 		void Bind(ShaderType type);
 		void SetUniformBuffer(ConstantBuffer& cb);
+		void Shutdown();
+		~Shader();
 	private:
-#ifdef PISTACHIO_RENDER_API_DX11
-		ID3DBlob* pBlob = NULL;
-		ID3D11VertexShader* pVertexShader = NULL;
-		ID3D11PixelShader* pPixelShader = NULL;
-		ID3D11InputLayout* pInputLayout = NULL;
-#endif // PISTACHIO_RENDER_API_DX11
+		#ifdef PISTACHIO_RENDER_API_DX11
+			ID3DBlob* pBlob = NULL;
+			ID3D11VertexShader* pVertexShader = NULL;
+			ID3D11PixelShader* pPixelShader = NULL;
+			ID3D11InputLayout* pInputLayout = NULL;
+		#endif // PISTACHIO_RENDER_API_DX11
 	};
 }
 

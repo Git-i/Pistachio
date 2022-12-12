@@ -12,7 +12,7 @@ namespace Pistachio {
 		virtual void OnDetach() {}
 		virtual void OnUpdate(float delta) {}
 		virtual void OnEvent(Event& event) {}
-
+		virtual void OnImGuiRender(){}
 		inline const char* GetName() const { return m_DebugName; }
 	protected:
 		const char* m_DebugName;

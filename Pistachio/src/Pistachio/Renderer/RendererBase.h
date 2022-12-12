@@ -27,6 +27,7 @@ namespace Pistachio {
 			static inline ID3D11DeviceContext* Getd3dDeviceContext() { return g_pd3dDeviceContext; }
 			static inline IDXGISwapChain* GetSwapChain() { return g_pSwapChain; }
 			static inline ID3D11RenderTargetView* GetmainRenderTargetView() { return g_mainRenderTargetView; }
+			static inline ID3D11DepthStencilView* GetDepthStencilView(){ return pDSV; }
 		#endif
 	private:
 		#ifdef PISTACHIO_RENDER_API_DX11
@@ -34,6 +35,7 @@ namespace Pistachio {
 			static ID3D11DeviceContext* g_pd3dDeviceContext;
 			static IDXGISwapChain* g_pSwapChain;
 			static ID3D11RenderTargetView* g_mainRenderTargetView;
+			static ID3D11DepthStencilView* pDSV;
 		#endif
 		static FLOAT m_ClearColor[4];
 	};
