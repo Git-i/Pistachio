@@ -32,6 +32,7 @@ namespace Pistachio {
 		LARGE_INTEGER frequency;
 		double period;
 		double lastFrameTime = 0.0f;
+		double InitTime;
 		LARGE_INTEGER ticks;
 	};
 

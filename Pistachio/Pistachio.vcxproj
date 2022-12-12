@@ -57,9 +57,9 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\gainput\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
       <PreprocessToFile>false</PreprocessToFile>
@@ -87,7 +87,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_BUILD_DLL;PISTACHIO_RENDER_API_DX11</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\gainput\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
       <PreprocessToFile>false</PreprocessToFile>
@@ -109,11 +109,14 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Texture.h" />
     <ClInclude Include="src\Pistachio\Core\Timestep.h" />
+    <ClInclude Include="src\Pistachio\Core\Transform.h" />
     <ClInclude Include="src\Pistachio\Renderer\Camera.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Shader.h" />
     <ClInclude Include="src\Pistachio\Renderer\Renderer.h" />
+    <ClInclude Include="src\Pistachio\Renderer\Sampler.h" />
     <ClInclude Include="src\Pistachio\Renderer\Shader.h" />
     <ClInclude Include="src\Pistachio\Core\KeyCodes.h" />
     <ClInclude Include="src\Pistachio\Core\Input.h" />
@@ -137,6 +140,7 @@
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Pistachio\Renderer\Buffer.h" />
     <ClInclude Include="src\Pistachio\Renderer\RendererBase.h" />
+    <ClInclude Include="src\Pistachio\Renderer\Texture.h" />
     <ClInclude Include="vendor\imgui\imconfig.h" />
     <ClInclude Include="vendor\imgui\imgui.h" />
     <ClInclude Include="vendor\imgui\imgui_impl_dx11.h" />
@@ -145,12 +149,16 @@
     <ClInclude Include="vendor\imgui\imstb_rectpack.h" />
     <ClInclude Include="vendor\imgui\imstb_textedit.h" />
     <ClInclude Include="vendor\imgui\imstb_truetype.h" />
+    <ClInclude Include="vendor\stb_image\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Texture.cpp" />
+    <ClCompile Include="src\Pistachio\Core\Transform.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Camera.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Renderer.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\Sampler.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Shader.cpp" />
     <ClCompile Include="src\Pistachio\Core\Layer.cpp" />
     <ClCompile Include="src\Pistachio\Core\LayerStack.cpp" />
@@ -168,6 +176,7 @@
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Buffer.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RendererBase.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\Texture.cpp" />
     <ClCompile Include="vendor\imgui\imgui.cpp" />
     <ClCompile Include="vendor\imgui\imgui_demo.cpp" />
     <ClCompile Include="vendor\imgui\imgui_draw.cpp" />
@@ -175,6 +184,7 @@
     <ClCompile Include="vendor\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="vendor\imgui\imgui_tables.cpp" />
     <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="vendor\stb_image\stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Pistachio\Shaders\PixelShader.hlsl">

@@ -17,5 +17,6 @@
 	#include <d3d11.h>
 	#include <d3dcompiler.h>
 	#include <DirectXMath.h>
+	#include <Xinput.h>
 #endif // PT_PLATFORM_WINDOWS
 

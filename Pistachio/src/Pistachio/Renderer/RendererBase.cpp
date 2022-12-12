@@ -7,6 +7,7 @@ ID3D11Device* Pistachio::RendererBase::g_pd3dDevice = NULL;
 ID3D11DeviceContext* Pistachio::RendererBase::g_pd3dDeviceContext = NULL;
 IDXGISwapChain* Pistachio::RendererBase::g_pSwapChain = NULL;
 ID3D11RenderTargetView* Pistachio::RendererBase::g_mainRenderTargetView = NULL;
+ID3D11DepthStencilView* Pistachio::RendererBase::pDSV = NULL;
 bool Pistachio::RendererBase::IsDeviceNull = true;
 FLOAT Pistachio::RendererBase::m_ClearColor[4] = {0};
 namespace Pistachio {
@@ -35,7 +36,7 @@ namespace Pistachio {
 	bool RendererBase::Init(HWND hwnd)
 	{
 	#ifdef PISTACHIO_RENDER_API_DX11
-		g_mainRenderTargetView = DX11RendererBase::CreateDevice(hwnd, &g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext);
+		g_mainRenderTargetView = DX11RendererBase::CreateDevice(hwnd, &g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext, &pDSV);
 		PT_CORE_INFO("RendererBase Initialized with API: DirectX 11");
 		RendererBase::Resize((FLOAT)((WindowData*)GetWindowDataPtr())->width, (FLOAT)((WindowData*)GetWindowDataPtr())->height);
 		IsDeviceNull = false;
@@ -59,7 +60,8 @@ namespace Pistachio {
 	void RendererBase::ClearView()
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
-			RendererBase::g_pd3dDeviceContext->ClearRenderTargetView(RendererBase::g_mainRenderTargetView, m_ClearColor);
+			g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, m_ClearColor);
+			g_pd3dDeviceContext->ClearDepthStencilView(pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		#endif // PISTACHIO_RENDER_API_DX11
 
 	}
