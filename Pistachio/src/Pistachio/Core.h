@@ -37,3 +37,17 @@ typedef int KeyCode;
 #define PISTACHIO_RENDER_API_DX11
 #endif // PISTACHIO_RENDER_API_DX12
 #define BIND_EVENT_FN(x) std::bind(&x, this, std::placeholders::_1)
+
+namespace Pistachio {
+	template <typename T>
+	using Scope =  std::unique_ptr<T>;
+	template <typename T>
+	using Ref = std::shared_ptr<T>;
+}
+#ifdef _DEBUG
+#define PT_CORE_ASSERT(x) assert("Error: " && x)
+#else
+#define PT_CORE_ASSERT(x) x
+#endif // _DEBUG
+#pragma comment(lib, "XInput.lib")
+#pragma comment(lib, "Xinput9_1_0.lib")

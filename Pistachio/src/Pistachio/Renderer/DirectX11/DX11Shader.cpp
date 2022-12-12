@@ -26,7 +26,7 @@ static DXGI_FORMAT DXGIFormat(Pistachio::BufferLayoutFormat format)
 ID3D11VertexShader* DX11Shader::CreateVertexShader(const wchar_t* VertexSource, ID3DBlob** pBlob)
 {
 	ID3D11VertexShader* pVertexShader = NULL;
-	D3DReadFileToBlob(VertexSource, pBlob);
+	PT_CORE_ASSERT(D3DReadFileToBlob(VertexSource, pBlob) == S_OK);
 	Pistachio::RendererBase::Getd3dDevice()->CreateVertexShader((*pBlob)->GetBufferPointer(), (*pBlob)->GetBufferSize(), nullptr, &pVertexShader);
 	return pVertexShader;
 }
@@ -34,7 +34,7 @@ ID3D11VertexShader* DX11Shader::CreateVertexShader(const wchar_t* VertexSource, 
 ID3D11PixelShader* DX11Shader::CreatePixelShader(const wchar_t* FragmentSource, ID3DBlob** pBlob)
 {
 	ID3D11PixelShader* pPixelShader = NULL;
-	D3DReadFileToBlob(FragmentSource, pBlob);
+	PT_CORE_ASSERT(D3DReadFileToBlob(FragmentSource, pBlob) == S_OK);
 	Pistachio::RendererBase::Getd3dDevice()->CreatePixelShader((*pBlob)->GetBufferPointer(), (*pBlob)->GetBufferSize(), nullptr, &pPixelShader);
 	return pPixelShader;
 }
@@ -45,7 +45,7 @@ ID3D11InputLayout* DX11Shader::CreateInputLayout(Pistachio::BufferLayout* layout
 	std::vector<D3D11_INPUT_ELEMENT_DESC> ied;
 	ied.reserve(nAttribures);
 	for (int i = 0; i < nAttribures; i++) {
-		ied.push_back(D3D11_INPUT_ELEMENT_DESC{ layout[i].Name, 0, DXGIFormat(layout[i].Format), 0, layout[i].Offset, D3D11_INPUT_PER_VERTEX_DATA, 0 });
+		ied.push_back(D3D11_INPUT_ELEMENT_DESC{ layout[i].Name, 0, DXGIFormat(layout[i].Format), 0, layout[i].Offset, D3D11_INPUT_PER_VERTEX_DATA, 0});
 	}
 	Pistachio::RendererBase::Getd3dDevice()->CreateInputLayout(&ied.front(), nAttribures, v, s, &pInputLayout);
 	Pistachio::RendererBase::Getd3dDeviceContext()->IASetInputLayout(pInputLayout);

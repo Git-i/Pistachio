@@ -1,5 +1,8 @@
-#pragma once
+﻿#pragma once
 typedef int KeyCode;
+#ifdef PT_PLATFORM_WINDOWS
+
+
 #define PT_KEY_LBUTTON				0x01	//Left mouse button
 #define PT_KEY_RBUTTON				0x02	//Right mouse button
 #define PT_KEY_CANCEL				0x03	//Control - break processing
@@ -176,3 +179,18 @@ typedef int KeyCode;
 #define PT_KEY_ZOOM					0xFB	//Zoom key
 #define PT_KEY_PA1					0xFD	//PA1 key
 #define PT_KEY_OEM_CLEAR			0xFE	//Clear key
+#define PT_GAMEPAD_DPAD_UP	        0x0001  //Gamepad Dpad - Up
+#define PT_GAMEPAD_DPAD_DOWN	    0x0002	//Gamepad Dpad - Down
+#define PT_GAMEPAD_DPAD_LEFT	    0x0004	//Gamepad Dpad - Left
+#define PT_GAMEPAD_DPAD_RIGHT	    0x0008	//Gamepad Dpad - Right
+#define PT_GAMEPAD_START	        0x0010	//Gamepad Start Button(Options on PS4)
+#define PT_GAMEPAD_BACK	            0x0020	//Gamepad Back Button(Share on PS4)
+#define PT_GAMEPAD_LEFT_THUMB	    0x0040	//Gamepad Left Thumb (LT), L1 on PS4
+#define PT_GAMEPAD_RIGHT_THUMB	    0x0080	//Gamepad Right Thumb (LT), R1 on PS4
+#define PT_GAMEPAD_LEFT_SHOULDER	0x0100	//Gamepad Left Shoulder(LS), L3 on PS4
+#define PT_GAMEPAD_RIGHT_SHOULDER	0x0200	//Gamepad Right Shoulder(LS), R3 on PS4
+#define PT_GAMEPAD_A	            0x1000	//Gamepad A Button(X on PS4) 
+#define PT_GAMEPAD_B	            0x2000	//Gamepad B Button(O on PS4)
+#define PT_GAMEPAD_X	            0x4000	//Gamepad X Button(■ on PS4)
+#define PT_GAMEPAD_Y	            0x8000	//Gamepad Y Buttom(▲ on PS4)
+#endif // PT_PLATFORM_WINDOWS

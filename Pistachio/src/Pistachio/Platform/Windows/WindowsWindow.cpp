@@ -206,11 +206,11 @@ namespace Pistachio {
 		wc.cbClsExtra = 0;
 		wc.cbWndExtra = 0;
 		wc.hInstance = hInstance;
-		wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+		wc.hIcon = (HICON)(LoadImageA(hInstance, MAKEINTRESOURCEA(102), IMAGE_ICON, 32, 32, 0));
 		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 		wc.hbrBackground = NULL;
 		wc.lpszMenuName = NULL;
-		wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+		wc.hIconSm = (HICON)(LoadImageA(hInstance,MAKEINTRESOURCEA(102),IMAGE_ICON,16,16,0));
 
 		RegisterClassExW(&wc);
 		RECT wr;
@@ -285,7 +285,7 @@ namespace Pistachio {
 	void WindowsWindow::OnUpdate(float delta)
 	{
 #ifdef _DEBUG
-		char buf[20];
+		char buf[10];
 		int a = int(1/delta);
 		_itoa_s(a, buf, 10);
 		std::string title = std::string("FPS: ") + buf;

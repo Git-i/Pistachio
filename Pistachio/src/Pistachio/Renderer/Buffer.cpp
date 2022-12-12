@@ -22,12 +22,23 @@ namespace Pistachio {
 	void VertexBuffer::UnBind()
 	{
 	}
-	void VertexBuffer::Initialize(const void* vertices, unsigned int size, unsigned int Stride)
+	VertexBuffer* VertexBuffer::Create(const void* vertices, unsigned int size, unsigned int Stride)
 	{
-		stride = Stride;
+		VertexBuffer* result = new VertexBuffer;
+		result->stride = Stride;
 		#ifdef PISTACHIO_RENDER_API_DX11
-			pVertexBuffer = DX11Buffer::CreateVertexBuffer(vertices, size, Stride);
+			result->pVertexBuffer = DX11Buffer::CreateVertexBuffer(vertices, size, Stride);
 		#endif
+		return result;
+	}
+	VertexBuffer VertexBuffer::CreateStack(const void* vertices, unsigned int size, unsigned int Stride)
+	{
+		VertexBuffer result;
+		result.stride = Stride;
+		#ifdef PISTACHIO_RENDER_API_DX11
+			result.pVertexBuffer = DX11Buffer::CreateVertexBuffer(vertices, size, Stride);
+		#endif
+		return result;
 	}
 	
 	IndexBuffer::IndexBuffer()
@@ -49,12 +60,22 @@ namespace Pistachio {
 	void IndexBuffer::UnBind()
 	{
 	}
-	void IndexBuffer::Initialize(const void* indices, unsigned int size, unsigned int stride)
+	IndexBuffer IndexBuffer::CreateStack(const void* indices, unsigned int size, unsigned int stride)
 	{
-		count = size / stride;
+		IndexBuffer result;
+		result.count = size / stride;
 		#ifdef PISTACHIO_RENDER_API_DX11
-			pIndexBuffer = DX11Buffer::CreateIndexBuffer(indices, size, stride);
+			result.pIndexBuffer = DX11Buffer::CreateIndexBuffer(indices, size, stride);
 		#endif // PISTACHIO_RENDER_API_DX11
-
+			return result;
+	}	
+	IndexBuffer* IndexBuffer::Create(const void* indices, unsigned int size, unsigned int stride)
+	{
+		IndexBuffer* result = new IndexBuffer;
+		result->count = size / stride;
+		#ifdef PISTACHIO_RENDER_API_DX11
+			result->pIndexBuffer = DX11Buffer::CreateIndexBuffer(indices, size, stride);
+		#endif // PISTACHIO_RENDER_API_DX11
+			return result;
 	}
 }

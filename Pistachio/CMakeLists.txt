@@ -14,6 +14,7 @@ set(Header_Files
     "src/Pistachio/Core/LayerStack.h"
     "src/Pistachio/Core/Log.h"
     "src/Pistachio/Core/Timestep.h"
+    "src/Pistachio/Core/Transform.h"
     "src/Pistachio/Core/Window.h"
     "src/Pistachio/Event/ApplicationEvent.h"
     "src/Pistachio/Event/Event.h"
@@ -28,9 +29,12 @@ set(Header_Files
     "src/Pistachio/Renderer/DirectX11/DX11Buffer.h"
     "src/Pistachio/Renderer/DirectX11/DX11RendererBase.h"
     "src/Pistachio/Renderer/DirectX11/DX11Shader.h"
+    "src/Pistachio/Renderer/DirectX11/DX11Texture.h"
     "src/Pistachio/Renderer/Renderer.h"
     "src/Pistachio/Renderer/RendererBase.h"
+    "src/Pistachio/Renderer/Sampler.h"
     "src/Pistachio/Renderer/Shader.h"
+    "src/Pistachio/Renderer/Texture.h"
     "src/ptpch.h"
     "vendor/imgui/imconfig.h"
     "vendor/imgui/imgui.h"
@@ -40,6 +44,7 @@ set(Header_Files
     "vendor/imgui/imstb_rectpack.h"
     "vendor/imgui/imstb_textedit.h"
     "vendor/imgui/imstb_truetype.h"
+    "vendor/stb_image/stb_image.h"
 )
 source_group("Header Files" FILES ${Header_Files})
 
@@ -48,6 +53,7 @@ set(Source_Files
     "src/Pistachio/Core/Layer.cpp"
     "src/Pistachio/Core/LayerStack.cpp"
     "src/Pistachio/Core/Log.cpp"
+    "src/Pistachio/Core/Transform.cpp"
     "src/Pistachio/ImGui/ImGuiLayer.cpp"
     "src/Pistachio/Platform/Windows/WindowsInputCallbacks.cpp"
     "src/Pistachio/Platform/Windows/WindowsInputPoll.cpp"
@@ -57,9 +63,12 @@ set(Source_Files
     "src/Pistachio/Renderer/DirectX11/DX11Buffer.cpp"
     "src/Pistachio/Renderer/DirectX11/DX11RendererBase.cpp"
     "src/Pistachio/Renderer/DirectX11/DX11Shader.cpp"
+    "src/Pistachio/Renderer/DirectX11/DX11Texture.cpp"
     "src/Pistachio/Renderer/Renderer.cpp"
     "src/Pistachio/Renderer/RendererBase.cpp"
+    "src/Pistachio/Renderer/Sampler.cpp"
     "src/Pistachio/Renderer/Shader.cpp"
+    "src/Pistachio/Renderer/Texture.cpp"
     "src/ptpch.cpp"
     "vendor/imgui/imgui.cpp"
     "vendor/imgui/imgui_demo.cpp"
@@ -68,6 +77,7 @@ set(Source_Files
     "vendor/imgui/imgui_impl_win32.cpp"
     "vendor/imgui/imgui_tables.cpp"
     "vendor/imgui/imgui_widgets.cpp"
+    "vendor/stb_image/stb_image.cpp"
 )
 source_group("Source Files" FILES ${Source_Files})
 
@@ -123,7 +133,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src;"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog/include;"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui;"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/gainput/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image"
 )
 
 ################################################################################
@@ -131,7 +141,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 ################################################################################
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     "$<$<CONFIG:Debug>:"
-        "_DEBUG"
+        "_DEBUG;"
+        ""
     ">"
     "$<$<CONFIG:Release>:"
         "NDEBUG;"
