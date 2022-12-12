@@ -28,4 +28,15 @@ namespace Pistachio {
 	{
 		DX11Shader::CreateConstantBuffer(cb, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());
 	}
+	void Shader::Shutdown()
+	{
+		pBlob->Release();
+		pVertexShader->Release();
+		pPixelShader->Release();
+		pInputLayout->Release();
+	}
+	Shader::~Shader()
+	{
+		Shutdown();
+	}
 }

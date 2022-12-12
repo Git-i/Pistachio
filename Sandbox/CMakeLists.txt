@@ -3,12 +3,18 @@ set(PROJECT_NAME Sandbox)
 ################################################################################
 # Source groups
 ################################################################################
+set(Header_Files
+    "resource.h"
+)
+source_group("Header Files" FILES ${Header_Files})
+
 set(Source_Files
     "src/SandBoxApp.cpp"
 )
 source_group("Source Files" FILES ${Source_Files})
 
 set(ALL_FILES
+    ${Header_Files}
     ${Source_Files}
 )
 

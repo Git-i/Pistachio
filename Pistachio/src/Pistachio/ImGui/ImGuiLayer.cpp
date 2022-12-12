@@ -1,9 +1,7 @@
 #include "ptpch.h"
 #include "ImGuiLayer.h"
 #include "Pistachio/Renderer/RendererBase.h"
-#include "imgui.h"
-#include "imgui_impl_dx11.h"
-#include "imgui_impl_win32.h"
+
 #include "Pistachio/Core/Application.h"
 
 namespace Pistachio {
@@ -40,15 +38,7 @@ namespace Pistachio {
 				ImGui::End();
 			}
 
-			ImGui::Render();
-			
-			
-			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-			{
-				ImGui::UpdatePlatformWindows();
-				ImGui::RenderPlatformWindowsDefault();
-			}
+		
 			
 	}
 	void ImGuiLayer::OnEvent(Event& event)
