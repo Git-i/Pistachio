@@ -204,7 +204,51 @@ namespace Pistachio {
 
 		vibrationDesc.wLeftMotorSpeed = left;
 		vibrationDesc.wRightMotorSpeed = right;
-		XInputSetState(ID, &vibrationDesc);
+		XInputSetState(ID - 1, &vibrationDesc);
 
+	}
+	float WindowsInput::GetLeftTriggerStateImpl(int ID)
+	{
+		DWORD dwResult;
+		XINPUT_STATE state;
+		ZeroMemory(&state, sizeof(XINPUT_STATE));
+		if (ID - 1 != -1)
+		{
+			dwResult = XInputGetState(ID - 1, &state);
+			return (state.Gamepad.bLeftTrigger);
+		}
+		else {
+			for (DWORD i = 0; i < XUSER_MAX_COUNT; i++)
+			{
+				dwResult = XInputGetState(i, &state);
+				if (dwResult == ERROR_SUCCESS)
+				{
+					return (state.Gamepad.bLeftTrigger);
+				}
+			}
+		}
+		return 0.0f;
+	}
+	float WindowsInput::GetRightTriggerStateImpl(int ID)
+	{
+		DWORD dwResult;
+		XINPUT_STATE state;
+		ZeroMemory(&state, sizeof(XINPUT_STATE));
+		if (ID - 1 != -1)
+		{
+			dwResult = XInputGetState(ID - 1, &state);
+			return (state.Gamepad.bRightTrigger);
+		}
+		else {
+			for (DWORD i = 0; i < XUSER_MAX_COUNT; i++)
+			{
+				dwResult = XInputGetState(i, &state);
+				if (dwResult == ERROR_SUCCESS)
+				{
+					return (state.Gamepad.bRightTrigger);
+				}
+			}
+		}
+		return 0.0f;
 	}
 }

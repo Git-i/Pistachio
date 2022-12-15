@@ -45,10 +45,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY)
 string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
     $<$<CONFIG:Debug>:
-        MultiThreadedDebug
+        MultiThreadedDebugDLL
     >
     $<$<CONFIG:Release>:
-        MultiThreaded
+        MultiThreadedDLL
     >
     $<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
 )
@@ -58,6 +58,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUN
 # Include directories
 ################################################################################
 target_include_directories(${PROJECT_NAME} PUBLIC
+    "$<$<CONFIG:Debug>:"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../Pistachio/vendor/assimp/include"
+    ">"
     "${CMAKE_CURRENT_SOURCE_DIR}/../Pistachio/src;"
     "${CMAKE_CURRENT_SOURCE_DIR}/../Pistachio/vendor/spdlog/include"
 )
@@ -117,7 +120,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 set(ADDITIONAL_LIBRARY_DEPENDENCIES
+    "$<$<CONFIG:Debug>:"
+        "assimp-vc143-mtd;"
+        "zlibstaticd"
+    ">"
     "$(CoreLibraryDependencies)"
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
+
+target_link_directories(${PROJECT_NAME} PRIVATE
+    "$<$<CONFIG:Debug>:"
+        "${CMAKE_SOURCE_DIR}/Pistachio/vendor/assimp"
+    ">"
+)
 

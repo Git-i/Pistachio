@@ -22,6 +22,10 @@ namespace Pistachio {
 		bool IsGamepadButtonPressedImpl(int ID, int code) override;
 		bool IsGamepadButtonJustPressedImpl(int ID, int code) override;
 		void VibrateControllerImpl(int ID, int left, int right) override;
+
+		// Inherited via Input
+		virtual float GetLeftTriggerStateImpl(int ID) override;
+		virtual float GetRightTriggerStateImpl(int ID) override;
 	};
 
 }
