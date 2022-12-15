@@ -40,6 +40,7 @@ namespace Pistachio {
 
 	void Application::OnEvent(Event& e)
 	{
+		
 		//EventDispatcher dispatcher(e);
 		PT_CORE_TRACE("{0}", e);
 		for (auto it = m_layerstack.end(); it != m_layerstack.begin(); )
@@ -49,7 +50,7 @@ namespace Pistachio {
 				break;
 		}
 	}
-
+	
 	void Application::Run()
 	{
 		while (m_Running) {
@@ -73,8 +74,7 @@ namespace Pistachio {
 			for (Layer* layer : m_layerstack)
 				layer->OnImGuiRender();
 			ImGui::Render();
-
-
+			
 			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 			{

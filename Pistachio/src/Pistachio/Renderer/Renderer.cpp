@@ -1,7 +1,7 @@
 #include "ptpch.h"
 #include "Renderer.h"
 #include "Pistachio/Core/Window.h"
-Pistachio::CamData Pistachio::Renderer::m_camera = { 0 };
+DirectX::XMMATRIX Pistachio::Renderer::m_viewProjectionMatrix = DirectX::XMMatrixIdentity();
 namespace Pistachio {
 	void Renderer::EndScene()
 	{
@@ -13,13 +13,23 @@ namespace Pistachio {
 		shader->Bind(ShaderType::Vertex);
 		shader->Bind(ShaderType::Pixel);
 		ConstantBuffer cb;
-		if (m_camera.cameratype == CameraType::Perspective)
-			cb = { ((PerspectiveCamera*)m_camera.camera)->GetViewProjectionMatrix(), DirectX::XMMatrixTranspose(transform) };
-		else
-			cb = { ((PerspectiveCamera*)m_camera.camera)->GetViewProjectionMatrix(), DirectX::XMMatrixTranspose(transform) };
+		cb = { m_viewProjectionMatrix, DirectX::XMMatrixTranspose(transform) };
 		shader->SetUniformBuffer(cb);
 		auto target = RendererBase::GetmainRenderTargetView();
 		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &(target), RendererBase::GetDepthStencilView());
 		RendererBase::DrawIndexed(*buffer);
 	}
+	void Renderer::Submit(Mesh* mesh, Shader* shader, DirectX::XMMATRIX transform)
+	{
+		Buffer buffer = { mesh->GetVertexBuffer(), mesh->GetIndexBuffer()};
+		shader->Bind(ShaderType::Vertex);
+		shader->Bind(ShaderType::Pixel);
+		ConstantBuffer cb;
+		cb = { m_viewProjectionMatrix, DirectX::XMMatrixTranspose(transform) };
+		shader->SetUniformBuffer(cb);
+		auto target = RendererBase::GetmainRenderTargetView();
+		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &(target), RendererBase::GetDepthStencilView());
+		RendererBase::DrawIndexed(buffer);
+	}
+	
 }

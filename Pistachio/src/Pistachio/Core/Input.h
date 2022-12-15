@@ -25,6 +25,8 @@ namespace Pistachio {
 		inline static bool IsGamepadButtonPressed(int ID, int code) { return s_Instance->IsGamepadButtonPressedImpl(ID, code); }
 		inline static bool IsGamepadButtonJustPressed(int ID, int code) { return s_Instance->IsGamepadButtonJustPressedImpl(ID, code); }
 		inline static void VibrateController(int ID, int left, int right) { s_Instance->VibrateControllerImpl(ID, left, right); }
+		inline static float GetLeftTriggerState(int ID) { return s_Instance->GetLeftTriggerStateImpl(ID); }
+		inline static float GetRightTriggerState(int ID) { return s_Instance->GetRightTriggerStateImpl(ID); }
 	protected:
 		virtual bool IsKeyPressedImpl(KeyCode code) = 0;
 		virtual int GetMouseXImpl(bool) = 0;
@@ -37,6 +39,8 @@ namespace Pistachio {
 		virtual bool IsGamepadButtonPressedImpl(int ID, int code) = 0;
 		virtual bool IsGamepadButtonJustPressedImpl(int ID, int code) = 0;
 		virtual void VibrateControllerImpl(int ID, int left, int right) = 0;
+		virtual float GetLeftTriggerStateImpl(int ID) = 0;
+		virtual float GetRightTriggerStateImpl(int ID) = 0;
 	private:
 		static Input* s_Instance;
 	};

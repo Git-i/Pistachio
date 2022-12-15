@@ -42,10 +42,9 @@ ID3D11PixelShader* DX11Shader::CreatePixelShader(const wchar_t* FragmentSource, 
 ID3D11InputLayout* DX11Shader::CreateInputLayout(Pistachio::BufferLayout* layout, int nAttribures, void* v, SIZE_T s)
 {
 	ID3D11InputLayout* pInputLayout = nullptr;
-	std::vector<D3D11_INPUT_ELEMENT_DESC> ied;
-	ied.reserve(nAttribures);
+	std::array<D3D11_INPUT_ELEMENT_DESC, 3> ied;
 	for (int i = 0; i < nAttribures; i++) {
-		ied.push_back(D3D11_INPUT_ELEMENT_DESC{ layout[i].Name, 0, DXGIFormat(layout[i].Format), 0, layout[i].Offset, D3D11_INPUT_PER_VERTEX_DATA, 0});
+		ied[i] = (D3D11_INPUT_ELEMENT_DESC{ layout[i].Name, 0, DXGIFormat(layout[i].Format), 0, layout[i].Offset, D3D11_INPUT_PER_VERTEX_DATA, 0});
 	}
 	Pistachio::RendererBase::Getd3dDevice()->CreateInputLayout(&ied.front(), nAttribures, v, s, &pInputLayout);
 	Pistachio::RendererBase::Getd3dDeviceContext()->IASetInputLayout(pInputLayout);

@@ -1,5 +1,5 @@
 #pragma once
-
+#include "../Core.h"
 namespace Pistachio {
 	struct ConstantBuffer
 	{
@@ -73,6 +73,15 @@ namespace Pistachio {
 			ID3D11PixelShader* pPixelShader = NULL;
 			ID3D11InputLayout* pInputLayout = NULL;
 		#endif // PISTACHIO_RENDER_API_DX11
+	};
+	class ShaderLibrary
+	{
+	public:
+		void Add(const std::string& name,const Ref<Shader>& Shader);
+		Ref<Shader> Load(const std::string& name, const std::string& vertex, const std::string& fragment);
+		Ref<Shader> Get(const std::string& name);
+	private:
+		std::unordered_map<std::string, Ref<Shader>> m_Shaders;
 	};
 }
 

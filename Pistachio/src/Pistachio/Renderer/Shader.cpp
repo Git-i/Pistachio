@@ -39,4 +39,20 @@ namespace Pistachio {
 	{
 		Shutdown();
 	}
+	void ShaderLibrary::Add(const std::string& name, const Ref<Shader>& Shader)
+	{
+		PT_CORE_ASSERT(m_Shaders.find(name)==m_Shaders.end());
+		m_Shaders[name] = Shader;
+	}
+	Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::string& vertex, const std::string& fragment)
+	{
+		auto shader = std::make_shared<Shader>((wchar_t*)(vertex.c_str()), (wchar_t*)(fragment.c_str()));
+		Add(name, shader);
+		return shader;
+	}
+	Ref<Shader> ShaderLibrary::Get(const std::string& name)
+	{
+		PT_CORE_ASSERT(m_Shaders.find(name)!=m_Shaders.end());
+		return m_Shaders[name];
+	}
 }

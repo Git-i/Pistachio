@@ -30,6 +30,7 @@ set(Header_Files
     "src/Pistachio/Renderer/DirectX11/DX11RendererBase.h"
     "src/Pistachio/Renderer/DirectX11/DX11Shader.h"
     "src/Pistachio/Renderer/DirectX11/DX11Texture.h"
+    "src/Pistachio/Renderer/Mesh.h"
     "src/Pistachio/Renderer/Renderer.h"
     "src/Pistachio/Renderer/RendererBase.h"
     "src/Pistachio/Renderer/Sampler.h"
@@ -64,6 +65,7 @@ set(Source_Files
     "src/Pistachio/Renderer/DirectX11/DX11RendererBase.cpp"
     "src/Pistachio/Renderer/DirectX11/DX11Shader.cpp"
     "src/Pistachio/Renderer/DirectX11/DX11Texture.cpp"
+    "src/Pistachio/Renderer/Mesh.cpp"
     "src/Pistachio/Renderer/Renderer.cpp"
     "src/Pistachio/Renderer/RendererBase.cpp"
     "src/Pistachio/Renderer/Sampler.cpp"
@@ -117,10 +119,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY)
 string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
     $<$<CONFIG:Debug>:
-        MultiThreadedDebug
+        MultiThreadedDebugDLL
     >
     $<$<CONFIG:Release>:
-        MultiThreaded
+        MultiThreadedDLL
     >
     $<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
 )
@@ -133,7 +135,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src;"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog/include;"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui;"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image;"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp/include"
 )
 
 ################################################################################
@@ -181,14 +184,19 @@ endif()
 # Dependencies
 ################################################################################
 set(ADDITIONAL_LIBRARY_DEPENDENCIES
+    "$<$<CONFIG:Debug>:"
+        "zlibstaticd;"
+        "assimp-vc143-mtd"
+    ">"
+    "$<$<CONFIG:Release>:"
+        "assimp-vc143-mt;"
+        "zlibstatic"
+    ">"
     "d3d11"
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
 target_link_directories(${PROJECT_NAME} PUBLIC
-    "$<$<CONFIG:Debug>:"
-        "${CMAKE_SOURCE_DIR}/Pistachio/vendor/gainput/lib;"
-        "${CMAKE_SOURCE_DIR}/Pistachio/vendor/glfw/lib"
-    ">"
+    "${CMAKE_SOURCE_DIR}/Pistachio/vendor/assimp"
 )
 

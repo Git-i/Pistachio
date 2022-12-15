@@ -1,6 +1,6 @@
 #pragma once
 // Pistachio Precompiled Headers -----------------------------------------------------------
-
+#define NOMINMAX
 #include <iostream>
 #include <functional>
 #include <memory>
@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+#include <array>
 #include <unordered_map>
 #include <unordered_set>
 
