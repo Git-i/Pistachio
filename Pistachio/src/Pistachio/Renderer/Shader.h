@@ -5,6 +5,11 @@ namespace Pistachio {
 	{
 		DirectX::XMMATRIX cameraTransform;
 		DirectX::XMMATRIX transform;
+		DirectX::XMVECTOR CamPos;
+		DirectX::XMVECTOR albedo = {0,0,0}; //(float3) my_texture.Sample(my_sampler, uv);
+		float metallic= 0;
+		float roughness=0;
+		float ao=0;
 	};
 	enum class ShaderType
 	{
@@ -63,7 +68,8 @@ namespace Pistachio {
 		Shader(const wchar_t* vsrc, const wchar_t* fsrc);
 		void CreateLayout(BufferLayout* layout, int nAttributes);
 		void Bind(ShaderType type);
-		void SetUniformBuffer(ConstantBuffer& cb);
+		void SetUniformBuffer(const ConstantBuffer& cb);
+		void SetRandomConstantBuffer(const void* cb, int size);
 		void Shutdown();
 		~Shader();
 	private:

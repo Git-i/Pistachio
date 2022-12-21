@@ -1,106 +1,33 @@
 #define PISTACHIO_RENDER_API_DX11
 #include "Pistachio.h"
-
+#include "Pistachio/Renderer/DirectX11/DX11Texture.h"
 using namespace Pistachio;
 using namespace DirectX;
-struct sVertex
-{
-	float x, y, u, v;
-};
-WORD indicces[] =
-{
-	3,1,0,
-	2,1,3,
 
-	0,5,4,
-	1,5,0,
-
-	3,4,7,
-	0,4,3,
-
-	1,6,5,
-	2,6,1,
-
-	2,7,6,
-	3,7,2,
-
-	6,4,5,
-	7,4,6,
-};
-struct SimpleVertex
-{
-	XMFLOAT3 Pos;
-	XMFLOAT4 Color;
-};
-sVertex vertices[6]
-{
-	{ 0.0f,  0.5f, 1.0f, 0.0f},
-	{ 0.5f, -0.5f, 1.0f, 0.0f},
-	{-0.5f, -0.5f, 1.0f, 0.0f},
-	{-0.3f,  0.3f, 1.0f, 0.0f},
-	{ 0.3f,  0.3f, 1.0f, 0.0f},
-	{ 0.0f, -0.8f, 1.0f, 0.0f}
-};
-SimpleVertex veritices[] =
-{
-	{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-	{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-	{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f) },
-	{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-	{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) },
-	{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) },
-	{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-	{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) },
-};
-const unsigned short indices[]
-{
-	0, 1, 2,
-	0, 2, 3,
-	0, 4, 1,
-	2, 1, 5
-};
-sVertex rectVertives[]
-{
-	{-0.5,  0.5, 0, 0/*-0.25, -0.25*/},
-	{ 0.5,  0.5, 1, 0/*1.25, -0.25*/},
-	{ 0.5, -0.5, 1, 1/*1.25, 1.25*/},
-	{-0.5, -0.5, 0, 1/*-0.25, 1.25*/}
-};
-const unsigned short rectIndices[]
-{
-	0, 1, 2,
-	2, 3, 0
-};
 class ExampleLayer : public Pistachio::Layer
 {
 public:
-	ExampleLayer(const char* name) : Layer(name), buffer(vb, ib), BasicShader(std::make_shared<Pistachio::Shader>(L"VertexShader.cso", L"PixelShader.cso")), cam(std::make_shared<Pistachio::PerspectiveCamera>(45.0f, 0.1f, 100.0f, 16.0f / 9.0f))
+	ExampleLayer(const char* name) : Layer(name),  cam(std::make_shared<Pistachio::PerspectiveCamera>(45.0f, 0.1f, 100.0f, 16.0f / 9.0f))
 	{
-		vertexbuffer.reset(Pistachio::VertexBuffer::Create(vertices, sizeof(vertices), sizeof(sVertex)));
-		indexbuffer.reset(Pistachio::IndexBuffer::Create(indices, sizeof(indices), sizeof(unsigned short)));
-		texture.reset(Pistachio::Texture2D::Create("texture.png"));
-		rectVertexBuffer.reset(Pistachio::VertexBuffer::Create(rectVertives, sizeof(rectVertives), sizeof(sVertex)));
-		rectIndexbuffer.reset(Pistachio::IndexBuffer::Create(indices, sizeof(rectIndices), sizeof(unsigned short)));
 		samplerstate.reset(Pistachio::SamplerState::Create());
-		hexagonBuffer = std::make_shared<Pistachio::Buffer>(vertexbuffer.get(), indexbuffer.get());
-		rectBuffer = std::make_shared<Pistachio::Buffer>(rectVertexBuffer.get(), rectIndexbuffer.get());
-		Pistachio::BufferLayout layout[] = {
-			{"POSITION", Pistachio::BufferLayoutFormat::FLOAT2, 0},
-			{"UV", Pistachio::BufferLayoutFormat::FLOAT2, 8}
-		};
-		BasicShader->CreateLayout(layout, 2);
-		ShaderLib.Add("BasicShader", BasicShader);
-
-		////////////////////////ASSIMP/////////////////////////////////////
+		texture.reset(Pistachio::Texture2D::Create("brdf.png"));
+		rtx.CreateStack(1280, 720);
 		shader = new Shader(L"VertexShader.cso", L"PixelShader.cso");
+		noreflect = new Shader(L"PBR_no_reflect_vs.cso", L"PBR_no_reflect_fs.cso");
+		envshader = new Shader(L"background_vs.cso", L"background.cso");
 		shader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
+		noreflect->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
+		envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		cam->SetPosition(0, 0, 5);
-		/////////////////////////////////////////////////////////////////
+		mesh = Mesh::Create("sphere.obj");
+		cube.CreateStack("cube.obj");
+		plane.CreateStack("plane.obj");
 		
 	}
 	void OnUpdate(float delta) override
 	{
-
+		rtx.Clear(c);
+		rtx.Bind();
 		auto a = cam->GetPosition();
 		DirectX::XMFLOAT3 velocity;
 		velocity.x = 0;
@@ -120,24 +47,35 @@ public:
 		pos.x = (a.x + velocity.x * delta);
 		pos.y = (a.y + velocity.y * delta);
 		pos.z = (a.z);
-		cam->SetPosition(pos);
-		auto f = Pistachio::RendererBase::Getd3dDeviceContext()->GetType();
-		Pistachio::Renderer::BeginScene(cam.get());
 		Pistachio::RendererBase::SetClearColor(0.6f, 0.6f, 0.6f, 1.0f);
 		Pistachio::RendererBase::ClearView();
+		RendererBase::SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		cam->SetPosition(pos);
+		Pistachio::Renderer::BeginScene(cam.get());
 		samplerstate->Bind();
-		texture->Bind();
-		//Pistachio::Renderer::Submit(hexagonBuffer.get(), ShaderLib.Get("BasicShader").get());
-		mesh.CreateStack("lol.obj");
-		//Pistachio::Renderer::Submit(rectBuffer.get(), ShaderLib.Get("BasicShader").get());
-		Renderer::Submit(&mesh, shader);
+		DX11Texture::Bind(Renderer::GetFrambufferSRV(), 1);
+		DirectX::XMFLOAT3X3 view;
+		DirectX::XMStoreFloat3x3(&view, cam->GetViewMatrix());
+		Renderer::Submit(&cube, envshader, color, metal, rough, ao, false, DirectX::XMMatrixIdentity(), DirectX::XMMatrixTranspose(DirectX::XMLoadFloat3x3(&view)*cam->GetProjectionMatrix()));
+		texture->Bind(0);
+		DX11Texture::Bind(Renderer::GetBrdfSRV(), 0);
+		DX11Texture::Bind(Renderer::GetIrradianceFrambufferSRV(), 1);
+		DX11Texture::Bind(Renderer::GetPrefilterFrambufferSRV(0), 2);
+		if(reflect)
+		Renderer::Submit(mesh, shader, color, metal, rough, ao, false);
+		else
+		Renderer::Submit(mesh, noreflect, color, metal, rough, ao, false);
 	}
 	void OnAttach() override
 	{
 	}
 	void OnImGuiRender()
 	{
+		auto target = RendererBase::GetmainRenderTargetView();
+		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &target, RendererBase::GetDepthStencilView());
 		auto a = cam->GetPosition();
+		bool b = true;
+		ImGui::ShowDemoWindow(&b);
 		ImGui::Begin("lol");
 		ImGui::Text(std::to_string(a.x).c_str());
 		static int y[2] = { 0, 0 };
@@ -164,6 +102,15 @@ public:
 		ImGui::Text((std::string("Button LT: ") + std::to_string(Pistachio::Input::IsGamepadButtonPressed(0, PT_GAMEPAD_LEFT_THUMB))).c_str());
 		ImGui::Text((std::string("Button RT: ") + std::to_string(Pistachio::Input::IsGamepadButtonPressed(0, PT_GAMEPAD_RIGHT_THUMB))).c_str());
 		ImGui::Text(std::to_string(a.z).c_str());
+		
+		ImGui::ColorEdit3("Albedo", color);
+		ImGui::SliderFloat("Metallic", &metal, 0, 1);
+		ImGui::SliderFloat("Roughness", &rough, 0, 1);
+		ImGui::SliderFloat("AO", &ao, 0, 1);
+		ImGui::Checkbox("Reflections: ", &reflect);
+		ImGui::End();
+		ImGui::Begin("Scene");
+		ImGui::Image(rtx.shaderResourceView, ImVec2(640, 360));
 		ImGui::End();
 	}
 	void OnEvent(Pistachio::Event& event) override
@@ -184,28 +131,30 @@ public:
 		return false;
 	}
 private:
-	Mesh mesh;
+	Mesh* mesh;
+	Mesh cube;
+	Mesh plane;
 	Shader* shader;
-	VertexBuffer* vb;
-	IndexBuffer* ib;
-	Buffer buffer;
-	Pistachio::ShaderLibrary ShaderLib;
+	Shader* noreflect;
+	bool reflect;
+	Shader* eqshader;
+	Shader* envshader;
+	Texture3D* tex;
+	RenderTexture rtx;
+	float c[4] = {0.7f,0.7f,0.7f,0.7f};
 	Pistachio::Ref<Pistachio::Texture2D> texture;
 	Pistachio::Ref<Pistachio::SamplerState> samplerstate;
-	Pistachio::Ref<Pistachio::Shader> BasicShader;
 	Pistachio::Ref<Pistachio::PerspectiveCamera> cam;
-	Pistachio::Ref<Pistachio::VertexBuffer> vertexbuffer;
-	Pistachio::Ref<Pistachio::IndexBuffer> indexbuffer;
-	Pistachio::Ref<Pistachio::VertexBuffer> rectVertexBuffer;
-	Pistachio::Ref<Pistachio::IndexBuffer> rectIndexbuffer;
-	Pistachio::Ref<Pistachio::Buffer> hexagonBuffer;
-	Pistachio::Ref<Pistachio::Buffer> rectBuffer;
+	float color[3] = { 1.f, 0.f, 0.f };
+	float metal = 0;
+	float rough = 0;
+	float ao = 1.f;
 	
 };
 class Sandbox : public Pistachio::Application
 {
 public:
-	Sandbox() { PushLayer(new ExampleLayer("velocity")); GetWindow().SetVsync(1); }
+	Sandbox() { PushLayer(new ExampleLayer("velocity")); GetWindow().SetVsync(0); }
 	~Sandbox(){}
 };
 

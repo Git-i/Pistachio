@@ -9,7 +9,7 @@ namespace Pistachio {
 		void Bind();
 		void UnBind();
 		static VertexBuffer* Create(const void* vertices, unsigned int size, unsigned int stride);
-		static VertexBuffer CreateStack(const void* vertices, unsigned int size, unsigned int stride);
+		void CreateStack(const void* vertices, unsigned int size, unsigned int stride);
 		
 	private:
 		unsigned int stride = 0;
@@ -25,7 +25,7 @@ namespace Pistachio {
 		void Bind();
 		void UnBind();
 		static IndexBuffer* Create(const void* indices, unsigned int size, unsigned int stride);
-		static IndexBuffer CreateStack(const void* indices, unsigned int size, unsigned int stride);
+		void CreateStack(const void* indices, unsigned int size, unsigned int stride);
 		inline unsigned short GetCount() { return count; }
 	private:
 		unsigned short count;

@@ -111,12 +111,15 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.h" />
+    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Texture.h" />
     <ClInclude Include="src\Pistachio\Core\Timestep.h" />
     <ClInclude Include="src\Pistachio\Core\Transform.h" />
     <ClInclude Include="src\Pistachio\Renderer\Camera.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Shader.h" />
+    <ClInclude Include="src\Pistachio\Renderer\RenderTexture.h" />
     <ClInclude Include="src\Pistachio\Renderer\Mesh.h" />
     <ClInclude Include="src\Pistachio\Renderer\Renderer.h" />
     <ClInclude Include="src\Pistachio\Renderer\Sampler.h" />
@@ -155,11 +158,14 @@
     <ClInclude Include="vendor\stb_image\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Texture.cpp" />
     <ClCompile Include="src\Pistachio\Core\Transform.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Camera.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\RenderTexture.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Mesh.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Sampler.cpp" />
@@ -189,20 +195,6 @@
     <ClCompile Include="vendor\imgui\imgui_tables.cpp" />
     <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
     <ClCompile Include="vendor\stb_image\stb_image.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="src\Pistachio\Shaders\PixelShader.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)%(Filename).cso</ObjectFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
-    <FxCompile Include="src\Pistachio\Shaders\VertexShader.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)%(Filename).cso</ObjectFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -19,21 +19,30 @@ namespace Pistachio {
 	void Shader::Bind(ShaderType type)
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
+			RendererBase::Getd3dDeviceContext()->IASetInputLayout(pInputLayout);
 			if (type == ShaderType::Vertex) Pistachio::RendererBase::Getd3dDeviceContext()->VSSetShader(pVertexShader, nullptr, 0);
 			else if (type == ShaderType::Fragment) Pistachio::RendererBase::Getd3dDeviceContext()->PSSetShader(pPixelShader, nullptr, 0);
 		#endif // PISTACHIO_RENDER_API_DX11
 
 	}
-	void Shader::SetUniformBuffer(ConstantBuffer& cb)
+	void Shader::SetUniformBuffer(const ConstantBuffer& cb)
 	{
 		DX11Shader::CreateConstantBuffer(cb, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());
 	}
+	void Shader::SetRandomConstantBuffer(const void* cb, int size)
+	{
+		DX11Shader::CreateRandomConstantBuffer(cb, size, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());
+	}
 	void Shader::Shutdown()
 	{
-		pBlob->Release();
-		pVertexShader->Release();
-		pPixelShader->Release();
-		pInputLayout->Release();
+		if(pBlob != NULL)
+			pBlob->Release();
+		if(pVertexShader != NULL)
+			pVertexShader->Release();
+		if(pPixelShader != NULL)
+			pPixelShader->Release();
+		if(pInputLayout != NULL)
+			pInputLayout->Release();
 	}
 	Shader::~Shader()
 	{
