@@ -43,7 +43,7 @@ namespace Pistachio {
 		g_pd3dDeviceContext->IASetPrimitiveTopology(DX11Topology(PrimitiveTopology::TriangleList));
 		D3D11_RASTERIZER_DESC desc = {};
 		desc.FillMode = D3D11_FILL_SOLID;
-		desc.CullMode = D3D11_CULL_BACK;
+		desc.CullMode = D3D11_CULL_NONE;
 		ID3D11RasterizerState* pRasterizerState;
 		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerState);
 		g_pd3dDeviceContext->RSSetState(pRasterizerState);

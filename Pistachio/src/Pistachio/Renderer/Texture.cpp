@@ -19,9 +19,9 @@ namespace Pistachio {
         pTextureView->Release();
     }
 
-    void Texture2D::Bind() const
+    void Texture2D::Bind(int slot) const
     {
-        DX11Texture::Bind(pTextureView);
+        DX11Texture::Bind(pTextureView, slot);
     }
 
     Texture2D* Texture2D::Create(const char* path)
@@ -39,5 +39,26 @@ namespace Pistachio {
         result.m_Height = 0;
         result.pTextureView = DX11Texture::Create(path, &result.m_Width, &result.m_Height);
         return result;
+    }
+    unsigned int Texture3D::GetHeight() const
+    {
+        return 0;
+    }
+    unsigned int Texture3D::GetWidth() const
+    {
+        return 0;
+    }
+    void Texture3D::Bind(int slot) const
+    {
+        DX11Texture::Bind(pTextureView, slot);
+    }
+    Texture3D* Texture3D::Create(const char* path)
+    {
+        Texture3D* result = new Texture3D;
+        result->pTextureView = DX11Texture::Create3D(path, &result->m_Width, &result->m_Height);
+        return result;
+    }
+    void Texture3D::CreateStack(const char* path)
+    {
     }
 }

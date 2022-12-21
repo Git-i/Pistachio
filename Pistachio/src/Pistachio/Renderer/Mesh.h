@@ -1,6 +1,7 @@
 #pragma once
 #include "Buffer.h"
 #include "Shader.h"
+
 namespace Pistachio {
 	struct Vertex
 	{
@@ -25,13 +26,13 @@ namespace Pistachio {
 		void CreateStack(const char* filepath);
 		static BufferLayout* GetLayout();
 		inline static int GetLayoutSize() { return 3; }
-		inline VertexBuffer* GetVertexBuffer() { return m_VertexBuffer; }
-		inline IndexBuffer* GetIndexBuffer() { return m_IndexBuffer; }
+		inline VertexBuffer* GetVertexBuffer() { return &m_VertexBuffer; }
+		inline IndexBuffer* GetIndexBuffer() { return &m_IndexBuffer; }
 	private:
 		static BufferLayout layout[];
 		std::vector<Vertex> m_vertices;
 		std::vector<unsigned short> m_indices;
-		VertexBuffer* m_VertexBuffer;
-		IndexBuffer* m_IndexBuffer;
+		VertexBuffer m_VertexBuffer;
+		IndexBuffer m_IndexBuffer;
 	};
 }

@@ -43,4 +43,19 @@
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\PixelShader.hlsl" />
+    <FxCompile Include="Shaders\VertexShader.hlsl" />
+    <FxCompile Include="Shaders\equirectangular_to_cubemap_vs.hlsl" />
+    <FxCompile Include="Shaders\equirectangular_to_cubemap_fs.hlsl" />
+    <FxCompile Include="Shaders\background.hlsl" />
+    <FxCompile Include="Shaders\background_vs.hlsl" />
+    <FxCompile Include="Shaders\irradiance_fs.hlsl" />
+    <FxCompile Include="Shaders\prefilter_fs.hlsl" />
+    <FxCompile Include="Shaders\prefilter_vs.hlsl" />
+    <FxCompile Include="Shaders\brdf_fs.hlsl" />
+    <FxCompile Include="Shaders\brdf_vs.hlsl" />
+    <FxCompile Include="Shaders\PBR_no_reflect_fs.hlsl" />
+    <FxCompile Include="Shaders\PBR_no_reflect_vs.hlsl" />
+  </ItemGroup>
 </Project>

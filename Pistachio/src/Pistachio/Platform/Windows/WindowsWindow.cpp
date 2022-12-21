@@ -267,7 +267,7 @@ namespace Pistachio {
 		ShowWindow(pd.hwnd, SW_SHOW);
 		Pistachio::Log::Init();
 		RendererBase::Init(pd.hwnd);
-
+		Renderer::Init();
 		return 0;
 
 	}
@@ -284,13 +284,13 @@ namespace Pistachio {
 	}
 	void WindowsWindow::OnUpdate(float delta)
 	{
-#ifdef _DEBUG
-		char buf[10];
-		int a = int(1/delta);
-		_itoa_s(a, buf, 10);
-		std::string title = std::string("FPS: ") + buf;
-		SetWindowTextW(pd.hwnd, (wchar_t*)title.c_str());
-#endif // _DEBUG
+		#ifdef _DEBUG
+			char buf[10];
+			int a = int(1/delta);
+			_itoa_s(a, buf, 10);
+			std::string title = std::string("FPS: ") + buf;
+			SetWindowTextW(pd.hwnd, (wchar_t*)title.c_str());
+		#endif // _DEBUG
 	}
 	void WindowsWindow::SetVsync(unsigned int enabled)
 	{

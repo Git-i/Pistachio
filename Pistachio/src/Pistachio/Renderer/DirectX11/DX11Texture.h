@@ -4,7 +4,8 @@ namespace Pistachio {
 	{
 	public:
 		static ID3D11ShaderResourceView* Create(const char* path, unsigned int* width, unsigned int* height);
-		static void Bind(ID3D11ShaderResourceView* pTextureView);
+		static ID3D11ShaderResourceView* Create3D(const char* path, unsigned int* width, unsigned int* height);
+		static void Bind(ID3D11ShaderResourceView* pTextureView, int slot);
 	};
 	class DX11SamplerState
 	{

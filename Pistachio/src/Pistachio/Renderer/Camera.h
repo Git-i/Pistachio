@@ -31,6 +31,7 @@ namespace Pistachio {
 		inline void SetPosition(DirectX::XMFLOAT3 pos) { m_eye = pos; RecalculateViewMatrix(); }
 		inline void SetLookAt(DirectX::XMFLOAT3 pos) { m_direction = pos; RecalculateViewMatrix(); }
 		inline void SetLookAt(float x, float y, float z) { m_direction.x = x; m_direction.y = y; m_direction.z = z; RecalculateViewMatrix(); }
+		inline void SetViewMat(DirectX::XMMATRIX view) { m_ViewMatrix = view; m_ViewProjMatrix = DirectX::XMMatrixTranspose(m_ViewMatrix * m_projectionMatrix); }
 		inline DirectX::XMMATRIX GetProjectionMatrix() { return m_projectionMatrix; }
 		inline DirectX::XMMATRIX GetViewMatrix() { return m_ViewMatrix; }
 		inline DirectX::XMMATRIX GetViewProjectionMatrix() { return m_ViewProjMatrix; }
