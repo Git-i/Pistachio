@@ -1,16 +1,17 @@
 #pragma once
+#include "../../Core/Error.h"
 namespace Pistachio {
 	class DX11Texture
 	{
 	public:
 		static ID3D11ShaderResourceView* Create(const char* path, unsigned int* width, unsigned int* height);
-		static ID3D11ShaderResourceView* Create3D(const char* path, unsigned int* width, unsigned int* height);
-		static void Bind(ID3D11ShaderResourceView* pTextureView, int slot);
+		static ID3D11ShaderResourceView* CreateFloat(const char* path, unsigned int* width, unsigned int* height);
+		static void Bind(ID3D11ShaderResourceView*const* pTextureView, int slot=0, int numTextures=1);
 	};
 	class DX11SamplerState
 	{
 	public:
-		static ID3D11SamplerState* Create();
+		static Error Create(D3D11_TEXTURE_ADDRESS_MODE addressU, D3D11_TEXTURE_ADDRESS_MODE addressv, D3D11_TEXTURE_ADDRESS_MODE addressw, ID3D11SamplerState** ppSamplerStaete);
 		static void Bind(ID3D11SamplerState* ImageSamplerState);
 	};
 }

@@ -13,7 +13,12 @@ namespace Pistachio {
 	{
 		s_Instance = this;
 		void* n = GetWindowDataPtr();
-		m_Window = Scope<Window>(Window::Create());
+		WindowInfo info;
+		info.height = 2400;
+		info.width = 3840;
+		info.vsync = 0;
+		info.title = "LOLOA";
+		m_Window = Scope<Window>(Window::Create(info));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 		PushOverlay(new Pistachio::ImGuiLayer());
 		QueryPerformanceFrequency(&frequency);
@@ -41,7 +46,9 @@ namespace Pistachio {
 	void Application::OnEvent(Event& e)
 	{
 		
-		//EventDispatcher dispatcher(e);
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(Application::OnWindowResize));
+		Renderer::OnEvent(e);
 		PT_CORE_TRACE("{0}", e);
 		for (auto it = m_layerstack.end(); it != m_layerstack.begin(); )
 		{
@@ -50,7 +57,14 @@ namespace Pistachio {
 				break;
 		}
 	}
-	
+	bool Application::OnWindowResize(WindowResizeEvent& e)
+	{
+		if (e.GetWidth() == 0)
+			m_minimized = true;
+		else
+			m_minimized = false;
+		return false;
+	}
 	void Application::Run()
 	{
 		while (m_Running) {
@@ -68,13 +82,18 @@ namespace Pistachio {
 			}
 			if (!m_Running)
 				break;
+			// Start the Dear ImGui frame
+			ImGui_ImplDX11_NewFrame();
+			ImGui_ImplWin32_NewFrame();
+			ImGui::NewFrame();
 			m_Window->OnUpdate(delta);
-			for (Layer* layer : m_layerstack)
-				layer->OnUpdate(delta);
+			if (!m_minimized) {
+				for (Layer* layer : m_layerstack)
+					layer->OnUpdate(delta);
+			}
 			for (Layer* layer : m_layerstack)
 				layer->OnImGuiRender();
 			ImGui::Render();
-			
 			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 			{
@@ -83,5 +102,7 @@ namespace Pistachio {
 			}
 			Renderer::EndScene();
 		}
+		
 	}
+	
 }

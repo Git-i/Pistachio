@@ -7,8 +7,8 @@ extern bool KeyRepeat;
 namespace Pistachio {
 	extern int LastKey;
 	extern bool KeyRepeatPoll;
-	void OnMousseScroll(float xamount, float yamount);
-	void OnResize(int width, int height);
+	void OnMouseScroll(float xamount, float yamount);
+	void OnResize(unsigned int width, unsigned int height);
 	void OnKeyDown(int code);
 	void OnMouseButtonPress(int button);
 	void OnMouseButtonRelease(int button);

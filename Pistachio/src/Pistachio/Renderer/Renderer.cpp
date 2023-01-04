@@ -1,19 +1,24 @@
 #include "ptpch.h"
 #include "Renderer.h"
+
 #include "Pistachio/Core/Window.h"
 #include "DirectX11/DX11Texture.h"
 Pistachio::PerspectiveCamera* Pistachio::Renderer::m_camera = nullptr;
 Pistachio::RenderCubeMap Pistachio::Renderer::fbo = Pistachio::RenderCubeMap();
 Pistachio::RenderCubeMap Pistachio::Renderer::ifbo = Pistachio::RenderCubeMap();
-Pistachio::RenderCubeMap Pistachio::Renderer::prefilter[5] = { Pistachio::RenderCubeMap	() };
+Pistachio::RenderCubeMap Pistachio::Renderer::prefilter = { Pistachio::RenderCubeMap() };
 ID3D11ShaderResourceView* Pistachio::Renderer::pBrdfSRV = nullptr;
 ID3D11RenderTargetView* Pistachio::Renderer::pBrdfRTV = nullptr;
+ID3D11RenderTargetView* Pistachio::Renderer::m_target[8] = {};
+ID3D11DepthStencilView* Pistachio::Renderer::m_pDSV = nullptr;
+int Pistachio::Renderer::m_NumRenderTextures = 1;
 namespace Pistachio {
-	void Renderer::Init()
+	void Renderer::Init(const char* skybox)
 	{
-		SamplerState* ss = SamplerState::Create();
+		RendererBase::SetCullMode(CullMode::Front);
+		SamplerState* ss = SamplerState::Create(TextureAddress::Wrap, TextureAddress::Wrap, TextureAddress::Wrap);
 		ss->Bind();
-		Texture3D* tex = Texture3D::Create("resources/textures/hdr/newport_loft.hdr");
+		FloatTexture2D* tex = FloatTexture2D::Create(skybox);
 		Shader eqShader(L"equirectangular_to_cubemap_vs.cso", L"equirectangular_to_cubemap_fs.cso");
 		Shader irradianceShader(L"equirectangular_to_cubemap_vs.cso", L"irradiance_fs.cso");
 		Shader brdfShader(L"brdf_vs.cso", L"brdf_fs.cso");
@@ -26,21 +31,22 @@ namespace Pistachio {
 		Mesh plane;
 		cube.CreateStack("cube.obj");
 		plane.CreateStack("plane.obj");
-		fbo.CreateStack(512, 512,5);
+		fbo.CreateStack(512, 512, 10);
 		float clearcolor[] = { 0.7f, 0.7f, 0.7f, 1.0f };
 		DirectX::XMMATRIX captureProjection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f), 1.0f, 0.1f, 10.0f);
 		DirectX::XMMATRIX captureViews[] =
 		{
-			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet(1.0f, 0.0f, 0.0f , 1.0f), DirectX::XMVectorSet(0.0f, -1.0f, 0.0f  ,1.0f)),
-			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet(-1.0f, 0.0f, 0.0f , 1.0f), DirectX::XMVectorSet(0.0f, -1.0f,  0.0f,1.0f)),
-			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet(0.0f, -1.0f, 0.0f , 1.0f), DirectX::XMVectorSet(0.0f,  0.0f,  1.0f,1.0f)),
-			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f), DirectX::XMVectorSet(0.0f,  0.0f, -1.0f,1.0f)),
-			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet(0.0f, 0.0f, -1.0f , 1.0f), DirectX::XMVectorSet(0.0f, -1.0f,  0.0f,1.0f)),
-			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f), DirectX::XMVectorSet(0.0f, -1.0f,  0.0f ,1.0f))
+			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet( 1.0f,  0.0f,  0.0f, 1.0f), DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 1.0f)),
+			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet(-1.0f,  0.0f,  0.0f, 1.0f), DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 1.0f)),
+			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet( 0.0f, -1.0f,  0.0f, 1.0f), DirectX::XMVectorSet(0.0f,  0.0f,  1.0f, 1.0f)),
+			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet( 0.0f,  1.0f,  0.0f, 1.0f), DirectX::XMVectorSet(0.0f,  0.0f, -1.0f, 1.0f)),
+			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet( 0.0f,  0.0f, -1.0f, 1.0f), DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 1.0f)),
+			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet( 0.0f,  0.0f,  1.0f, 1.0f), DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 1.0f))
 		};
-		RendererBase::Resize(512, 512);
+		RendererBase::ChangeViewport(512, 512);
 		eqShader.Bind(ShaderType::Vertex);
 		eqShader.Bind(ShaderType::Pixel);
+		tex->Bind(0);
 		for (int i = 0; i < 6; i++) {
 			fbo.Bind(i);
 			fbo.Clear(clearcolor, i);
@@ -49,13 +55,12 @@ namespace Pistachio {
 			ConstantBuffer cb;
 			DirectX::XMFLOAT3 campos = { 0.0, 0.0, 0.0 };
 			cb = { DirectX::XMMatrixTranspose(captureViews[i] * captureProjection), DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity()) , DirectX::XMLoadFloat3(&campos),{0.0, 0.0, 0.0},0 ,0 ,0};
-			eqShader.SetRandomConstantBuffer(&cb, sizeof(cb));
-			tex->Bind(0);
+			eqShader.SetVSRandomBuffer(&cb, sizeof(cb));
 			RendererBase::DrawIndexed(buffer);
 		}
-		RendererBase::Getd3dDeviceContext()->GenerateMips(fbo.shaderResourceView);
+		RendererBase::Getd3dDeviceContext()->GenerateMips(fbo.GetSRV());
 		ifbo.CreateStack(32, 32);
-		RendererBase::Resize(32, 32);
+		RendererBase::ChangeViewport(32, 32);
 		irradianceShader.Bind(ShaderType::Vertex);
 		irradianceShader.Bind(ShaderType::Pixel);
 		for (int i = 0; i < 6; i++)
@@ -67,8 +72,8 @@ namespace Pistachio {
 			ConstantBuffer cb;
 			DirectX::XMFLOAT3 campos = { 0.0, 0.0, 0.0 };
 			cb = { DirectX::XMMatrixTranspose(captureViews[i] * captureProjection), DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity()) , DirectX::XMLoadFloat3(&campos),{0.0, 0.0, 0.0},0 ,0 ,0 };
-			irradianceShader.SetRandomConstantBuffer(&cb, sizeof(cb));
-			DX11Texture::Bind(Renderer::GetFrambufferSRV(), 1);
+			irradianceShader.SetVSRandomBuffer(&cb, sizeof(cb));
+			fbo.BindResource(1);
 			RendererBase::DrawIndexed(buffer);
 		}
 		struct{
@@ -79,30 +84,44 @@ namespace Pistachio {
 		prefilterShader.Bind(ShaderType::Vertex);
 		prefilterShader.Bind(ShaderType::Pixel);
 		unsigned int maxMipLevels = 5;
+		RenderTexture texture[6] = {};
+		prefilter.CreateStack(256, 256, 5);
 		for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
 		{
+			unsigned int mipWidth = 256 * std::pow(0.5, mip);
+			unsigned int mipHeight = 256 * std::pow(0.5, mip);
+			for (int i = 0; i < 6; ++i)
+			{
+				texture[i].CreateStack(mipWidth, mipHeight, 1, TextureFormat::RGBA16F);
+			}
 			// reisze framebuffer according to mip-level size.
-			unsigned int mipWidth = 128 * std::pow(0.5, mip);
-			unsigned int mipHeight = 128 * std::pow(0.5, mip);
-			if (mipWidth != 8)
-			prefilter[mip].CreateStack(mipWidth, mipHeight, 5);
-			else
-			prefilter[mip].CreateStack(mipWidth, mipHeight);
-			RendererBase::Resize(mipWidth, mipHeight);
-			PrefilterShaderConstBuffer.roughness = (float)mip / (float)(maxMipLevels - 1);
+			RendererBase::ChangeViewport(mipWidth, mipHeight);
 			for (unsigned int i = 0; i < 6; ++i)
 			{
 				Buffer buffer = { cube.GetVertexBuffer(), cube.GetIndexBuffer() };
 				PrefilterShaderConstBuffer.viewproj = DirectX::XMMatrixTranspose(captureViews[i] * captureProjection);
 				PrefilterShaderConstBuffer.transform = DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity());
-				prefilterShader.SetRandomConstantBuffer(&PrefilterShaderConstBuffer, sizeof(PrefilterShaderConstBuffer));
-				prefilter[mip].Bind(i);
-				prefilter[mip].Clear(clearcolor, i);
-				DX11Texture::Bind(Renderer::GetFrambufferSRV(), 1);
+				PrefilterShaderConstBuffer.roughness = (float)mip / (float)(maxMipLevels - 1);
+				prefilterShader.SetVSRandomBuffer(&PrefilterShaderConstBuffer, sizeof(PrefilterShaderConstBuffer));
+				texture[i].Bind();
+				texture[i].Clear(clearcolor);
+				fbo.BindResource(1);
 				RendererBase::DrawIndexed(buffer);
 			}
+			D3D11_BOX sourceRegion;
+			for (int i = 0; i < 6; ++i)
+			{
+				sourceRegion.left = 0;
+				sourceRegion.right = mipWidth;
+				sourceRegion.top = 0;
+				sourceRegion.bottom = mipHeight;
+				sourceRegion.front = 0;
+				sourceRegion.back = 1;
+
+				RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(prefilter.GetRenderTexture(), D3D11CalcSubresource(mip, i, 5), 0, 0, 0, texture[i].GetRenderTexture(), 0, &sourceRegion);
+			}
 		}
-		RendererBase::Getd3dDeviceContext()->GenerateMips(prefilter[0].shaderResourceView);
+		//RendererBase::Getd3dDeviceContext()->GenerateMips(prefilter.shaderResourceView);
 		ID3D11Texture2D* BrdfLUT;
 		
 		D3D11_TEXTURE2D_DESC textureDesc;
@@ -115,7 +134,7 @@ namespace Pistachio {
 		textureDesc.Height = 512;
 		textureDesc.MipLevels = 1;
 		textureDesc.ArraySize = 1;
-		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
 		textureDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -138,24 +157,45 @@ namespace Pistachio {
 		RendererBase::Getd3dDevice()->CreateRenderTargetView(BrdfLUT, &renderTargetViewDesc, &pBrdfRTV);
 		
 		RendererBase::Getd3dDevice()->CreateShaderResourceView(BrdfLUT, &shaderResourceViewDesc, &pBrdfSRV);
-		RendererBase::Resize( 512, 512);
+		RendererBase::ChangeViewport( 512, 512);
+		BrdfLUT->Release();
+		BrdfLUT = NULL;
 		brdfShader.Bind(ShaderType::Vertex);
 		brdfShader.Bind(ShaderType::Pixel);
-		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &pBrdfRTV, RendererBase::GetDepthStencilView());
+		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &pBrdfRTV, nullptr);
 		Buffer buffer = { plane.GetVertexBuffer(), plane.GetIndexBuffer() };
 		RendererBase::DrawIndexed(buffer);
-
-
-
-		auto target = RendererBase::GetmainRenderTargetView();
-		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &target, RendererBase::GetDepthStencilView());
-		RendererBase::DrawIndexed(buffer);
-		RendererBase::Resize(1280, 720);
+		auto data = GetWindowDataPtr();
+		RendererBase::ChangeViewport(((WindowData*)(data))->width, ((WindowData*)(data))->height);
+		RendererBase::SetCullMode(CullMode::Back);
+		auto mainTarget = RendererBase::GetmainRenderTargetView();
+		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &mainTarget, RendererBase::GetDepthStencilView());
+		Pistachio::DX11Texture::Bind(&pBrdfSRV, 0);
+		ifbo.BindResource(1);
+		prefilter.BindResource(2);
+		fbo.BindResource(3);
+		cube.DestroyMesh();
+		plane.DestroyMesh();
+		delete ss;
 	}
 	void Renderer::EndScene()
 	{
 		auto data = ((WindowData*)GetWindowDataPtr());
-		RendererBase::GetSwapChain()->Present(data->vsync, DXGI_PRESENT_ALLOW_TEARING);
+		if (data->vsync)
+			RendererBase::GetSwapChain()->Present(1, 0);
+		else
+			RendererBase::GetSwapChain()->Present(0, DXGI_PRESENT_DO_NOT_WAIT | DXGI_PRESENT_ALLOW_TEARING);
+	}
+	void Renderer::Shutdown() {
+		if (pBrdfRTV) {
+			pBrdfRTV->Release();
+			pBrdfRTV = NULL;
+		}
+		if (pBrdfSRV) {
+			pBrdfSRV->Release();
+			pBrdfSRV = NULL;
+		}
+		RendererBase::Shutdown();
 	}
 	void Renderer::Submit(Buffer* buffer, Shader* shader, DirectX::XMMATRIX transform)
 	{
@@ -169,7 +209,7 @@ namespace Pistachio {
 		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &(target), RendererBase::GetDepthStencilView());
 		RendererBase::DrawIndexed(*buffer);
 	}
-	void Renderer::Submit(Mesh* mesh, Shader* shader, float* c, float m, float r, float ao, bool a, DirectX::XMMATRIX transform, DirectX::XMMATRIX viewProj)
+	void Renderer::Submit(Mesh* mesh, Shader* shader, float* c, float m, float r, float ao, const DirectX::XMMATRIX& transform, const DirectX::XMMATRIX& viewProj)
 	{
 		Buffer buffer = { mesh->GetVertexBuffer(), mesh->GetIndexBuffer()};
 		shader->Bind(ShaderType::Vertex);
@@ -179,8 +219,10 @@ namespace Pistachio {
 		cb = { viewProj, DirectX::XMMatrixTranspose(transform) , DirectX::XMLoadFloat3(&campos),{c[0], c[1], c[2]},m,r,ao};
 		shader->SetUniformBuffer(cb);
 		auto target = RendererBase::GetmainRenderTargetView();
-		if(a)
-		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &(target), RendererBase::GetDepthStencilView());
+		if (m_target)
+			RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(m_NumRenderTextures, m_target, m_pDSV);
+		else
+			RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &(target), RendererBase::GetDepthStencilView());
 		RendererBase::DrawIndexed(buffer);
 	}
 	

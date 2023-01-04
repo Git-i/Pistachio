@@ -51,7 +51,7 @@ ID3D11InputLayout* DX11Shader::CreateInputLayout(Pistachio::BufferLayout* layout
 	return pInputLayout;
 }
 
-void DX11Shader::CreateConstantBuffer(const Pistachio::ConstantBuffer& cb, ID3D11Device* device, ID3D11DeviceContext* context)
+void DX11Shader::CreateConstantBuffer(const Pistachio::ConstantBuffer& cb, ID3D11Device* device, ID3D11DeviceContext* context, int slot)
 {
 	ID3D11Buffer* constBuffer;
 	D3D11_BUFFER_DESC cbd = {};
@@ -64,9 +64,10 @@ void DX11Shader::CreateConstantBuffer(const Pistachio::ConstantBuffer& cb, ID3D1
 	D3D11_SUBRESOURCE_DATA sd;
 	sd.pSysMem = &cb;
 	device->CreateBuffer(&cbd, &sd, &constBuffer);
-	context->VSSetConstantBuffers(0, 1, &constBuffer);
+	context->VSSetConstantBuffers(slot, 1, &constBuffer);
+	constBuffer->Release();
 }
-void DX11Shader::CreateRandomConstantBuffer(const void* cb, int size,ID3D11Device* device, ID3D11DeviceContext* context)
+void DX11Shader::CreateRandomConstantBuffer(const void* cb, int size,ID3D11Device* device, ID3D11DeviceContext* context, int slot)
 {
 	ID3D11Buffer* constBuffer;
 	D3D11_BUFFER_DESC cbd = {};
@@ -79,5 +80,22 @@ void DX11Shader::CreateRandomConstantBuffer(const void* cb, int size,ID3D11Devic
 	D3D11_SUBRESOURCE_DATA sd;
 	sd.pSysMem = cb;
 	device->CreateBuffer(&cbd, &sd, &constBuffer);
-	context->VSSetConstantBuffers(0, 1, &constBuffer);
+	context->VSSetConstantBuffers(slot, 1, &constBuffer);
+	constBuffer->Release();
+}
+void DX11Shader::CreatePSRandomConstantBuffer(const void* cb, int size,ID3D11Device* device, ID3D11DeviceContext* context, int slot)
+{
+	ID3D11Buffer* constBuffer;
+	D3D11_BUFFER_DESC cbd = {};
+	cbd.ByteWidth = size;
+	cbd.Usage = D3D11_USAGE_DYNAMIC;
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cbd.MiscFlags = 0;
+	cbd.StructureByteStride = 0;
+	D3D11_SUBRESOURCE_DATA sd;
+	sd.pSysMem = cb;
+	device->CreateBuffer(&cbd, &sd, &constBuffer);
+	context->PSSetConstantBuffers(slot, 1, &constBuffer);
+	constBuffer->Release();
 }

@@ -1,15 +1,16 @@
 #include "ptpch.h"
 #include "DX11RendererBase.h"
+#include "../../Core/Window.h"
 namespace Pistachio {
-	ID3D11RenderTargetView* DX11RendererBase::CreateDevice(HWND hWnd, IDXGISwapChain** pSwapChain, ID3D11Device** pd3dDevice, ID3D11DeviceContext** pd3dDeviceContext, ID3D11DepthStencilView** pDSV)
+	Error DX11RendererBase::CreateDevice(HWND hWnd, IDXGISwapChain** pSwapChain, ID3D11Device** pd3dDevice, ID3D11DeviceContext** pd3dDeviceContext, ID3D11DepthStencilView** pDSV, ID3D11RenderTargetView** pMainRTV)
 	{
-		ID3D11RenderTargetView*  result = nullptr;
+		WindowData* data = (WindowData*)(GetWindowDataPtr());
 		// Setup swap chain
 		DXGI_SWAP_CHAIN_DESC sd;
 		ZeroMemory(&sd, sizeof(sd));
 		sd.BufferCount = 2;
-		sd.BufferDesc.Width = 0;
-		sd.BufferDesc.Height = 0;
+		sd.BufferDesc.Width = data->width;
+		sd.BufferDesc.Height = data->height;
 		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		sd.BufferDesc.RefreshRate.Numerator = 60;
 		sd.BufferDesc.RefreshRate.Denominator = 1;
@@ -29,7 +30,7 @@ namespace Pistachio {
 		D3D_FEATURE_LEVEL featureLevel;
 		const D3D_FEATURE_LEVEL featureLevelArray[3] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
 		if (D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, pSwapChain, pd3dDevice, &featureLevel, pd3dDeviceContext) != S_OK)
-			return nullptr;
+			return 1;
 		//(*pd3dDevice)->CreateDeferredContext(0,pd3dDeviceContext); 
 		D3D11_DEPTH_STENCIL_DESC dsc = {};
 		dsc.DepthEnable = TRUE;
@@ -38,10 +39,11 @@ namespace Pistachio {
 		ID3D11DepthStencilState* pDSState;
 		(*pd3dDevice)->CreateDepthStencilState(&dsc, &pDSState);
 		(*pd3dDeviceContext)->OMSetDepthStencilState(pDSState, 1);
+		pDSState->Release();
 		ID3D11Texture2D* pDepthStencil;
 		D3D11_TEXTURE2D_DESC depthTexDesc = {};
-		depthTexDesc.Width = 1280;
-		depthTexDesc.Height = 720;
+		depthTexDesc.Width = data->width;
+		depthTexDesc.Height = data->height;
 		depthTexDesc.MipLevels = 1;
 		depthTexDesc.ArraySize = 1;
 		depthTexDesc.Format = DXGI_FORMAT_D32_FLOAT;
@@ -54,12 +56,9 @@ namespace Pistachio {
 		dsv.Format = DXGI_FORMAT_D32_FLOAT;
 		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		dsv.Texture2D.MipSlice = 0;
-		if (pDepthStencil == NULL)
-			return 0;
-		else
-			(*pd3dDevice)->CreateDepthStencilView(pDepthStencil, &dsv, pDSV);
-		CreateRenderTarget(*pSwapChain, *pd3dDevice, &result);
-		return result;
+		(*pd3dDevice)->CreateDepthStencilView(pDepthStencil, &dsv, pDSV);
+		CreateRenderTarget(*pSwapChain, *pd3dDevice, pMainRTV);
+		return 0;
 	}
 
 	void DX11RendererBase::CleanupDevice(IDXGISwapChain** pSwapChain, ID3D11Device** pd3dDevice, ID3D11DeviceContext** pd3dDeviceContext)
@@ -73,8 +72,7 @@ namespace Pistachio {
 	{
 		ID3D11Texture2D* pBackBuffer;
 		pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-		if (pBackBuffer != NULL)
-			pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, pMainRenderTargetView);
+		pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, pMainRenderTargetView);
 		pBackBuffer->Release();
 	}
 	void DX11RendererBase::CleanupRenderTarget(ID3D11RenderTargetView* pMainRenderTargetView)

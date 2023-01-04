@@ -16,20 +16,20 @@ ID3D11Texture2D* DX11Cubemap::Create(int Width, int Height, ID3D11Device* pDevic
     textureDesc.Height = Height;
     textureDesc.MipLevels = miplevels;
     textureDesc.ArraySize = 6;
-    textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    textureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
     textureDesc.SampleDesc.Count = 1;
     textureDesc.SampleDesc.Quality = 0;
     textureDesc.Usage = D3D11_USAGE_DEFAULT;
     textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
     textureDesc.CPUAccessFlags = 0;
-    textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE | D3D11_RESOURCE_MISC_GENERATE_MIPS;
+    textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE|D3D11_RESOURCE_MISC_GENERATE_MIPS;
     
     pDevice->CreateTexture2D(&textureDesc, NULL, &renderTargetTexture);
     
     shaderResourceViewDesc.Format = textureDesc.Format;
     shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
     shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
-    shaderResourceViewDesc.Texture2D.MipLevels = -1;
+    shaderResourceViewDesc.Texture2D.MipLevels = miplevels;
     
     pDevice->CreateShaderResourceView(renderTargetTexture, &shaderResourceViewDesc, pSRV);
     return renderTargetTexture;

@@ -17,21 +17,14 @@ void DX11RenderTexture::Create(ID3D11Texture2D* tex,ID3D11ShaderResourceView* te
     renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
     renderTargetViewDesc.Texture2D.MipSlice = 0;
     
-    pDevice->CreateRenderTargetView(tex, &renderTargetViewDesc, (pRTV));
+    pDevice->CreateRenderTargetView(tex, &renderTargetViewDesc, pRTV);
 }
-void DX11RenderTexture::CreateDepth(ID3D11Device** pDevice, ID3D11DeviceContext** pContext, ID3D11DepthStencilView** pDSV)
+void DX11RenderTexture::CreateDepth(ID3D11Device** pDevice, ID3D11DeviceContext** pContext, ID3D11DepthStencilView** pDSV, int width, int height)
 {
-    D3D11_DEPTH_STENCIL_DESC dsc = {};
-    dsc.DepthEnable = TRUE;
-    dsc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    dsc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-    ID3D11DepthStencilState* pDSState;
-    (*pDevice)->CreateDepthStencilState(&dsc, &pDSState);
-    //(*pContext)->OMSetDepthStencilState(pDSState, 1);
     ID3D11Texture2D* pDepthStencil;
     D3D11_TEXTURE2D_DESC depthTexDesc = {};
-    depthTexDesc.Width = 1280;
-    depthTexDesc.Height = 720;
+    depthTexDesc.Width = width;
+    depthTexDesc.Height = height;
     depthTexDesc.MipLevels = 1;
     depthTexDesc.ArraySize = 1;
     depthTexDesc.Format = DXGI_FORMAT_D32_FLOAT;

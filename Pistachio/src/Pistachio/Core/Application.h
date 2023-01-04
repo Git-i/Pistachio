@@ -21,13 +21,14 @@ namespace Pistachio {
 		void OnEvent(Event& e);
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* overlay);
-
+		bool OnWindowResize(WindowResizeEvent& e);
 		inline static Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
 	private:
 		LayerStack m_layerstack;
 		std::unique_ptr<Window> m_Window;
 		bool m_Running = true;
+		bool m_minimized = false;
 		static Application* s_Instance;
 		LARGE_INTEGER frequency;
 		double period;

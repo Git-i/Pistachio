@@ -76,7 +76,7 @@
       </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>d3d11.lib;zlibstaticd.lib;assimp-vc143-mtd.lib</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -111,6 +111,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Pistachio\Core\Error.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Texture.h" />
@@ -119,6 +120,8 @@
     <ClInclude Include="src\Pistachio\Renderer\Camera.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Shader.h" />
+    <ClInclude Include="src\Pistachio\Renderer\Model.h" />
+    <ClInclude Include="src\Pistachio\Renderer\Renderer2D.h" />
     <ClInclude Include="src\Pistachio\Renderer\RenderTexture.h" />
     <ClInclude Include="src\Pistachio\Renderer\Mesh.h" />
     <ClInclude Include="src\Pistachio\Renderer\Renderer.h" />
@@ -165,6 +168,8 @@
     <ClCompile Include="src\Pistachio\Renderer\Camera.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\Model.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\Renderer2D.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RenderTexture.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Mesh.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Renderer.cpp" />

@@ -16,12 +16,13 @@ namespace Pistachio {
 
     Texture2D::~Texture2D()
     {
-        pTextureView->Release();
+        while (pTextureView->Release()){};
     }
 
     void Texture2D::Bind(int slot) const
     {
-        DX11Texture::Bind(pTextureView, slot);
+        this->slot = slot;
+        DX11Texture::Bind(&pTextureView, slot);
     }
 
     Texture2D* Texture2D::Create(const char* path)
@@ -40,25 +41,30 @@ namespace Pistachio {
         result.pTextureView = DX11Texture::Create(path, &result.m_Width, &result.m_Height);
         return result;
     }
-    unsigned int Texture3D::GetHeight() const
+    unsigned int FloatTexture2D::GetHeight() const
     {
         return 0;
     }
-    unsigned int Texture3D::GetWidth() const
+    unsigned int FloatTexture2D::GetWidth() const
     {
         return 0;
     }
-    void Texture3D::Bind(int slot) const
+    void FloatTexture2D::Bind(int slot) const
     {
-        DX11Texture::Bind(pTextureView, slot);
+        DX11Texture::Bind(&pTextureView, slot);
     }
-    Texture3D* Texture3D::Create(const char* path)
+    FloatTexture2D* FloatTexture2D::Create(const char* path)
     {
-        Texture3D* result = new Texture3D;
-        result->pTextureView = DX11Texture::Create3D(path, &result->m_Width, &result->m_Height);
+        FloatTexture2D* result = new FloatTexture2D;
+        result->pTextureView = DX11Texture::CreateFloat(path, &result->m_Width, &result->m_Height);
         return result;
     }
-    void Texture3D::CreateStack(const char* path)
+    void FloatTexture2D::CreateStack(const char* path)
     {
+        pTextureView = DX11Texture::CreateFloat(path, &m_Width, &m_Height);
+    }
+    FloatTexture2D::~FloatTexture2D()
+    {
+        while (pTextureView->Release()){};
     }
 }
