@@ -2,7 +2,7 @@
 #include "WindowsInputCallbacks.h"
 bool KeyRepeat = false;
 int Pistachio::LastKey = 0;
-void Pistachio::OnMousseScroll(float xamount, float yamount)
+void Pistachio::OnMouseScroll(float xamount, float yamount)
 {
 	WindowData& data = *(WindowData*)GetWindowDataPtr();
 	MouseScrolledEvent event(xamount, yamount);
@@ -11,7 +11,7 @@ void Pistachio::OnMousseScroll(float xamount, float yamount)
 	}
 }
 
-void Pistachio::OnResize(int width, int height)
+void Pistachio::OnResize(unsigned int width, unsigned int height)
 {
 	WindowData& data = *(WindowData*)GetWindowDataPtr();
 	data.width = width;

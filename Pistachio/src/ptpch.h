@@ -16,8 +16,12 @@
 #if defined(PT_PLATFORM_WINDOWS)
 	#include <windows.h>
 	#include <d3d11.h>
+	#include <dxgi1_3.h>
 	#include <d3dcompiler.h>
 	#include <DirectXMath.h>
 	#include <Xinput.h>
+#ifdef _DEBUG
+#endif // _DEBUG
+
 #endif // PT_PLATFORM_WINDOWS
 

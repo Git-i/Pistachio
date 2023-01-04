@@ -25,13 +25,17 @@ namespace Pistachio {
 		#endif // PISTACHIO_RENDER_API_DX11
 
 	}
-	void Shader::SetUniformBuffer(const ConstantBuffer& cb)
+	void Shader::SetUniformBuffer(const ConstantBuffer& cb, int slot)
 	{
-		DX11Shader::CreateConstantBuffer(cb, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());
+		DX11Shader::CreateConstantBuffer(cb, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext(), slot);
 	}
-	void Shader::SetRandomConstantBuffer(const void* cb, int size)
+	void Shader::SetVSRandomBuffer(const void* cb, int size, int slot)
 	{
-		DX11Shader::CreateRandomConstantBuffer(cb, size, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());
+		DX11Shader::CreateRandomConstantBuffer(cb, size, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext(), slot);
+	}
+	void Shader::SetPSBuffer(const void* cb, int size, int slot)
+	{
+		DX11Shader::CreatePSRandomConstantBuffer(cb, size, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext(), slot);
 	}
 	void Shader::Shutdown()
 	{

@@ -16,3 +16,5 @@
 #include "Pistachio/Renderer/Renderer.h"
 #include "Pistachio/Renderer/Mesh.h"
 #include "Pistachio/Renderer/RenderTexture.h"
+#include "Pistachio/Renderer/Renderer2D.h"
+#include "Pistachio/Renderer/Model.h"

@@ -40,6 +40,7 @@ namespace Pistachio {
 
 		BufferLayout(const char* name, BufferLayoutFormat format, unsigned int offset) : Name(name), Format(format), Offset(offset)
 		{}
+		BufferLayout();
 	};
 	static unsigned int BufferLayoutFormatSize(BufferLayoutFormat format)
 	{
@@ -68,8 +69,9 @@ namespace Pistachio {
 		Shader(const wchar_t* vsrc, const wchar_t* fsrc);
 		void CreateLayout(BufferLayout* layout, int nAttributes);
 		void Bind(ShaderType type);
-		void SetUniformBuffer(const ConstantBuffer& cb);
-		void SetRandomConstantBuffer(const void* cb, int size);
+		void SetUniformBuffer(const ConstantBuffer& cb, int startslot = 0);
+		void SetVSRandomBuffer(const void* cb, int size, int stattslot = 0);
+		void SetPSBuffer(const void* cb, int size, int startslot = 0);
 		void Shutdown();
 		~Shader();
 	private:

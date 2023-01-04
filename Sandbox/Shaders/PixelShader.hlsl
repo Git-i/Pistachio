@@ -1,6 +1,10 @@
 Texture2D BRDFLUT : register(t0);
 TextureCube irradianceMap : register(t1);
 TextureCube prefilterMap : register(t2);
+Texture2D albedot : register(t4);
+Texture2D roughnesst : register(t5);
+Texture2D metalt : register(t6);
+Texture2D aot : register(t7);
 SamplerState my_sampler;
 
 float  DistributionGGX(float3 N, float3 H, float roughness);
@@ -10,25 +14,35 @@ float3 fresnelSchlick(float cosTheta, float3 F0);
 float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness);
 
 #define PI 3.14159265359
-float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, float2 uv : UV, float3 viewPos : V_POSITION, float3 albedo : ALBEDO, float metallic : METALLIC, float roughness : ROUGHNESS,float ao : AO) : SV_TARGET
+struct PS_OUTPUT
 {
-    float3 WorldPos = position;
+    float4 color1 : SV_Target0;
+};
+PS_OUTPUT main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, float2 uv : UV, float3 viewPos : V_POSITION, float3 albedo : ALBEDO, float metallic : METALLIC, float roughness : ROUGHNESS,float ao : AO)
+{
+    PS_OUTPUT pso;
+    //albedo = albedot.Sample(my_sampler, uv).rgb;
+    //roughness = roughnesst.Sample(my_sampler, uv).r;
+    //metallic = metalt.Sample(my_sampler, uv).r;
+    float3 worldPos = position;
+    float3 camPos = viewPos;
+    float3 WorldPos = worldPos;
 	
-    float3 Normal = normal; // *normalMap.Sample(textureSampler, input.uv).rgb;
-    
-    roughness = clamp(roughness, 0.1, 0.98);
-    //ao = 1.0;
+	
+    float3 Normal = normal;// * aot.Sample(my_sampler, uv).rgb;
+    roughness = clamp(roughness, 0.0, 0.999);
+    //float ao = 1.0;
 
     float3 N = normalize(Normal);
-    float3 V = normalize(viewPos.xyz - WorldPos);
+    float3 V = normalize(camPos.xyz - WorldPos);
     float3 R = reflect(-V, N);
 
     float3 F0 = float3(0.04, 0.04, 0.04);
     F0 = lerp(F0, albedo, metallic);
-
+    
     // reflectance equation
     float3 Lo = float3(0.0, 0.0, 0.0);
-    float3 lightPosition = float3(1.3, 0.0, 0.0);
+    float3 lightPosition = float3(0.0, 1.0, 1.0);
     float3 lightColour = float3(1.0, 1.0, 1.0);
     // Directional Lighting
     {
@@ -97,10 +111,13 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
     float3 irradiance = irradianceMap.Sample(my_sampler, N).rgb;
     float3 indirectDiffuse = irradiance * albedo;
     const float MAX_REFLECTION_LOD = 4.0;
-    float3 prefilteredColor = prefilterMap.SampleLevel(my_sampler, R, roughness * MAX_REFLECTION_LOD).rgb;
-   
-    float2 envBRDF = BRDFLUT.Sample(my_sampler, float2(max(dot(N, V), 0.0), roughness)).rg;
-   
+    float3 prefilteredColor = prefilterMap.SampleLevel(my_sampler, -R, roughness * MAX_REFLECTION_LOD).rgb;
+    float2 envBRDF;
+    //if(roughness<0.5)
+    envBRDF = BRDFLUT.Sample(my_sampler, float2(-clamp(max(dot(N, V), 0.0), 0.0, 0.9), roughness)).rg;
+    //else
+    //envBRDF = BRDFLUT.Sample(my_sampler, float2(max(dot(N, V), 0.0), roughness)).rg;
+    
     float3 indirectSpecular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
    
     // ------------------------------------------------//
@@ -115,10 +132,18 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
     // Gamma Inverse Correct
     float invGamma = 1.0f / 2.2f;
     color = pow(color, float3(invGamma, invGamma, invGamma));
+    pso.color1 = float4(color, 1.0);
+    return pso;
+}
 
-    return float4(color, 1.0f);
+float3 fresnelSchlick(float cosTheta, float3 F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
 
-
+float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
+{
+    return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 float DistributionGGX(float3 N, float3 H, float roughness)
@@ -127,41 +152,30 @@ float DistributionGGX(float3 N, float3 H, float roughness)
     float a2 = a * a;
     float NdotH = max(dot(N, H), 0.0);
     float NdotH2 = NdotH * NdotH;
-
-    float nom = a2;
+	
+    float num = a2;
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
     denom = PI * denom * denom;
-
-    return nom / denom;
+	
+    return num / denom;
 }
-// ----------------------------------------------------------------------------
+
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
     float r = (roughness + 1.0);
     float k = (r * r) / 8.0;
 
-    float nom = NdotV;
+    float num = NdotV;
     float denom = NdotV * (1.0 - k) + k;
-
-    return nom / denom;
+	
+    return num / denom;
 }
-// ----------------------------------------------------------------------------
 float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
 {
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
     float ggx2 = GeometrySchlickGGX(NdotV, roughness);
     float ggx1 = GeometrySchlickGGX(NdotL, roughness);
-
+	
     return ggx1 * ggx2;
-}
-// ----------------------------------------------------------------------------
-float3 fresnelSchlick(float cosTheta, float3 F0)
-{
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}
-// ----------------------------------------------------------------------------
-float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
-{
-    return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }

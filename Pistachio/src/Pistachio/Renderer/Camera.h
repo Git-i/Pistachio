@@ -9,9 +9,9 @@ namespace Pistachio {
 		inline void SetPosition(float x, float y, float z) { m_Position.x = x; m_Position.y = y; m_Position.z = z; RecalculateViewMatrix(); }
 		inline void SetPosition(DirectX::XMFLOAT3 pos) { m_Position = pos; RecalculateViewMatrix(); }
 		inline void SetRotation(float Rotation) { m_Rotation = DirectX::XMConvertToRadians(Rotation); RecalculateViewMatrix(); }
-		inline DirectX::XMMATRIX GetProjectionMatrix() { return m_projectionMatrix; }
-		inline DirectX::XMMATRIX GetViewMatrix() { return m_ViewMatrix; }
-		inline DirectX::XMMATRIX GetViewProjectionMatrix() { return m_ViewProjMatrix; }
+		inline DirectX::XMMATRIX GetProjectionMatrix() const { return m_projectionMatrix; }
+		inline DirectX::XMMATRIX GetViewMatrix() const { return m_ViewMatrix; }
+		inline DirectX::XMMATRIX GetViewProjectionMatrix() const { return m_ViewProjMatrix; }
 	private:
 		void RecalculateViewMatrix();
 	private:
@@ -23,7 +23,7 @@ namespace Pistachio {
 	};
 	class PerspectiveCamera {
 	public:
-		PerspectiveCamera(float fov, float nearPlane, float farPLane, float aspectratio);
+		PerspectiveCamera(float fov, float nearPlane, float farPLane);
 		inline DirectX::XMFLOAT3 GetPosition() { return m_eye; }
 		inline float GetRotation() { return m_Rotation;  }
 		inline void SetRotation(float Rotation) { m_Rotation = Rotation; m_up.x = DirectX::XMScalarSin(Rotation); m_up.y = DirectX::XMScalarCos(Rotation); RecalculateViewMatrix(); }
@@ -35,6 +35,7 @@ namespace Pistachio {
 		inline DirectX::XMMATRIX GetProjectionMatrix() { return m_projectionMatrix; }
 		inline DirectX::XMMATRIX GetViewMatrix() { return m_ViewMatrix; }
 		inline DirectX::XMMATRIX GetViewProjectionMatrix() { return m_ViewProjMatrix; }
+		inline void ChangeAspectRatio(float aspectratio) { m_projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(fov, aspectratio, 0.1f, 100.0f); }
 	private:
 		void RecalculateViewMatrix();
 	private:
@@ -44,6 +45,7 @@ namespace Pistachio {
 		DirectX::XMFLOAT3 m_eye;
 		DirectX::XMFLOAT3 m_direction;
 		DirectX::XMFLOAT3 m_up;
+		float fov;
 		float m_Rotation;
 	};
 }

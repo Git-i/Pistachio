@@ -1,13 +1,11 @@
 #include "ptpch.h"
 #include "DX11Texture.h"
 #include "stb_image.h"
-
 #include "../RendererBase.h"
 namespace Pistachio {
 	ID3D11ShaderResourceView* DX11Texture::Create(const char* path, unsigned int* width, unsigned int* height)
 	{
         HRESULT Hr;
-        stbi_set_flip_vertically_on_load(true);
         int Width, Height, nChannels;
         stbi_uc* data = stbi_load(path, &Width, &Height, &nChannels, 4);
         *width = Width;
@@ -42,10 +40,10 @@ namespace Pistachio {
         srvdesc.Texture2D.MipLevels = 1;
         ID3D11ShaderResourceView* pTextureView;
         RendererBase::Getd3dDevice()->CreateShaderResourceView(ImageTexture, &srvdesc, &pTextureView);
-
+        ImageTexture->Release();
         return pTextureView;
 	}
-    ID3D11ShaderResourceView* DX11Texture::Create3D(const char* path, unsigned int* width, unsigned int* height)
+    ID3D11ShaderResourceView* DX11Texture::CreateFloat(const char* path, unsigned int* width, unsigned int* height)
     {
         HRESULT Hr;
         //stbi_set_flip_vertically_on_load(true);
@@ -74,7 +72,7 @@ namespace Pistachio {
             D3D11_SUBRESOURCE_DATA ImageSubresourceData = {};
 
             ImageSubresourceData.pSysMem = data;
-            ImageSubresourceData.SysMemPitch = *(width) * 16;
+            ImageSubresourceData.SysMemPitch = *(width) * sizeof(float) * 4;
 
             ID3D11Texture2D* ImageTexture;
             Hr = RendererBase::Getd3dDevice()->CreateTexture2D(&ImageTextureDesc, &ImageSubresourceData, &ImageTexture);
@@ -87,6 +85,7 @@ namespace Pistachio {
             srvdesc.Texture2D.MipLevels = 1;
             ID3D11ShaderResourceView* pTextureView;
             RendererBase::Getd3dDevice()->CreateShaderResourceView(ImageTexture, &srvdesc, &pTextureView);
+            ImageTexture->Release();
 
             return pTextureView;
         }
@@ -96,22 +95,22 @@ namespace Pistachio {
         }
         
     }
-    void DX11Texture::Bind(ID3D11ShaderResourceView* pTextureView, int slot = 0)
+    void DX11Texture::Bind(ID3D11ShaderResourceView*const* ppTextureViews, int slot, int numTextures)
     {
-        RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, 1, &pTextureView);
+        RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, numTextures, ppTextureViews);
     }
-    ID3D11SamplerState* DX11SamplerState::Create()
+    Error DX11SamplerState::Create(D3D11_TEXTURE_ADDRESS_MODE addressU, D3D11_TEXTURE_ADDRESS_MODE addressv, D3D11_TEXTURE_ADDRESS_MODE addressw, ID3D11SamplerState** ppSamplerState)
     {
         D3D11_SAMPLER_DESC ImageSamplerDesc = {};
-        ID3D11SamplerState* ImageSamplerState;
         ImageSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-        ImageSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-        ImageSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-        ImageSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        ImageSamplerDesc.AddressU = addressU;
+        ImageSamplerDesc.AddressV = addressv;
+        ImageSamplerDesc.AddressW = addressw;
+        ImageSamplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
         ImageSamplerDesc.MinLOD = 0;
         ImageSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-        RendererBase::Getd3dDevice()->CreateSamplerState(&ImageSamplerDesc, &ImageSamplerState);
-        return ImageSamplerState;
+        RendererBase::Getd3dDevice()->CreateSamplerState(&ImageSamplerDesc, ppSamplerState);
+        return Error(ErrorType::Success, std::string(__FUNCTION__));
     }
     void DX11SamplerState::Bind(ID3D11SamplerState* ImageSamplerState)
     {

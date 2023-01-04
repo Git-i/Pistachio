@@ -13,6 +13,7 @@
 #include "Pistachio/Renderer/Buffer.h"
 #include "Pistachio/Renderer/Shader.h"
 #include "Pistachio/Renderer/Camera.h"
+#include "Pistachio/Renderer/Renderer2D.h"
 void* WindowDataPtr = new void*;
 
 void* GetWindowDataPtr()
@@ -52,7 +53,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Pistachio::OnResize(width, height);
 			if (!Pistachio::RendererBase::IsDeviceNull && wParam != SIZE_MINIMIZED)
 			{
-				Pistachio::RendererBase::Resize((FLOAT)width, (FLOAT)height);
+				Pistachio::RendererBase::Resize(((WindowData*)GetWindowDataPtr())->width, ((WindowData*)GetWindowDataPtr())->height);
 			}
 			break;
 		}
@@ -61,6 +62,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			int id = MessageBoxW(hwnd, L"Do you want to Exit", L"Exit Application", MB_ICONWARNING | MB_YESNO);
 			if (id == IDYES)
 			{
+				Pistachio::RendererBase::Getd3dDeviceContext()->ClearState();
+				Pistachio::RendererBase::Getd3dDeviceContext()->Flush();
+				ImGui_ImplDX11_Shutdown();
+				ImGui_ImplWin32_Shutdown();
+				ImGui::DestroyContext();
 				DestroyWindow(hwnd);
 			}
 			else
@@ -152,13 +158,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				const RECT* suggested_rect = (RECT*)lParam;
 				::SetWindowPos(hwnd, NULL, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
 			}
+			PT_CORE_INFO("DPI CHANGED");
 			break;
 		case WM_MOUSEWHEEL:
 		{
 		
-			float xPos =0;
+			float xPos = ((short)LOWORD(wParam));
 			float yPos = GET_WHEEL_DELTA_WPARAM(wParam);
-			Pistachio::OnMousseScroll(xPos, yPos);
+			Pistachio::OnMouseScroll(xPos, yPos);
 			break;
 		}
 
@@ -185,10 +192,6 @@ namespace Pistachio {
 	int WindowsWindow::Init(const WindowInfo& info, HINSTANCE hInstance)
 	{
 		SetWindowDataPtr(&m_data);
-		STARTUPINFOA si;
-		GetStartupInfoA(&si);
-		si.wShowWindow = SW_SHOWDEFAULT;
-		int nCmdShow = si.wShowWindow;
 		m_data.title = info.title;
 		m_data.height = info.height;
 		m_data.width = info.width;
@@ -197,12 +200,11 @@ namespace Pistachio {
 		const wchar_t CLASS_NAME[] = L"Sample Window Class";
 
 		WNDCLASSEXW wc;
-
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = hInstance;
 		wc.lpszClassName = CLASS_NAME;
-		wc.cbSize = sizeof(WNDCLASSEXA);
-		wc.style = 0;
+		wc.cbSize = sizeof(WNDCLASSEXW);
+		wc.style = 64;
 		wc.cbClsExtra = 0;
 		wc.cbWndExtra = 0;
 		wc.hInstance = hInstance;
@@ -211,7 +213,6 @@ namespace Pistachio {
 		wc.hbrBackground = NULL;
 		wc.lpszMenuName = NULL;
 		wc.hIconSm = (HICON)(LoadImageA(hInstance,MAKEINTRESOURCEA(102),IMAGE_ICON,16,16,0));
-
 		RegisterClassExW(&wc);
 		RECT wr;
 		wr.left = 100;
@@ -264,21 +265,16 @@ namespace Pistachio {
 
 		SetConsoleTitleW(L"Pistachio Application Debug Console");
 #endif
-		ShowWindow(pd.hwnd, SW_SHOW);
+		ShowWindow(pd.hwnd, SW_SHOWDEFAULT);
 		Pistachio::Log::Init();
 		RendererBase::Init(pd.hwnd);
-		Renderer::Init();
+		Renderer::Init("resources/textures/hdr/newport_loft.hdr");
+		Renderer2D::Init();
 		return 0;
 
 	}
 	void WindowsWindow::Shutdown()
 	{
-		// Cleanup
-		ImGui_ImplDX11_Shutdown();
-		ImGui_ImplWin32_Shutdown();
-		ImGui::DestroyContext();
-
-		RendererBase::Shutdown();
 		::DestroyWindow(pd.hwnd);
 		::UnregisterClassW(L"Sample Window Class", GetModuleHandleA(NULL));
 	}

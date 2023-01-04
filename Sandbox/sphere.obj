@@ -1,6 +1,5 @@
 # Blender 3.3.1
 # www.blender.org
-mtllib sphere.mtl
 o Suzanne
 v 0.439019 0.159939 0.756944
 v -0.439019 0.159939 0.756944

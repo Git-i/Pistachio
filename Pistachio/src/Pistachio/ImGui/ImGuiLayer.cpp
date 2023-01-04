@@ -11,41 +11,18 @@ namespace Pistachio {
 	}
 	ImGuiLayer::~ImGuiLayer()
 	{
+		
 	}
 		
-		void ImGuiLayer::OnUpdate(float delta)
-		{
-			// Start the Dear ImGui frame
-			ImGui_ImplDX11_NewFrame();
-			ImGui_ImplWin32_NewFrame();
-			ImGui::NewFrame();
-			{
-				static float f = 0.0f;
-				static int counter = 0;
-
-				ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-				ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-
-				ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-
-				if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-					counter++;
-				ImGui::SameLine();
-				ImGui::Text("counter = %d", counter);
-
-				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-				ImGui::End();
-			}
-
-		
-			
+	void ImGuiLayer::OnUpdate(float delta)
+	{
 	}
 	void ImGuiLayer::OnEvent(Event& event)
 	{
 	}
 	void ImGuiLayer::OnAttach()
 	{
+		//ImGui_ImplWin32_EnableDpiAwareness();
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -75,7 +52,7 @@ namespace Pistachio {
 		colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
 		colors[ImGuiCol_FrameBg] = ImVec4(0.22f, 0.22f, 0.23f, 0.54f);
 		colors[ImGuiCol_FrameBgHovered] = ImVec4(0.11f, 0.10f, 0.10f, 0.40f);
-		colors[ImGuiCol_FrameBgActive] = ImVec4(1.00f, 0.00f, 0.20f, 0.67f);
+		colors[ImGuiCol_FrameBgActive] = ImVec4(0.29f, 1.00f, 0.82f, 0.67f);
 		colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
 		colors[ImGuiCol_TitleBgActive] = ImVec4(0.23f, 0.23f, 0.23f, 1.00f);
 		colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
@@ -84,26 +61,26 @@ namespace Pistachio {
 		colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
 		colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
 		colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
-		colors[ImGuiCol_CheckMark] = ImVec4(1.00f, 0.00f, 0.20f, 1.00f);
-		colors[ImGuiCol_SliderGrab] = ImVec4(1.00f, 0.00f, 0.20f, 0.67f);
-		colors[ImGuiCol_SliderGrabActive] = ImVec4(1.00f, 0.00f, 0.20f, 1.00f);
-		colors[ImGuiCol_Button] = ImVec4(1.00f, 0.00f, 0.20f, 0.40f);
-		colors[ImGuiCol_ButtonHovered] = ImVec4(1.00f, 0.00f, 0.20f, 1.00f);
-		colors[ImGuiCol_ButtonActive] = ImVec4(1.00f, 0.00f, 0.20f, 1.00f);
-		colors[ImGuiCol_Header] = ImVec4(1.00f, 0.00f, 0.20f, 0.31f);
-		colors[ImGuiCol_HeaderHovered] = ImVec4(1.00f, 0.00f, 0.20f, 0.80f);
-		colors[ImGuiCol_HeaderActive] = ImVec4(1.00f, 0.00f, 0.20f, 1.00f);
+		colors[ImGuiCol_CheckMark] = ImVec4(0.29f, 1.00f, 0.82f, 1.00f);
+		colors[ImGuiCol_SliderGrab] = ImVec4(0.29f, 1.00f, 0.82f, 0.67f);
+		colors[ImGuiCol_SliderGrabActive] = ImVec4(0.29f, 1.00f, 0.82f, 1.00f);
+		colors[ImGuiCol_Button] = ImVec4(0.29f, 1.00f, 0.82f, 0.40f);
+		colors[ImGuiCol_ButtonHovered] = ImVec4(0.29f, 1.00f, 0.82f, 1.00f);
+		colors[ImGuiCol_ButtonActive] = ImVec4(0.29f, 1.00f, 0.82f, 1.00f);
+		colors[ImGuiCol_Header] = ImVec4(0.29f, 1.00f, 0.82f, 0.31f);
+		colors[ImGuiCol_HeaderHovered] = ImVec4(0.29f, 1.00f, 0.82f, 0.80f);
+		colors[ImGuiCol_HeaderActive] = ImVec4(0.29f, 1.00f, 0.82f, 1.00f);
 		colors[ImGuiCol_Separator] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
-		colors[ImGuiCol_SeparatorHovered] = ImVec4(1.00f, 0.00f, 0.20f, 0.72f);
-		colors[ImGuiCol_SeparatorActive] = ImVec4(1.00f, 0.00f, 0.20f, 1.00f);
-		colors[ImGuiCol_ResizeGrip] = ImVec4(1.00f, 0.00f, 0.20f, 0.20f);
-		colors[ImGuiCol_ResizeGripHovered] = ImVec4(1.00f, 0.00f, 0.20f, 0.67f);
-		colors[ImGuiCol_ResizeGripActive] = ImVec4(1.00f, 0.00f, 0.20f, 0.95f);
+		colors[ImGuiCol_SeparatorHovered] = ImVec4(0.10f, 0.40f, 0.75f, 0.78f);
+		colors[ImGuiCol_SeparatorActive] = ImVec4(0.10f, 0.40f, 0.75f, 1.00f);
+		colors[ImGuiCol_ResizeGrip] = ImVec4(0.26f, 0.59f, 0.98f, 0.20f);
+		colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+		colors[ImGuiCol_ResizeGripActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
 		colors[ImGuiCol_Tab] = ImVec4(0.95f, 0.12f, 0.12f, 0.86f);
-		colors[ImGuiCol_TabHovered] = ImVec4(1.00f, 0.00f, 0.20f, 0.80f);
-		colors[ImGuiCol_TabActive] = ImVec4(1.00f, 0.00f, 0.20f, 1.00f);
+		colors[ImGuiCol_TabHovered] = ImVec4(0.29f, 1.00f, 0.82f, 0.80f);
+		colors[ImGuiCol_TabActive] = ImVec4(0.29f, 1.00f, 0.82f, 1.00f);
 		colors[ImGuiCol_TabUnfocused] = ImVec4(0.15f, 0.07f, 0.07f, 0.97f);
-		colors[ImGuiCol_TabUnfocusedActive] = ImVec4(1.00f, 0.00f, 0.20f, 1.00f);
+		colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.29f, 1.00f, 0.82f, 1.00f);
 		colors[ImGuiCol_DockingPreview] = ImVec4(0.20f, 0.02f, 0.02f, 0.70f);
 		colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
 		colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
@@ -121,6 +98,8 @@ namespace Pistachio {
 		colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
 		colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
 		colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+
+
 
 		ImGui_ImplWin32_Init(Application::Get().GetWindow().pd.hwnd);
 		ImGui_ImplDX11_Init(RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());

@@ -2,7 +2,10 @@
 #include "RendererBase.h"
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Window.h"
-
+#include "Pistachio/Core/Error.h"
+ID3D11RasterizerState* Pistachio::RendererBase::pRasterizerStateNoCull = NULL;
+ID3D11RasterizerState* Pistachio::RendererBase::pRasterizerStateCWCull = NULL;
+ID3D11RasterizerState* Pistachio::RendererBase::pRasterizerStateCCWCull = NULL;
 ID3D11Device* Pistachio::RendererBase::g_pd3dDevice = NULL;
 ID3D11DeviceContext* Pistachio::RendererBase::g_pd3dDeviceContext = NULL;
 IDXGISwapChain* Pistachio::RendererBase::g_pSwapChain = NULL;
@@ -29,24 +32,48 @@ namespace Pistachio {
 	void RendererBase::Shutdown()
 	{
 	#ifdef PISTACHIO_RENDER_API_DX11
+		if (pRasterizerStateNoCull) {
+			pRasterizerStateNoCull->Release();
+			pRasterizerStateNoCull = NULL;
+		}
+		if (pRasterizerStateCWCull) {
+			pRasterizerStateCWCull->Release();
+			pRasterizerStateCWCull = NULL;
+		}
+		if (pRasterizerStateCCWCull) {
+			pRasterizerStateCCWCull->Release();
+			pRasterizerStateCCWCull = NULL;
+		}
 		DX11RendererBase::CleanupRenderTarget(g_mainRenderTargetView);
+	#ifdef _DEBUG
+		ID3D11Debug* pDebug;
+		RendererBase::Getd3dDevice()->QueryInterface(IID_PPV_ARGS(&pDebug));
+		pDebug->Release();
+	#endif // _DEBUG
+		g_pd3dDeviceContext->ClearState();
+		g_pd3dDeviceContext->Flush();
 		DX11RendererBase::CleanupDevice(&g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext);
+	#ifdef _DEBUG
+		pDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+	#endif // _DEBUG
 	#endif
 	}
 	bool RendererBase::Init(HWND hwnd)
 	{
 	#ifdef PISTACHIO_RENDER_API_DX11
-		g_mainRenderTargetView = DX11RendererBase::CreateDevice(hwnd, &g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext, &pDSV);
+		Error::LogErrorToConsole(DX11RendererBase::CreateDevice(hwnd, &g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext, &pDSV, &g_mainRenderTargetView));
 		PT_CORE_INFO("RendererBase Initialized with API: DirectX 11");
-		RendererBase::Resize((FLOAT)((WindowData*)GetWindowDataPtr())->width, (FLOAT)((WindowData*)GetWindowDataPtr())->height);
+		RendererBase::Resize(((WindowData*)GetWindowDataPtr())->width, ((WindowData*)GetWindowDataPtr())->height);
 		IsDeviceNull = false;
 		g_pd3dDeviceContext->IASetPrimitiveTopology(DX11Topology(PrimitiveTopology::TriangleList));
 		D3D11_RASTERIZER_DESC desc = {};
 		desc.FillMode = D3D11_FILL_SOLID;
 		desc.CullMode = D3D11_CULL_NONE;
-		ID3D11RasterizerState* pRasterizerState;
-		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerState);
-		g_pd3dDeviceContext->RSSetState(pRasterizerState);
+		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateNoCull);
+		desc.CullMode = D3D11_CULL_BACK;
+		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateCWCull);
+		desc.CullMode = D3D11_CULL_FRONT;
+		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateCCWCull);
 		return 0;
 	#endif 
 	}
@@ -56,10 +83,39 @@ namespace Pistachio {
 			DX11RendererBase::CleanupRenderTarget(g_mainRenderTargetView);
 		#endif
 	}
+	void RendererBase::ChangeViewport(int width, int height, int x, int y)
+	{
+		D3D11_VIEWPORT vp;
+		vp.Width = width;
+		vp.Height = height;
+		vp.MinDepth = 0;
+		vp.MaxDepth = 1;
+		vp.TopLeftX = x;
+		vp.TopLeftY = y;
+		RendererBase::g_pd3dDeviceContext->RSSetViewports(1, &vp);
+	}
 	void RendererBase::CreateTarget()
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
-			DX11RendererBase::CreateRenderTarget(g_pSwapChain, g_pd3dDevice, &g_mainRenderTargetView);
+		ID3D11Texture2D* pDepthStencil;
+		D3D11_TEXTURE2D_DESC depthTexDesc = {};
+		WindowData* data = (WindowData*)(GetWindowDataPtr());
+		depthTexDesc.Width = data->width;
+		depthTexDesc.Height = data->height;
+		depthTexDesc.MipLevels = 1;
+		depthTexDesc.ArraySize = 1;
+		depthTexDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		depthTexDesc.SampleDesc.Count = 1;
+		depthTexDesc.SampleDesc.Quality = 0;
+		depthTexDesc.Usage = D3D11_USAGE_DEFAULT;
+		depthTexDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		(g_pd3dDevice)->CreateTexture2D(&depthTexDesc, nullptr, &pDepthStencil);
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsv = {};
+		dsv.Format = DXGI_FORMAT_D32_FLOAT;
+		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		dsv.Texture2D.MipSlice = 0;
+		(g_pd3dDevice)->CreateDepthStencilView(pDepthStencil, &dsv, &pDSV);
+		DX11RendererBase::CreateRenderTarget(g_pSwapChain, g_pd3dDevice, &g_mainRenderTargetView);
 		#endif
 	}
 	void RendererBase::ClearView()
@@ -71,19 +127,12 @@ namespace Pistachio {
 
 	}
 
-	void RendererBase::Resize(float width, float height)
+	void RendererBase::Resize(int width, int height)
 	{
 		ClearTarget();
-		g_pSwapChain->ResizeBuffers(0, (UINT)width, (UINT)height, DXGI_FORMAT_UNKNOWN, 0);
+		g_pSwapChain->ResizeBuffers(0, (UINT)width, (UINT)height, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
 		CreateTarget();
-		D3D11_VIEWPORT vp;
-		vp.Width = width;
-		vp.Height = height;
-		vp.MinDepth = 0;
-		vp.MaxDepth = 1;
-		vp.TopLeftX = 0;
-		vp.TopLeftY = 0;
-		RendererBase::g_pd3dDeviceContext->RSSetViewports(1, &vp);
+		ChangeViewport(width, height);
 	}
 
 	void RendererBase::SetPrimitiveTopology(PrimitiveTopology Topology)
@@ -105,5 +154,18 @@ namespace Pistachio {
 		g_pd3dDeviceContext->DrawIndexed(buffer.ib->GetCount(), 0, 0);
 	}
 
-
+	void RendererBase::SetCullMode(CullMode cullmode)
+	{
+		switch (cullmode)
+		{
+		case Pistachio::CullMode::None: g_pd3dDeviceContext->RSSetState(pRasterizerStateNoCull);
+			break;
+		case Pistachio::CullMode::Front: g_pd3dDeviceContext->RSSetState(pRasterizerStateCCWCull);
+			break;
+		case Pistachio::CullMode::Back: g_pd3dDeviceContext->RSSetState(pRasterizerStateCWCull);
+			break;
+		default:
+			break;
+		}
+	}
 }

@@ -5,7 +5,7 @@ namespace Pistachio {
 	{
 	public:
 		VertexBuffer();
-		~VertexBuffer();
+		void ShutDown();
 		void Bind();
 		void UnBind();
 		static VertexBuffer* Create(const void* vertices, unsigned int size, unsigned int stride);
@@ -21,14 +21,14 @@ namespace Pistachio {
 	{
 	public:
 		IndexBuffer();
-		~IndexBuffer();
+		void ShutDown();
 		void Bind();
 		void UnBind();
 		static IndexBuffer* Create(const void* indices, unsigned int size, unsigned int stride);
 		void CreateStack(const void* indices, unsigned int size, unsigned int stride);
-		inline unsigned short GetCount() { return count; }
+		inline unsigned int GetCount() { return count; }
 	private:
-		unsigned short count;
+		unsigned int count;
 		#ifdef PISTACHIO_RENDER_API_DX11
 			ID3D11Buffer* pIndexBuffer = NULL;
 		#endif // PISTACHIO_RENDER_API_DX11

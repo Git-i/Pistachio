@@ -1,15 +1,19 @@
 #include "ptpch.h"
 #include "Buffer.h"
 #include "DirectX11/DX11Buffer.h"
-
+#include "../Core/Error.h"
 namespace Pistachio {
 	VertexBuffer::VertexBuffer()
 	{
 	}
-	VertexBuffer::~VertexBuffer()
+	void VertexBuffer::ShutDown()
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
+		if (pVertexBuffer) {
+			UnBind();
 			pVertexBuffer->Release();
+			pVertexBuffer = NULL;
+		}
 		#endif // PISTACHIO_RENDER_API_DX11 
 	}
 	void VertexBuffer::Bind()
@@ -27,7 +31,7 @@ namespace Pistachio {
 		VertexBuffer* result = new VertexBuffer;
 		result->stride = Stride;
 		#ifdef PISTACHIO_RENDER_API_DX11
-			result->pVertexBuffer = DX11Buffer::CreateVertexBuffer(vertices, size, Stride);
+			 Error::LogErrorToConsole(DX11Buffer::CreateVertexBuffer(vertices, size, Stride, &result->pVertexBuffer));
 		#endif
 		return result;
 	}
@@ -35,24 +39,28 @@ namespace Pistachio {
 	{
 		stride = Stride;
 		#ifdef PISTACHIO_RENDER_API_DX11
-			pVertexBuffer = DX11Buffer::CreateVertexBuffer(vertices, size, Stride);
+			Error::LogErrorToConsole(DX11Buffer::CreateVertexBuffer(vertices, size, Stride, &pVertexBuffer));
 		#endif
 	}
 	
 	IndexBuffer::IndexBuffer()
 	{
 	}
-	IndexBuffer::~IndexBuffer()
+	void IndexBuffer::ShutDown()
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
+		if (pIndexBuffer) {
+			UnBind();
 			pIndexBuffer->Release();
+			pIndexBuffer = NULL;
+		}
 		#endif // PISTACHIO_RENDER_API_DX11
 
 	}
 	void IndexBuffer::Bind()
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
-			RendererBase::Getd3dDeviceContext()->IASetIndexBuffer(pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+			RendererBase::Getd3dDeviceContext()->IASetIndexBuffer(pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 		#endif // PISTACHIO_RENDER_API_DX11
 	}
 	void IndexBuffer::UnBind()
@@ -62,7 +70,7 @@ namespace Pistachio {
 	{
 		count = size / stride;
 		#ifdef PISTACHIO_RENDER_API_DX11
-			pIndexBuffer = DX11Buffer::CreateIndexBuffer(indices, size, stride);
+			Error::LogErrorToConsole(DX11Buffer::CreateIndexBuffer(indices, size, stride, &pIndexBuffer));
 		#endif // PISTACHIO_RENDER_API_DX11
 	}	
 	IndexBuffer* IndexBuffer::Create(const void* indices, unsigned int size, unsigned int stride)
@@ -70,7 +78,7 @@ namespace Pistachio {
 		IndexBuffer* result = new IndexBuffer;
 		result->count = size / stride;
 		#ifdef PISTACHIO_RENDER_API_DX11
-			result->pIndexBuffer = DX11Buffer::CreateIndexBuffer(indices, size, stride);
+			Error::LogErrorToConsole(DX11Buffer::CreateIndexBuffer(indices, size, stride, &result->pIndexBuffer));
 		#endif // PISTACHIO_RENDER_API_DX11
 			return result;
 	}

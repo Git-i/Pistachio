@@ -121,8 +121,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 set(ADDITIONAL_LIBRARY_DEPENDENCIES
     "$<$<CONFIG:Debug>:"
-        "assimp-vc143-mtd;"
-        "zlibstaticd"
+        "assimp"
     ">"
     "$(CoreLibraryDependencies)"
 )

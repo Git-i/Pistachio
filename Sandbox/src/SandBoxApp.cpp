@@ -1,78 +1,68 @@
 #define PISTACHIO_RENDER_API_DX11
 #include "Pistachio.h"
-#include "Pistachio/Renderer/DirectX11/DX11Texture.h"
-using namespace Pistachio;
+#include "Pistachio/Core/Error.h"
 using namespace DirectX;
 
 class ExampleLayer : public Pistachio::Layer
 {
 public:
-	ExampleLayer(const char* name) : Layer(name),  cam(std::make_shared<Pistachio::PerspectiveCamera>(45.0f, 0.1f, 100.0f, 16.0f / 9.0f))
+	ExampleLayer(const char* name) : Layer(name), cam(std::make_shared<Pistachio::PerspectiveCamera>(45.0f, 0.1f, 100.0f)), mesh("circle.obj"), cube("cube.obj")
 	{
-		samplerstate.reset(Pistachio::SamplerState::Create());
-		texture.reset(Pistachio::Texture2D::Create("brdf.png"));
-		rtx.CreateStack(1280, 720);
-		shader = new Shader(L"VertexShader.cso", L"PixelShader.cso");
-		noreflect = new Shader(L"PBR_no_reflect_vs.cso", L"PBR_no_reflect_fs.cso");
-		envshader = new Shader(L"background_vs.cso", L"background.cso");
+		albedot.reset(Pistachio::Texture2D::Create("Cerberus_A.tga"));
+		metalt.reset(Pistachio::Texture2D::Create("Cerberus_M.tga"));
+		roughnesst.reset(Pistachio::Texture2D::Create("Cerberus_R.tga"));
+		normalt.reset(Pistachio::Texture2D::Create("Cerberus_N.tga"));
+		samplerstate.reset(Pistachio::SamplerState::Create(Pistachio::TextureAddress::Wrap,Pistachio::TextureAddress::Wrap,Pistachio::TextureAddress::Wrap));
+		rtx.CreateStack(1280, 720, 1, Pistachio::TextureFormat::RGBA8U);
+		shader = new Pistachio::Shader(L"VertexShader.cso", L"PixelShader.cso");
+		noreflect = new Pistachio::Shader(L"PBR_no_reflect_vs.cso", L"PBR_no_reflect_fs.cso");
+		envshader = new Pistachio::Shader(L"background_vs.cso", L"background.cso");
 		shader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		noreflect->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		cam->SetPosition(0, 0, 5);
-		mesh = Mesh::Create("sphere.obj");
-		cube.CreateStack("cube.obj");
-		plane.CreateStack("plane.obj");
-		
 	}
 	void OnUpdate(float delta) override
 	{
-		rtx.Clear(c);
-		rtx.Bind();
-		auto a = cam->GetPosition();
-		DirectX::XMFLOAT3 velocity;
-		velocity.x = 0;
-		velocity.y = 0;
-		velocity.z = 0;
-		if (Pistachio::Input::IsKeyPressed(PT_KEY_D))
-			velocity.x = +5.0;
-		else if (Pistachio::Input::IsKeyPressed(PT_KEY_A))
-			velocity.x = -5.0;
-
-		if (Pistachio::Input::IsKeyPressed(PT_KEY_W))
-			velocity.y = +5.0;
-		else if (Pistachio::Input::IsKeyPressed(PT_KEY_S))
-			velocity.y = -5.0;
-		DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&velocity));
-		DirectX::XMFLOAT3 pos;
-		pos.x = (a.x + velocity.x * delta);
-		pos.y = (a.y + velocity.y * delta);
-		pos.z = (a.z);
+		Pistachio::RendererBase::ChangeViewport(rtx.GetWidth(), rtx.GetHeight());
+		this->delta = delta;
 		Pistachio::RendererBase::SetClearColor(0.6f, 0.6f, 0.6f, 1.0f);
 		Pistachio::RendererBase::ClearView();
-		RendererBase::SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		cam->SetPosition(pos);
-		Pistachio::Renderer::BeginScene(cam.get());
+		Pistachio::RendererBase::SetPrimitiveTopology(Pistachio::PrimitiveTopology::TriangleList);
+		cam->ChangeAspectRatio((float)wndwith / (float)wndheight);
+		Pistachio::Renderer::BeginScene(cam.get(), &rtx);
 		samplerstate->Bind();
-		DX11Texture::Bind(Renderer::GetFrambufferSRV(), 1);
+		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Front);
 		DirectX::XMFLOAT3X3 view;
 		DirectX::XMStoreFloat3x3(&view, cam->GetViewMatrix());
-		Renderer::Submit(&cube, envshader, color, metal, rough, ao, false, DirectX::XMMatrixIdentity(), DirectX::XMMatrixTranspose(DirectX::XMLoadFloat3x3(&view)*cam->GetProjectionMatrix()));
-		texture->Bind(0);
-		DX11Texture::Bind(Renderer::GetBrdfSRV(), 0);
-		DX11Texture::Bind(Renderer::GetIrradianceFrambufferSRV(), 1);
-		DX11Texture::Bind(Renderer::GetPrefilterFrambufferSRV(0), 2);
-		if(reflect)
-		Renderer::Submit(mesh, shader, color, metal, rough, ao, false);
-		else
-		Renderer::Submit(mesh, noreflect, color, metal, rough, ao, false);
+		Pistachio::Renderer::Submit(&cube.meshes[0], envshader, color, metal, rough, ao, DirectX::XMMatrixIdentity(), DirectX::XMMatrixTranspose(DirectX::XMLoadFloat3x3(&view) * cam->GetProjectionMatrix()));
+		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Back);
+		albedot->Bind(4);
+		roughnesst->Bind(5);
+		metalt->Bind(6);
+		normalt->Bind(7);
+		//DirectX::XMMATRIX transform = DirectX::XMMatrixScaling(0.01, 0.01, 0.01);
+		//transform *= DirectX::XMMatrixRotationRollPitchYaw(DirectX::XMConvertToRadians(-90.f), DirectX::XMConvertToRadians(-180.f), DirectX::XMConvertToRadians(90.f));
+		//for (auto& mesh : mesh.meshes)
+		//	Pistachio::Renderer::Submit(&mesh, shader, color, metal, rough, ao);
+			for (auto& mesh : mesh.meshes) {
+			for (int row = 0; row < 10; ++row)
+			{
+				for (int col = 0; col < 10; ++col)
+				{
+					Pistachio::Renderer::Submit(&mesh, shader, color, (float)row / 10.f, (float)col / (float)10, ao, DirectX::XMMatrixTranslation((float)(col - (10.f / 2)) * 2.5f, (float)(row - (10.f / 2)) * 2.5f, 2.0f));
+				}
+			}
+		}
 	}
 	void OnAttach() override
 	{
 	}
 	void OnImGuiRender()
 	{
-		auto target = RendererBase::GetmainRenderTargetView();
-		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &target, RendererBase::GetDepthStencilView());
+		ImGui::DockSpaceOverViewport();
+		auto target = Pistachio::RendererBase::GetmainRenderTargetView();
+		Pistachio::RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &target, Pistachio::RendererBase::GetDepthStencilView());
 		auto a = cam->GetPosition();
 		bool b = true;
 		ImGui::ShowDemoWindow(&b);
@@ -102,23 +92,61 @@ public:
 		ImGui::Text((std::string("Button LT: ") + std::to_string(Pistachio::Input::IsGamepadButtonPressed(0, PT_GAMEPAD_LEFT_THUMB))).c_str());
 		ImGui::Text((std::string("Button RT: ") + std::to_string(Pistachio::Input::IsGamepadButtonPressed(0, PT_GAMEPAD_RIGHT_THUMB))).c_str());
 		ImGui::Text(std::to_string(a.z).c_str());
-		
 		ImGui::ColorEdit3("Albedo", color);
 		ImGui::SliderFloat("Metallic", &metal, 0, 1);
 		ImGui::SliderFloat("Roughness", &rough, 0, 1);
 		ImGui::SliderFloat("AO", &ao, 0, 1);
-		ImGui::Checkbox("Reflections: ", &reflect);
+		if (ImGui::Button("Toggle Vsync", ImVec2(100, 20))) {
+			vsync = 1 - vsync;
+			Pistachio::Application::Get().GetWindow().SetVsync(vsync);
+		}
+		if (ImGui::Button("Catwalk.hdr", ImVec2(100, 20)))
+			Pistachio::Renderer::Init("resources/textures/hdr/catwalk.hdr");
+		else if (ImGui::Button("Newport Loft.hdr", ImVec2(100, 20)))
+			Pistachio::Renderer::Init("resources/textures/hdr/newport_loft.hdr");
+		else if (ImGui::Button("Empty Room.hdr", ImVec2(100, 20)))
+			Pistachio::Renderer::Init("resources/textures/hdr/medium_res.hdr");
+		else if (ImGui::Button("Apartment Reflection.hdr", ImVec2(100, 20)))
+			Pistachio::Renderer::Init("resources/textures/hdr/Apartment_Reflection.hdr");
 		ImGui::End();
 		ImGui::Begin("Scene");
-		ImGui::Image(rtx.shaderResourceView, ImVec2(640, 360));
+		auto camPos = cam->GetPosition();
+		DirectX::XMFLOAT3 velocity;
+		velocity.x = 0;
+		velocity.y = 0;
+		velocity.z = 0;
+
+		if (ImGui::IsKeyDown(ImGuiKey_D) && ImGui::IsWindowFocused()) {
+			velocity.x = 5.0;
+		}
+		else if (ImGui::IsKeyDown(ImGuiKey_A) && ImGui::IsWindowFocused()) {
+			velocity.x = -5.0;
+		}
+
+		if (ImGui::IsKeyDown(ImGuiKey_W) && ImGui::IsWindowFocused())
+			velocity.y = +5.0;
+		else if (ImGui::IsKeyDown(ImGuiKey_S) && ImGui::IsWindowFocused())
+			velocity.y = -5.0;
+
+		DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&velocity));
+		DirectX::XMFLOAT3 pos;
+		pos.x = (camPos.x + velocity.x * delta);
+		pos.y = (camPos.y + velocity.y * delta);
+		pos.z = (camPos.z + velocity.z * delta);
+		wndwith = ImGui::GetContentRegionAvail().x;
+		wndheight = ImGui::GetContentRegionAvail().y;
+		cam->SetPosition(pos);
+		ImGui::Image(rtx.GetSRV(), ImGui::GetContentRegionAvail());
 		ImGui::End();
+		
 	}
 	void OnEvent(Pistachio::Event& event) override
 	{
 		Pistachio::EventDispatcher dispatcher(event);
-		dispatcher.Dispatch<Pistachio::MouseScrolledEvent>(BIND_EVENT_FN(ExampleLayer::OnKeyPressed));
+		dispatcher.Dispatch<Pistachio::MouseScrolledEvent>(BIND_EVENT_FN(ExampleLayer::OnScroll));
+		dispatcher.Dispatch<Pistachio::WindowResizeEvent>(BIND_EVENT_FN(ExampleLayer::OnResize));
 	}
-	bool OnKeyPressed(Pistachio::MouseScrolledEvent& e)
+	bool OnScroll(Pistachio::MouseScrolledEvent& e)
 	{
 		auto a = cam->GetPosition();
 		DirectX::XMFLOAT3 dir;
@@ -130,32 +158,47 @@ public:
 		cam->SetPosition(a);
 		return false;
 	}
+	bool OnResize(Pistachio::WindowResizeEvent& e)
+	{
+		if (e.GetWidth())
+		return false;
+	}
+	~ExampleLayer() {
+		delete shader;
+		delete noreflect;
+		delete eqshader;
+		delete envshader;
+	}
 private:
-	Mesh* mesh;
-	Mesh cube;
-	Mesh plane;
-	Shader* shader;
-	Shader* noreflect;
-	bool reflect;
-	Shader* eqshader;
-	Shader* envshader;
-	Texture3D* tex;
-	RenderTexture rtx;
+	Pistachio::Model mesh;
+	Pistachio::Model cube;
+	Pistachio::Shader* shader;
+	Pistachio::Shader* noreflect;
+	bool vsync = true;
+	Pistachio::Shader* eqshader;
+	Pistachio::Shader* envshader;
+	Pistachio::RenderTexture rtx;
 	float c[4] = {0.7f,0.7f,0.7f,0.7f};
-	Pistachio::Ref<Pistachio::Texture2D> texture;
+	int wndwith = 0;
+	int wndheight = 0;
+	Pistachio::Ref<Pistachio::Texture2D> metalt;
+	Pistachio::Ref<Pistachio::Texture2D> albedot;
+	Pistachio::Ref<Pistachio::Texture2D> roughnesst;
+	Pistachio::Ref<Pistachio::Texture2D> normalt;
 	Pistachio::Ref<Pistachio::SamplerState> samplerstate;
 	Pistachio::Ref<Pistachio::PerspectiveCamera> cam;
 	float color[3] = { 1.f, 0.f, 0.f };
 	float metal = 0;
 	float rough = 0;
 	float ao = 1.f;
-	
+	float delta;
 };
 class Sandbox : public Pistachio::Application
 {
 public:
-	Sandbox() { PushLayer(new ExampleLayer("velocity")); GetWindow().SetVsync(0); }
-	~Sandbox(){}
+	Sandbox() { PushLayer(new ExampleLayer("lol")); GetWindow().SetVsync(0); }
+	~Sandbox() { Pistachio::Renderer::Shutdown(); }
+private:
 };
 
 Pistachio::Application* Pistachio::CreateApplication()

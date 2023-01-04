@@ -51,3 +51,4 @@ namespace Pistachio {
 #endif // _DEBUG
 #pragma comment(lib, "XInput.lib")
 #pragma comment(lib, "Xinput9_1_0.lib")
+#pragma comment(lib, "d3d11.lib")
