@@ -34,6 +34,9 @@ namespace Pistachio {
 
 	void Renderer2D::Shutdown()
 	{
+		s_Data->quadVB->ShutDown();
+		s_Data->quadIB->ShutDown();
+		s_Data->FlatColorShader->Shutdown();
 		delete s_Data;
 	}
 

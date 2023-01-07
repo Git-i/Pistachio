@@ -3,7 +3,7 @@
 #include "stb_image.h"
 #include "../RendererBase.h"
 namespace Pistachio {
-	ID3D11ShaderResourceView* DX11Texture::Create(const char* path, unsigned int* width, unsigned int* height)
+	Error DX11Texture::Create(const char* path, unsigned int* width, unsigned int* height, ID3D11ShaderResourceView** pSRV)
 	{
         HRESULT Hr;
         int Width, Height, nChannels;
@@ -38,12 +38,11 @@ namespace Pistachio {
         srvdesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         srvdesc.Texture2D.MostDetailedMip = 0;
         srvdesc.Texture2D.MipLevels = 1;
-        ID3D11ShaderResourceView* pTextureView;
-        RendererBase::Getd3dDevice()->CreateShaderResourceView(ImageTexture, &srvdesc, &pTextureView);
+        RendererBase::Getd3dDevice()->CreateShaderResourceView(ImageTexture, &srvdesc, pSRV);
         ImageTexture->Release();
-        return pTextureView;
+        return 0;
 	}
-    ID3D11ShaderResourceView* DX11Texture::CreateFloat(const char* path, unsigned int* width, unsigned int* height)
+    Error DX11Texture::CreateFloat(const char* path, unsigned int* width, unsigned int* height, ID3D11ShaderResourceView** pSRV)
     {
         HRESULT Hr;
         //stbi_set_flip_vertically_on_load(true);
@@ -54,7 +53,7 @@ namespace Pistachio {
             *width = Width;
             *height = Height;
         }
-        if (data) {
+
             D3D11_TEXTURE2D_DESC ImageTextureDesc = {};
 
             ImageTextureDesc.Width = *width;
@@ -83,17 +82,10 @@ namespace Pistachio {
             srvdesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
             srvdesc.Texture2D.MostDetailedMip = 0;
             srvdesc.Texture2D.MipLevels = 1;
-            ID3D11ShaderResourceView* pTextureView;
-            RendererBase::Getd3dDevice()->CreateShaderResourceView(ImageTexture, &srvdesc, &pTextureView);
+            RendererBase::Getd3dDevice()->CreateShaderResourceView(ImageTexture, &srvdesc, pSRV);
             ImageTexture->Release();
 
-            return pTextureView;
-        }
-        else {
-            std::cout << stbi_failure_reason();
-            return nullptr;
-        }
-        
+            return 0;  
     }
     void DX11Texture::Bind(ID3D11ShaderResourceView*const* ppTextureViews, int slot, int numTextures)
     {

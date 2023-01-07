@@ -17,7 +17,7 @@ namespace Pistachio {
 		~Texture2D();
 		void Bind(int slot = 0) const override;
 		static Texture2D* Create(const char* path);
-		static Texture2D CreateStack(const char* path);
+		void CreateStack(const char* path);
 		unsigned int m_Width, m_Height;
 	private:
 		mutable int slot;

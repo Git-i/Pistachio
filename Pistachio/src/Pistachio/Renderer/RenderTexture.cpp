@@ -31,7 +31,7 @@ namespace Pistachio {
 	{
 		m_width = width;
 		m_height = height;
-		m_renderTargetTexture = DX11Cubemap::Create(width, height, RendererBase::Getd3dDevice(), &m_shaderResourceView, miplevels);
+		DX11Cubemap::Create(width, height, RendererBase::Getd3dDevice(), &m_shaderResourceView, &m_renderTargetTexture,miplevels);
 		DX11RenderCubeMap::Create(m_shaderResourceView, miplevels, m_renderTargetView);
 	}
 	void RenderCubeMap::Clear(float* clearcolor, int slot)
@@ -47,6 +47,9 @@ namespace Pistachio {
 		return result;
 	}
 	RenderTexture::~RenderTexture() {
+		Shutdown();
+	}
+	void RenderTexture::Shutdown() {
 		if (m_pDSV) {
 			while (m_pDSV->Release()) {};
 			m_pDSV = NULL;
@@ -67,7 +70,8 @@ namespace Pistachio {
 			m_shaderResourceView = NULL;
 		}
 	}
-	RenderCubeMap::~RenderCubeMap() {
+	RenderCubeMap::~RenderCubeMap() {};
+	void RenderCubeMap::ShutDown() {
 		if (m_pDSV)
 		{
 			while (m_pDSV->Release()) {};
@@ -133,10 +137,10 @@ namespace Pistachio {
 		
 		RendererBase::Getd3dDevice()->CreateTexture2D(&desc, NULL, &m_renderTargetTexture);
 		RendererBase::Getd3dDevice()->CreateShaderResourceView(m_renderTargetTexture, NULL, &m_shaderResourceView);
-		DX11RenderTexture::Create(m_renderTargetTexture,m_shaderResourceView, miplevels, &m_renderTargetView);
+		DX11RenderTexture::Create(m_shaderResourceView, miplevels, &m_renderTargetView);
 		auto device = RendererBase::Getd3dDevice();
 		auto context = RendererBase::Getd3dDeviceContext();
-		DX11RenderTexture::CreateDepth(&device, &context, &m_pDSV, width, height);
+		DX11RenderTexture::CreateDepth(device, context, &m_pDSV, width, height);
 	}
 	void RenderTexture::Clear(float* clearcolor)
 	{

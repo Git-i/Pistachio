@@ -6,13 +6,12 @@ using namespace DirectX;
 class ExampleLayer : public Pistachio::Layer
 {
 public:
-	ExampleLayer(const char* name) : Layer(name), cam(std::make_shared<Pistachio::PerspectiveCamera>(45.0f, 0.1f, 100.0f)), mesh("circle.obj"), cube("cube.obj")
+	ExampleLayer(const char* name) : Layer(name), cam(new Pistachio::PerspectiveCamera(45.0f, 0.1f, 100.0f)), mesh("circle.obj"), cube("cube.obj")
 	{
-		albedot.reset(Pistachio::Texture2D::Create("Cerberus_A.tga"));
-		metalt.reset(Pistachio::Texture2D::Create("Cerberus_M.tga"));
-		roughnesst.reset(Pistachio::Texture2D::Create("Cerberus_R.tga"));
-		normalt.reset(Pistachio::Texture2D::Create("Cerberus_N.tga"));
-		samplerstate.reset(Pistachio::SamplerState::Create(Pistachio::TextureAddress::Wrap,Pistachio::TextureAddress::Wrap,Pistachio::TextureAddress::Wrap));
+		albedot = Pistachio::Texture2D::Create("Cerberus_A.tga");
+		metalt = Pistachio::Texture2D::Create("Cerberus_M.tga");
+		roughnesst = Pistachio::Texture2D::Create("Cerberus_R.tga");
+		normalt = Pistachio::Texture2D::Create("Cerberus_N.tga");
 		rtx.CreateStack(1280, 720, 1, Pistachio::TextureFormat::RGBA8U);
 		shader = new Pistachio::Shader(L"VertexShader.cso", L"PixelShader.cso");
 		noreflect = new Pistachio::Shader(L"PBR_no_reflect_vs.cso", L"PBR_no_reflect_fs.cso");
@@ -30,8 +29,7 @@ public:
 		Pistachio::RendererBase::ClearView();
 		Pistachio::RendererBase::SetPrimitiveTopology(Pistachio::PrimitiveTopology::TriangleList);
 		cam->ChangeAspectRatio((float)wndwith / (float)wndheight);
-		Pistachio::Renderer::BeginScene(cam.get(), &rtx);
-		samplerstate->Bind();
+		Pistachio::Renderer::BeginScene(cam, &rtx);
 		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Front);
 		DirectX::XMFLOAT3X3 view;
 		DirectX::XMStoreFloat3x3(&view, cam->GetViewMatrix());
@@ -133,8 +131,8 @@ public:
 		pos.x = (camPos.x + velocity.x * delta);
 		pos.y = (camPos.y + velocity.y * delta);
 		pos.z = (camPos.z + velocity.z * delta);
-		wndwith = ImGui::GetContentRegionAvail().x;
-		wndheight = ImGui::GetContentRegionAvail().y;
+		wndwith = (INT)ImGui::GetContentRegionAvail().x;
+		wndheight = (INT)ImGui::GetContentRegionAvail().y;
 		cam->SetPosition(pos);
 		ImGui::Image(rtx.GetSRV(), ImGui::GetContentRegionAvail());
 		ImGui::End();
@@ -144,7 +142,6 @@ public:
 	{
 		Pistachio::EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<Pistachio::MouseScrolledEvent>(BIND_EVENT_FN(ExampleLayer::OnScroll));
-		dispatcher.Dispatch<Pistachio::WindowResizeEvent>(BIND_EVENT_FN(ExampleLayer::OnResize));
 	}
 	bool OnScroll(Pistachio::MouseScrolledEvent& e)
 	{
@@ -158,16 +155,15 @@ public:
 		cam->SetPosition(a);
 		return false;
 	}
-	bool OnResize(Pistachio::WindowResizeEvent& e)
-	{
-		if (e.GetWidth())
-		return false;
-	}
 	~ExampleLayer() {
 		delete shader;
 		delete noreflect;
-		delete eqshader;
 		delete envshader;
+		delete metalt;
+		delete albedot;
+		delete roughnesst;
+		delete normalt;
+		delete cam;
 	}
 private:
 	Pistachio::Model mesh;
@@ -175,18 +171,16 @@ private:
 	Pistachio::Shader* shader;
 	Pistachio::Shader* noreflect;
 	bool vsync = true;
-	Pistachio::Shader* eqshader;
 	Pistachio::Shader* envshader;
 	Pistachio::RenderTexture rtx;
 	float c[4] = {0.7f,0.7f,0.7f,0.7f};
 	int wndwith = 0;
 	int wndheight = 0;
-	Pistachio::Ref<Pistachio::Texture2D> metalt;
-	Pistachio::Ref<Pistachio::Texture2D> albedot;
-	Pistachio::Ref<Pistachio::Texture2D> roughnesst;
-	Pistachio::Ref<Pistachio::Texture2D> normalt;
-	Pistachio::Ref<Pistachio::SamplerState> samplerstate;
-	Pistachio::Ref<Pistachio::PerspectiveCamera> cam;
+	Pistachio::Texture2D* metalt;
+	Pistachio::Texture2D* albedot;
+	Pistachio::Texture2D* roughnesst;
+	Pistachio::Texture2D* normalt;
+	Pistachio::PerspectiveCamera* cam;
 	float color[3] = { 1.f, 0.f, 0.f };
 	float metal = 0;
 	float rough = 0;
@@ -196,7 +190,7 @@ private:
 class Sandbox : public Pistachio::Application
 {
 public:
-	Sandbox() { PushLayer(new ExampleLayer("lol")); GetWindow().SetVsync(0); }
+	Sandbox() { PushLayer(new ExampleLayer("lol")); GetWindow().SetVsync(1); }
 	~Sandbox() { Pistachio::Renderer::Shutdown(); }
 private:
 };

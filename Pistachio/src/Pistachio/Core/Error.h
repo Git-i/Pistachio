@@ -1,8 +1,7 @@
 #pragma once
 #include "ptpch.h"
 #include "Log.h"
-#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
-#include <experimental/filesystem>
+#include <filesystem>
 namespace Pistachio {
 	enum class ErrorType
 	{
@@ -16,7 +15,7 @@ namespace Pistachio {
 			ReporterString = "Unknown Internal Error";
 		}
 		inline static bool CheckFileExistence(const char* filepath) {
-			if (std::experimental::filesystem::exists(filepath))
+			if (std::filesystem::exists(filepath))
 				return true;
 			return false;
 		}

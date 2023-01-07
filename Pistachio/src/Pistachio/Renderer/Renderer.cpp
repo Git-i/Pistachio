@@ -1,6 +1,6 @@
 #include "ptpch.h"
 #include "Renderer.h"
-
+#include "Renderer2D.h"
 #include "Pistachio/Core/Window.h"
 #include "DirectX11/DX11Texture.h"
 Pistachio::PerspectiveCamera* Pistachio::Renderer::m_camera = nullptr;
@@ -9,16 +9,39 @@ Pistachio::RenderCubeMap Pistachio::Renderer::ifbo = Pistachio::RenderCubeMap();
 Pistachio::RenderCubeMap Pistachio::Renderer::prefilter = { Pistachio::RenderCubeMap() };
 ID3D11ShaderResourceView* Pistachio::Renderer::pBrdfSRV = nullptr;
 ID3D11RenderTargetView* Pistachio::Renderer::pBrdfRTV = nullptr;
-ID3D11RenderTargetView* Pistachio::Renderer::m_target[8] = {};
+ID3D11RenderTargetView* Pistachio::Renderer::m_target[8] = {0};
 ID3D11DepthStencilView* Pistachio::Renderer::m_pDSV = nullptr;
 int Pistachio::Renderer::m_NumRenderTextures = 1;
 namespace Pistachio {
 	void Renderer::Init(const char* skybox)
 	{
+		ID3D11ShaderResourceView* nullsrv[1] = { nullptr };
+		DX11Texture::Bind(nullsrv);
+		DX11Texture::Bind(nullsrv,1);
+		DX11Texture::Bind(nullsrv,2);
+		DX11Texture::Bind(nullsrv,3);
+		if (pBrdfSRV)
+		{
+			pBrdfSRV->Release();
+			pBrdfRTV->Release();
+			fbo.GetSRV()->Release();
+			fbo.GetRenderTexture()->Release();
+			for (int i = 0; i < 6; i++)
+				fbo.GetRTV(i)->Release();
+			ifbo.GetSRV()->Release();
+			ifbo.GetRenderTexture()->Release();
+			for (int i = 0; i < 6; i++)
+				ifbo.GetRTV(i)->Release();
+			prefilter.GetSRV()->Release();
+			prefilter.GetRenderTexture()->Release();
+			for (int i = 0; i < 6; i++)
+				prefilter.GetRTV(i)->Release();
+		}
 		RendererBase::SetCullMode(CullMode::Front);
 		SamplerState* ss = SamplerState::Create(TextureAddress::Wrap, TextureAddress::Wrap, TextureAddress::Wrap);
 		ss->Bind();
-		FloatTexture2D* tex = FloatTexture2D::Create(skybox);
+		FloatTexture2D tex;
+		tex.CreateStack(skybox);
 		Shader eqShader(L"equirectangular_to_cubemap_vs.cso", L"equirectangular_to_cubemap_fs.cso");
 		Shader irradianceShader(L"equirectangular_to_cubemap_vs.cso", L"irradiance_fs.cso");
 		Shader brdfShader(L"brdf_vs.cso", L"brdf_fs.cso");
@@ -31,7 +54,7 @@ namespace Pistachio {
 		Mesh plane;
 		cube.CreateStack("cube.obj");
 		plane.CreateStack("plane.obj");
-		fbo.CreateStack(512, 512, 10);
+		fbo.CreateStack(512, 512, 6);
 		float clearcolor[] = { 0.7f, 0.7f, 0.7f, 1.0f };
 		DirectX::XMMATRIX captureProjection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f), 1.0f, 0.1f, 10.0f);
 		DirectX::XMMATRIX captureViews[] =
@@ -46,7 +69,7 @@ namespace Pistachio {
 		RendererBase::ChangeViewport(512, 512);
 		eqShader.Bind(ShaderType::Vertex);
 		eqShader.Bind(ShaderType::Pixel);
-		tex->Bind(0);
+		tex.Bind(0);
 		for (int i = 0; i < 6; i++) {
 			fbo.Bind(i);
 			fbo.Clear(clearcolor, i);
@@ -85,11 +108,11 @@ namespace Pistachio {
 		prefilterShader.Bind(ShaderType::Pixel);
 		unsigned int maxMipLevels = 5;
 		RenderTexture texture[6] = {};
-		prefilter.CreateStack(256, 256, 5);
+		prefilter.CreateStack(128, 128, 5);
 		for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
 		{
-			unsigned int mipWidth = 256 * std::pow(0.5, mip);
-			unsigned int mipHeight = 256 * std::pow(0.5, mip);
+			unsigned int mipWidth = 128 * std::pow(0.5, mip);
+			unsigned int mipHeight = 128 * std::pow(0.5, mip);
 			for (int i = 0; i < 6; ++i)
 			{
 				texture[i].CreateStack(mipWidth, mipHeight, 1, TextureFormat::RGBA16F);
@@ -117,12 +140,19 @@ namespace Pistachio {
 				sourceRegion.bottom = mipHeight;
 				sourceRegion.front = 0;
 				sourceRegion.back = 1;
-
+		
 				RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(prefilter.GetRenderTexture(), D3D11CalcSubresource(mip, i, 5), 0, 0, 0, texture[i].GetRenderTexture(), 0, &sourceRegion);
 			}
+			for (int i = 0; i < 6; ++i)
+			{
+				texture[i].Shutdown();
+			}
 		}
-		//RendererBase::Getd3dDeviceContext()->GenerateMips(prefilter.shaderResourceView);
-		ID3D11Texture2D* BrdfLUT;
+		for (int i = 0; i < 6; ++i)
+		{
+			texture[i].Shutdown();
+		}
+		ID3D11Texture2D* BrdfLUT = NULL;
 		
 		D3D11_TEXTURE2D_DESC textureDesc;
 		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
@@ -188,13 +218,18 @@ namespace Pistachio {
 	}
 	void Renderer::Shutdown() {
 		if (pBrdfRTV) {
-			pBrdfRTV->Release();
+			while (pBrdfRTV->Release()) {};
 			pBrdfRTV = NULL;
 		}
 		if (pBrdfSRV) {
-			pBrdfSRV->Release();
+			while (pBrdfSRV->Release()) {};
 			pBrdfSRV = NULL;
 		}
+		
+		fbo.ShutDown();
+		ifbo.ShutDown();
+		prefilter.ShutDown();
+		Renderer2D::Shutdown();
 		RendererBase::Shutdown();
 	}
 	void Renderer::Submit(Buffer* buffer, Shader* shader, DirectX::XMMATRIX transform)
