@@ -31,6 +31,9 @@ namespace Pistachio {
 	}
 	void SamplerState::ShutDown()
 	{
-		ImageSamplerState->Release();
+		if (ImageSamplerState) {
+			while (ImageSamplerState->Release()) {};
+			ImageSamplerState = NULL;
+		}
 	}
 }

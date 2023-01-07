@@ -14,8 +14,8 @@ namespace Pistachio {
 		s_Instance = this;
 		void* n = GetWindowDataPtr();
 		WindowInfo info;
-		info.height = 2400;
-		info.width = 3840;
+		info.height = 720;
+		info.width = 1280;
 		info.vsync = 0;
 		info.title = "LOLOA";
 		m_Window = Scope<Window>(Window::Create(info));

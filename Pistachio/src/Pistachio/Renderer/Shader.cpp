@@ -5,14 +5,14 @@ namespace Pistachio {
 	Shader::Shader(const wchar_t* vsrc, const wchar_t* fsrc)
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
-			pPixelShader = DX11Shader::CreatePixelShader(fsrc, &pBlob);
-			pVertexShader = DX11Shader::CreateVertexShader(vsrc, &pBlob);
+			DX11Shader::CreatePixelShader(fsrc, &pBlob, &pPixelShader);
+			DX11Shader::CreateVertexShader(vsrc, &pBlob, &pVertexShader);
 		#endif // PISTACHIO_RENDER_API_DX11
 	}
 	void Shader::CreateLayout(BufferLayout* layout, int nAttributes)
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
-			pInputLayout = DX11Shader::CreateInputLayout(layout, nAttributes, pBlob->GetBufferPointer(), pBlob->GetBufferSize());
+			DX11Shader::CreateInputLayout(layout, nAttributes, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pInputLayout);
 		#endif // PISTACHIO_RENDER_API_DX11
 
 	}
@@ -39,14 +39,22 @@ namespace Pistachio {
 	}
 	void Shader::Shutdown()
 	{
-		if(pBlob != NULL)
-			pBlob->Release();
-		if(pVertexShader != NULL)
-			pVertexShader->Release();
-		if(pPixelShader != NULL)
-			pPixelShader->Release();
-		if(pInputLayout != NULL)
-			pInputLayout->Release();
+		if (pBlob) {
+			while (pBlob->Release()) {};
+			pBlob = NULL;
+		}
+		if (pVertexShader) {
+			while (pVertexShader->Release()) {};
+			pVertexShader = NULL;
+		}
+		if (pPixelShader) {
+			while (pPixelShader->Release()) {};
+			pPixelShader = NULL;
+		}
+		if (pInputLayout) {
+			while (pInputLayout->Release()) {};
+			pInputLayout = NULL;
+		}
 	}
 	Shader::~Shader()
 	{

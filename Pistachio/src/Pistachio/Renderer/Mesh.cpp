@@ -68,9 +68,7 @@ namespace Pistachio {
 		m_vertices = vertices;
 		m_indices = indices;
 		m_VertexBuffer.CreateStack(m_vertices.data(), sizeof(Vertex) * m_vertices.size(), sizeof(Vertex));
-		//m_VertexBuffer.Bind();
 		m_IndexBuffer.CreateStack(m_indices.data(), sizeof(unsigned int) * m_indices.size(), sizeof(unsigned int));
-		//m_IndexBuffer.Bind();
 	}
 	BufferLayout* Mesh::GetLayout()
 	{

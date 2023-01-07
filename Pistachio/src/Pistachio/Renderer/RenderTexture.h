@@ -8,6 +8,7 @@ namespace Pistachio {
 
 	public:
 		~RenderTexture();
+		void Shutdown();
 		void Bind(int slot = 0) const override;
 		void BindResource(int slot = 0) const;
 		void CreateStack(int width, int height, int miplevels = 1, TextureFormat format = TextureFormat::RGBA8U);
@@ -31,12 +32,13 @@ namespace Pistachio {
 		~RenderCubeMap();
 		void Bind(int slot = 0) const override;
 		void BindResource(int slot = 0) const;
-
+		void ShutDown();
 		void CreateStack(int width, int height, int miplevels = 1);
 		void Clear(float* clearcolor, int slot);
 		static RenderCubeMap* Create(int width, int height, int miplevels = 1);
 		inline ID3D11ShaderResourceView* GetSRV() { return m_shaderResourceView; };
 		inline ID3D11Texture2D* GetRenderTexture() { return m_renderTargetTexture; };
+		inline ID3D11RenderTargetView* GetRTV(int slot = 0) { return m_renderTargetView[slot]; };
 		inline unsigned int GetWidth() const override { return m_width; }
 		inline unsigned int GetHeight() const override { return m_height; }
 	private:

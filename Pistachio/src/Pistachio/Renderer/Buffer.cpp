@@ -10,8 +10,7 @@ namespace Pistachio {
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
 		if (pVertexBuffer) {
-			UnBind();
-			pVertexBuffer->Release();
+			while (pVertexBuffer->Release()) {};
 			pVertexBuffer = NULL;
 		}
 		#endif // PISTACHIO_RENDER_API_DX11 
@@ -51,7 +50,7 @@ namespace Pistachio {
 		#ifdef PISTACHIO_RENDER_API_DX11
 		if (pIndexBuffer) {
 			UnBind();
-			pIndexBuffer->Release();
+			while (pIndexBuffer->Release()) {};
 			pIndexBuffer = NULL;
 		}
 		#endif // PISTACHIO_RENDER_API_DX11

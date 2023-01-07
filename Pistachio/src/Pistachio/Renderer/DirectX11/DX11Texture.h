@@ -4,8 +4,8 @@ namespace Pistachio {
 	class DX11Texture
 	{
 	public:
-		static ID3D11ShaderResourceView* Create(const char* path, unsigned int* width, unsigned int* height);
-		static ID3D11ShaderResourceView* CreateFloat(const char* path, unsigned int* width, unsigned int* height);
+		static Error Create(const char* path, unsigned int* width, unsigned int* height, ID3D11ShaderResourceView** pSRV);
+		static Error CreateFloat(const char* path, unsigned int* width, unsigned int* height, ID3D11ShaderResourceView** pSRV);
 		static void Bind(ID3D11ShaderResourceView*const* pTextureView, int slot=0, int numTextures=1);
 	};
 	class DX11SamplerState
