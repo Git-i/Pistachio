@@ -33,6 +33,18 @@ namespace Pistachio {
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
 	};
 
+	class FileDropEvent : public Event
+	{
+	public:
+		FileDropEvent() = default;
+		FileDropEvent(const char* file) : File(file){}
+		EVENT_CLASS_TYPE(AppTick)
+		EVENT_CLASS_CATEGORY(EventCategoryApplication)
+		const std::string& GetFileName() { return File; }
+	private:
+		std::string File;
+	};
+
 	class AppTickEvent : public Event
 	{
 	public:

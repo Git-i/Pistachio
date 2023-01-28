@@ -5,6 +5,7 @@ namespace Pistachio {
 	{
 	public:
 		static Error Create(const char* path, unsigned int* width, unsigned int* height, ID3D11ShaderResourceView** pSRV);
+		static Error Create(void* data, unsigned int width, unsigned int height, ID3D11ShaderResourceView** pSRV);
 		static Error CreateFloat(const char* path, unsigned int* width, unsigned int* height, ID3D11ShaderResourceView** pSRV);
 		static void Bind(ID3D11ShaderResourceView*const* pTextureView, int slot=0, int numTextures=1);
 	};

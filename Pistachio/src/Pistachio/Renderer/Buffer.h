@@ -8,6 +8,9 @@ namespace Pistachio {
 		void ShutDown();
 		void Bind();
 		void UnBind();
+		static VertexBuffer* Create(unsigned int size, unsigned int stride);
+		void CreateStack(unsigned int size, unsigned int stride);
+		void SetData(const void* data, unsigned int size);
 		static VertexBuffer* Create(const void* vertices, unsigned int size, unsigned int stride);
 		void CreateStack(const void* vertices, unsigned int size, unsigned int stride);
 		
@@ -39,7 +42,7 @@ namespace Pistachio {
 		VertexBuffer* vb;
 		IndexBuffer* ib;
 		Buffer(VertexBuffer* Vb, IndexBuffer* Ib) : vb(Vb), ib(Ib) {}
-		inline const void Bind()
+		inline const void Bind() const
 		{
 			vb->Bind();
 			ib->Bind();

@@ -1,15 +1,22 @@
 #pragma once
 #include "../Core.h"
+#include "Pistachio/Renderer/RendererBase.h"
 namespace Pistachio {
-	struct ConstantBuffer
+	class ConstantBuffer {
+	public:
+		void Update(void* data, unsigned int size);
+		void Create(void* data, unsigned int size);
+		~ConstantBuffer() { if (pBuffer)while (pBuffer->Release()) {}; pBuffer = NULL; }
+	private:
+		ID3D11Buffer* pBuffer;
+		friend class Shader;
+	};
+	struct MaterialStruct
 	{
-		DirectX::XMMATRIX cameraTransform;
-		DirectX::XMMATRIX transform;
-		DirectX::XMVECTOR CamPos;
-		DirectX::XMVECTOR albedo = {0,0,0}; //(float3) my_texture.Sample(my_sampler, uv);
+		DirectX::XMVECTOR albedo = {0,0,0};
 		float metallic= 0;
 		float roughness=0;
-		float ao=0;
+		int ID = 0;
 	};
 	enum class ShaderType
 	{
@@ -69,9 +76,8 @@ namespace Pistachio {
 		Shader(const wchar_t* vsrc, const wchar_t* fsrc);
 		void CreateLayout(BufferLayout* layout, int nAttributes);
 		void Bind(ShaderType type);
-		void SetUniformBuffer(const ConstantBuffer& cb, int startslot = 0);
-		void SetVSRandomBuffer(const void* cb, int size, int stattslot = 0);
-		void SetPSBuffer(const void* cb, int size, int startslot = 0);
+		static void SetVSBuffer(const ConstantBuffer& buffer, int starttslot = 0);
+		static void SetPSBuffer(const ConstantBuffer& buffer, int starrtslot = 0);
 		void Shutdown();
 		~Shader();
 	private:

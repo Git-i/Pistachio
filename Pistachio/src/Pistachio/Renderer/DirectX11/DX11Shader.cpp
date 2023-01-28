@@ -39,7 +39,7 @@ namespace Pistachio {
 
 	Error DX11Shader::CreateInputLayout(Pistachio::BufferLayout* layout, int nAttribures, void* v, SIZE_T s, ID3D11InputLayout** pInputLayout)
 	{
-		std::array<D3D11_INPUT_ELEMENT_DESC, 3> ied;
+		std::array<D3D11_INPUT_ELEMENT_DESC, 5> ied;
 		for (int i = 0; i < nAttribures; i++) {
 			ied[i] = (D3D11_INPUT_ELEMENT_DESC{ layout[i].Name, 0, DXGIFormat(layout[i].Format), 0, layout[i].Offset, D3D11_INPUT_PER_VERTEX_DATA, 0 });
 		}
@@ -47,25 +47,8 @@ namespace Pistachio {
 		return 0;
 	}
 
-	void DX11Shader::CreateConstantBuffer(const Pistachio::ConstantBuffer& cb, ID3D11Device* device, ID3D11DeviceContext* context, int slot)
+	void DX11Shader::CreateConstantBuffer(const void* cb, int size, ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Buffer** constBuffer)
 	{
-		ID3D11Buffer* constBuffer;
-		D3D11_BUFFER_DESC cbd = {};
-		cbd.ByteWidth = sizeof(cb);
-		cbd.Usage = D3D11_USAGE_DYNAMIC;
-		cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		cbd.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
-		cbd.MiscFlags = 0;
-		cbd.StructureByteStride = 0;
-		D3D11_SUBRESOURCE_DATA sd;
-		sd.pSysMem = &cb;
-		device->CreateBuffer(&cbd, &sd, &constBuffer);
-		context->VSSetConstantBuffers(slot, 1, &constBuffer);
-		constBuffer->Release();
-	}
-	void DX11Shader::CreateRandomConstantBuffer(const void* cb, int size, ID3D11Device* device, ID3D11DeviceContext* context, int slot)
-	{
-		ID3D11Buffer* constBuffer;
 		D3D11_BUFFER_DESC cbd = {};
 		cbd.ByteWidth = size;
 		cbd.Usage = D3D11_USAGE_DYNAMIC;
@@ -75,24 +58,7 @@ namespace Pistachio {
 		cbd.StructureByteStride = 0;
 		D3D11_SUBRESOURCE_DATA sd;
 		sd.pSysMem = cb;
-		device->CreateBuffer(&cbd, &sd, &constBuffer);
-		context->VSSetConstantBuffers(slot, 1, &constBuffer);
-		constBuffer->Release();
+		device->CreateBuffer(&cbd, &sd, constBuffer);
 	}
-	void DX11Shader::CreatePSRandomConstantBuffer(const void* cb, int size, ID3D11Device* device, ID3D11DeviceContext* context, int slot)
-	{
-		ID3D11Buffer* constBuffer;
-		D3D11_BUFFER_DESC cbd = {};
-		cbd.ByteWidth = size;
-		cbd.Usage = D3D11_USAGE_DYNAMIC;
-		cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		cbd.MiscFlags = 0;
-		cbd.StructureByteStride = 0;
-		D3D11_SUBRESOURCE_DATA sd;
-		sd.pSysMem = cb;
-		device->CreateBuffer(&cbd, &sd, &constBuffer);
-		context->PSSetConstantBuffers(slot, 1, &constBuffer);
-		constBuffer->Release();
-	}
+	
 }

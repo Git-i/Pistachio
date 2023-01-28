@@ -6,3 +6,6 @@ bin-int/
 *.user
 *.ini
 *.bak
+*.pdb
+Pistachio/vendor/assimp/assimp-vc143-mt-static.lib
+Pistachio/vendor/assimp/assimp-vc143-mtd-static.lib

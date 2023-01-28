@@ -12,7 +12,8 @@ if(NOT CMAKE_VS_PLATFORM_NAME)
 endif()
 message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
 
-if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"))
+if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
+     OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
     message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
 endif()
 
@@ -81,6 +82,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 ################################################################################
 # Sub-projects
 ################################################################################
+add_subdirectory(Editor)
 add_subdirectory(Pistachio)
 add_subdirectory(Sandbox)
 

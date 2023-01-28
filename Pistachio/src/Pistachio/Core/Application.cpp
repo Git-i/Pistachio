@@ -3,24 +3,27 @@
 #include "Pistachio/Core/Application.h"
 #include "Pistachio/Event/Event.h"
 #include "Pistachio/Core/KeyCodes.h"
-#include "Pistachio/ImGui/ImGuiLayer.h"
 #include "Pistachio/Core/Input.h"
 
 namespace Pistachio {
 
 	Application* Application::s_Instance = nullptr;
-	Application::Application()
+	Application::Application(const char* name)
 	{
+		PT_PROFILE_FUNCTION();
+		m_ImGuiLayer = new ImGuiLayer;
 		s_Instance = this;
 		void* n = GetWindowDataPtr();
 		WindowInfo info;
 		info.height = 720;
 		info.width = 1280;
 		info.vsync = 0;
-		info.title = "LOLOA";
+		info.title = name;
 		m_Window = Scope<Window>(Window::Create(info));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
-		PushOverlay(new Pistachio::ImGuiLayer());
+#ifdef IMGUI
+		PushOverlay(m_ImGuiLayer);
+#endif
 		QueryPerformanceFrequency(&frequency);
 		period = 1 / (float)frequency.QuadPart;
 		QueryPerformanceCounter(&ticks);
@@ -49,7 +52,6 @@ namespace Pistachio {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(Application::OnWindowResize));
 		Renderer::OnEvent(e);
-		PT_CORE_TRACE("{0}", e);
 		for (auto it = m_layerstack.end(); it != m_layerstack.begin(); )
 		{
 			(*--it)->OnEvent(e);
@@ -59,6 +61,7 @@ namespace Pistachio {
 	}
 	bool Application::OnWindowResize(WindowResizeEvent& e)
 	{
+		PT_PROFILE_FUNCTION()
 		if (e.GetWidth() == 0)
 			m_minimized = true;
 		else
@@ -67,6 +70,7 @@ namespace Pistachio {
 	}
 	void Application::Run()
 	{
+		PT_PROFILE_FUNCTION()
 		while (m_Running) {
 			QueryPerformanceCounter(&ticks);
 			double time = (ticks.QuadPart * period) - InitTime;
@@ -82,10 +86,9 @@ namespace Pistachio {
 			}
 			if (!m_Running)
 				break;
-			// Start the Dear ImGui frame
-			ImGui_ImplDX11_NewFrame();
-			ImGui_ImplWin32_NewFrame();
-			ImGui::NewFrame();
+			m_ImGuiLayer->Begin();
+
+
 			m_Window->OnUpdate(delta);
 			if (!m_minimized) {
 				for (Layer* layer : m_layerstack)
@@ -93,13 +96,7 @@ namespace Pistachio {
 			}
 			for (Layer* layer : m_layerstack)
 				layer->OnImGuiRender();
-			ImGui::Render();
-			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-			{
-				ImGui::UpdatePlatformWindows();
-				ImGui::RenderPlatformWindowsDefault();
-			}
+			m_ImGuiLayer->End();
 			Renderer::EndScene();
 		}
 		

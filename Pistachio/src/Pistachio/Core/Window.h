@@ -21,6 +21,7 @@ using EventCallbackFn = std::function<void(Pistachio::Event& e)>;
 		unsigned int height = 0;
 		const char* title;
 		unsigned int vsync = 1;
+		float dpiscale;
 		EventCallbackFn EventCallback;
 	};
 

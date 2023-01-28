@@ -14,6 +14,7 @@
 #include "Pistachio/Renderer/Shader.h"
 #include "Pistachio/Renderer/Camera.h"
 #include "Pistachio/Renderer/Renderer2D.h"
+#pragma comment(lib, "shell32.lib")
 void* WindowDataPtr = new void*;
 
 void* GetWindowDataPtr()
@@ -64,9 +65,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				Pistachio::RendererBase::Getd3dDeviceContext()->ClearState();
 				Pistachio::RendererBase::Getd3dDeviceContext()->Flush();
+#ifdef IMGUI
+
+
 				ImGui_ImplDX11_Shutdown();
 				ImGui_ImplWin32_Shutdown();
 				ImGui::DestroyContext();
+#endif // IMGUI
 				DestroyWindow(hwnd);
 			}
 			else
@@ -93,8 +98,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		case WM_LBUTTONDOWN:
 		{
-			if (!ImGui::GetIO().WantCaptureMouse)
-				Pistachio::OnMouseButtonPress(0);
+			Pistachio::OnMouseButtonPress(0);
 			if (0x01 == Pistachio::LastKey)
 				KeyRepeat = true;
 			else
@@ -104,8 +108,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		case WM_RBUTTONDOWN:
 		{
-			ImGuiIO& io = ImGui::GetIO();
-			if (!io.WantCaptureMouse)
 			Pistachio::OnMouseButtonPress(1);
 			if (0x02 == Pistachio::LastKey)
 				KeyRepeat = true;
@@ -117,7 +119,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		case WM_MBUTTONDOWN:
 		{
-			if (!ImGui::GetIO().WantCaptureMouse)
 			Pistachio::OnMouseButtonPress(2);
 			if (0x04 == Pistachio::LastKey)
 				KeyRepeat = true;
@@ -130,7 +131,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			KeyRepeat = false;
 			Pistachio::KeyRepeatPoll = false;
-			if (!ImGui::GetIO().WantCaptureMouse)
 			Pistachio::OnMouseButtonRelease(0);
 			break;
 		}
@@ -138,7 +138,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			KeyRepeat = false;
 			Pistachio::KeyRepeatPoll = false;
-			if (!ImGui::GetIO().WantCaptureMouse)
 			Pistachio::OnMouseButtonRelease(1);
 			break;
 
@@ -151,6 +150,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 		case WM_DPICHANGED:
+#ifdef IMGUI
+
+
 			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DpiEnableScaleViewports)
 			{
 				//const int dpi = HIWORD(wParam);
@@ -158,6 +160,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				const RECT* suggested_rect = (RECT*)lParam;
 				::SetWindowPos(hwnd, NULL, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
 			}
+#endif // IMGUI
 			PT_CORE_INFO("DPI CHANGED");
 			break;
 		case WM_MOUSEWHEEL:
@@ -168,7 +171,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Pistachio::OnMouseScroll(xPos, yPos);
 			break;
 		}
-
+		case WM_SETFOCUS:
+		{
+			//if (!Pistachio::RendererBase::IsDeviceNull)
+				//Pistachio::RendererBase::GetSwapChain()->SetFullscreenState(TRUE, NULL);
+			break;
+		}
+		case WM_DROPFILES:
+		{
+			char ch[256];
+			DragQueryFileA((HDROP)wParam, 0, ch, 256);
+			WindowData& data = *(WindowData*)GetWindowDataPtr();
+			Pistachio::FileDropEvent event(ch);
+			if (data.EventCallback != NULL) {
+				data.EventCallback(event);
+			}
+			break;
+		}
+		printf("l");
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
@@ -191,13 +211,15 @@ namespace Pistachio {
 	}
 	int WindowsWindow::Init(const WindowInfo& info, HINSTANCE hInstance)
 	{
+		PT_PROFILE_FUNCTION();
+		SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 		SetWindowDataPtr(&m_data);
 		m_data.title = info.title;
 		m_data.height = info.height;
 		m_data.width = info.width;
 		m_data.vsync = info.vsync;
 		// Register the window class.
-		const wchar_t CLASS_NAME[] = L"Sample Window Class";
+		const wchar_t CLASS_NAME[] = L"Pitsachio Window Class";
 
 		WNDCLASSEXW wc;
 		wc.lpfnWndProc = WindowProc;
@@ -219,15 +241,15 @@ namespace Pistachio {
 		wr.right = info.width + 100;
 		wr.top = 100;
 		wr.bottom = 100 + info.height;
-		AdjustWindowRectEx(&wr, WS_OVERLAPPEDWINDOW, FALSE, 0);
+		AdjustWindowRectExForDpi(&wr, WS_OVERLAPPEDWINDOW, FALSE, 0, 250);
 		pd.hwnd = CreateWindowExW(
 			0,
 			CLASS_NAME,
 			(wchar_t*)info.title,
 			WS_OVERLAPPEDWINDOW,
-			CW_USEDEFAULT, CW_USEDEFAULT, wr.right-wr.left, wr.bottom-wr.top,
+			CW_USEDEFAULT, CW_USEDEFAULT, (UINT)((wr.right - wr.left) * (float)GetDpiForSystem() / 96.f), (UINT)((wr.bottom - wr.top) * (float)GetDpiForSystem() / 96.f),
 			NULL,       
-			NULL,       
+			NULL,
 			hInstance,  
 			NULL        
 		);
@@ -235,8 +257,7 @@ namespace Pistachio {
 		{
 			return 0;
 		}
-		
-
+		DragAcceptFiles(pd.hwnd, TRUE);
 #if _DEBUG
 		if (AllocConsole() == 0)
 		{
@@ -265,6 +286,7 @@ namespace Pistachio {
 
 		SetConsoleTitleW(L"Pistachio Application Debug Console");
 #endif
+		m_data.dpiscale = (float)GetDpiForWindow(pd.hwnd)/96.f;
 		ShowWindow(pd.hwnd, SW_SHOWDEFAULT);
 		Pistachio::Log::Init();
 		RendererBase::Init(pd.hwnd);

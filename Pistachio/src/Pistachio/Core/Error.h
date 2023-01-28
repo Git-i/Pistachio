@@ -15,7 +15,7 @@ namespace Pistachio {
 			ReporterString = "Unknown Internal Error";
 		}
 		inline static bool CheckFileExistence(const char* filepath) {
-			if (std::filesystem::exists(filepath))
+			//if (std::filesystem::exists(filepath))
 				return true;
 			return false;
 		}
@@ -29,8 +29,8 @@ namespace Pistachio {
 			case Pistachio::ErrorType::NonExistentFile:
 				return (std::string("The file passed into the function doesn't exist: ") + std::string(e.GetReporterString()));
 				break;
-			case Pistachio::ErrorType::NullError: 
-				return (std::string("A NULL or nullptr parameter was passed into the function: ") + std::string(e.GetReporterString())); 
+			case Pistachio::ErrorType::NullError:
+				return (std::string("A NULL or nullptr parameter was passed into the function: ") + std::string(e.GetReporterString()));
 				break;
 			default: return "Unregistered Error Type";
 				break;

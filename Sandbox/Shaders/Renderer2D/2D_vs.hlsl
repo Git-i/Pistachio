@@ -2,20 +2,22 @@ cbuffer cb
 {
     float4x4 viewproj;
 };
-cbuffer cb : register(b1)
-{
-    float4x4 transform;
-};
+
 struct VS_OUT
 {
-    float2 position : POSITION;
+    float2 uv : UV;
+    float4 color : COLOR;
+    float texindex : TEXINDEX;
+    int entityID : ID;
     float4 pos : SV_POSITION;
 };
-VS_OUT main( float4 pos : POSITION )
+VS_OUT main( float3 pos : POSITION, float2 uv : UV, float4 color : COLOR, float index : TEXINDEX, int entityID : ID )
 {
     VS_OUT vso;
-    vso.pos = mul(mul(pos, transform), viewproj);
-    vso.position = pos.xy;
-    vso.pos = pos;
+    vso.pos = mul(float4(pos, 1.0), viewproj);
+    vso.uv = uv;
+    vso.color = color;
+    vso.texindex = index;
+    vso.entityID = entityID;
     return vso;
 } 

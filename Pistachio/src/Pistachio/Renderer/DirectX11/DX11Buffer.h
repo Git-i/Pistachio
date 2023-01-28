@@ -8,6 +8,7 @@ namespace Pistachio {
 	class DX11Buffer {
 	public:
 		static Error CreateVertexBuffer(const void* vertices, unsigned int size, unsigned int Stride, ID3D11Buffer** pVB);
+		static Error CreateVertexBuffer(unsigned int size, ID3D11Buffer** pVB);
 		static Error CreateIndexBuffer(const void* indices, unsigned int size, unsigned int Stride, ID3D11Buffer** pVB);
 	};
 }

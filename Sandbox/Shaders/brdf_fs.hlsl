@@ -1,4 +1,3 @@
-
 static const float PI = 3.14159265359;
 
 float RadicalInverse_VdC(uint bits)

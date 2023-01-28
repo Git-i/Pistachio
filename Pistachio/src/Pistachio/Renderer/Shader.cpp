@@ -4,6 +4,7 @@
 namespace Pistachio {
 	Shader::Shader(const wchar_t* vsrc, const wchar_t* fsrc)
 	{
+		PT_PROFILE_FUNCTION()
 		#ifdef PISTACHIO_RENDER_API_DX11
 			DX11Shader::CreatePixelShader(fsrc, &pBlob, &pPixelShader);
 			DX11Shader::CreateVertexShader(vsrc, &pBlob, &pVertexShader);
@@ -11,6 +12,7 @@ namespace Pistachio {
 	}
 	void Shader::CreateLayout(BufferLayout* layout, int nAttributes)
 	{
+		PT_PROFILE_FUNCTION()
 		#ifdef PISTACHIO_RENDER_API_DX11
 			DX11Shader::CreateInputLayout(layout, nAttributes, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pInputLayout);
 		#endif // PISTACHIO_RENDER_API_DX11
@@ -18,24 +20,13 @@ namespace Pistachio {
 	}
 	void Shader::Bind(ShaderType type)
 	{
+		PT_PROFILE_FUNCTION()
 		#ifdef PISTACHIO_RENDER_API_DX11
 			RendererBase::Getd3dDeviceContext()->IASetInputLayout(pInputLayout);
 			if (type == ShaderType::Vertex) Pistachio::RendererBase::Getd3dDeviceContext()->VSSetShader(pVertexShader, nullptr, 0);
 			else if (type == ShaderType::Fragment) Pistachio::RendererBase::Getd3dDeviceContext()->PSSetShader(pPixelShader, nullptr, 0);
 		#endif // PISTACHIO_RENDER_API_DX11
 
-	}
-	void Shader::SetUniformBuffer(const ConstantBuffer& cb, int slot)
-	{
-		DX11Shader::CreateConstantBuffer(cb, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext(), slot);
-	}
-	void Shader::SetVSRandomBuffer(const void* cb, int size, int slot)
-	{
-		DX11Shader::CreateRandomConstantBuffer(cb, size, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext(), slot);
-	}
-	void Shader::SetPSBuffer(const void* cb, int size, int slot)
-	{
-		DX11Shader::CreatePSRandomConstantBuffer(cb, size, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext(), slot);
 	}
 	void Shader::Shutdown()
 	{
@@ -75,5 +66,26 @@ namespace Pistachio {
 	{
 		PT_CORE_ASSERT(m_Shaders.find(name)!=m_Shaders.end());
 		return m_Shaders[name];
+	}
+	void ConstantBuffer::Update(void* data, unsigned int size)
+	{
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+		RendererBase::Getd3dDeviceContext()->Map(pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		memcpy(mappedResource.pData, data, size);
+		RendererBase::Getd3dDeviceContext()->Unmap(pBuffer, 0);
+	}
+	void ConstantBuffer::Create(void* data, unsigned int size) {
+		DX11Shader::CreateConstantBuffer(data, size, RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext(), &pBuffer);
+	}
+	void Shader::SetVSBuffer(const ConstantBuffer& buffer, int slot)
+	{
+		PT_PROFILE_FUNCTION()
+		RendererBase::Getd3dDeviceContext()->VSSetConstantBuffers(slot, 1, &buffer.pBuffer);
+	}
+	void Shader::SetPSBuffer(const ConstantBuffer& buffer, int slot)
+	{
+		PT_PROFILE_FUNCTION()
+		RendererBase::Getd3dDeviceContext()->PSSetConstantBuffers(slot, 1, &buffer.pBuffer);
 	}
 }

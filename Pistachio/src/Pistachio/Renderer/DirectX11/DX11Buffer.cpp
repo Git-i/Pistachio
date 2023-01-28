@@ -18,6 +18,17 @@ namespace Pistachio {
 		RendererBase::Getd3dDevice()->CreateBuffer(&bd, &sd, pVertexBuffer);
 		return Error(ErrorType::Success, std::string(__FUNCTION__));
 	}
+	Error DX11Buffer::CreateVertexBuffer(unsigned int size, ID3D11Buffer** pVB)
+	{
+		D3D11_BUFFER_DESC bd = {};
+		bd.Usage = D3D11_USAGE_DYNAMIC;
+		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		bd.MiscFlags = 0;
+		bd.ByteWidth = size;
+		RendererBase::Getd3dDevice()->CreateBuffer(&bd, nullptr, pVB);
+		return Error(ErrorType::Success, std::string(__FUNCTION__));
+	}
 	Error DX11Buffer::CreateIndexBuffer(const void* indices, unsigned int size, unsigned int stride, ID3D11Buffer** pIndexBuffer)
 	{
 		if (!indices)

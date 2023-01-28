@@ -6,6 +6,7 @@
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Event/KeyEvent.h"
 
+#include "Pistachio/ImGui/ImGuiLayer.h"
 #include "Pistachio/Renderer/Renderer.h"
 #include "Pistachio/Renderer/Buffer.h"
 #include "Pistachio/Renderer/Shader.h"
@@ -15,7 +16,7 @@ namespace Pistachio {
 	class PISTACHIO_API Application
 	{
 	public:
-		Application();
+		Application(const char* name);
 		virtual ~Application();
 		void Run();
 		void OnEvent(Event& e);
@@ -24,6 +25,7 @@ namespace Pistachio {
 		bool OnWindowResize(WindowResizeEvent& e);
 		inline static Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
+		inline ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
 	private:
 		LayerStack m_layerstack;
 		std::unique_ptr<Window> m_Window;
@@ -35,6 +37,7 @@ namespace Pistachio {
 		double lastFrameTime = 0.0f;
 		double InitTime;
 		LARGE_INTEGER ticks;
+		ImGuiLayer* m_ImGuiLayer;
 	};
 
 	Application* CreateApplication();

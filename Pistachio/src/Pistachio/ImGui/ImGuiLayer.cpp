@@ -1,9 +1,9 @@
 #include "ptpch.h"
 #include "ImGuiLayer.h"
 #include "Pistachio/Renderer/RendererBase.h"
-
 #include "Pistachio/Core/Application.h"
 
+#include "ImGuizmo.h"
 namespace Pistachio {
 	ImGuiLayer::ImGuiLayer()
 		: Layer("ImGuiLayer")
@@ -19,10 +19,41 @@ namespace Pistachio {
 	}
 	void ImGuiLayer::OnEvent(Event& event)
 	{
+		EventDispatcher dispatcher(event);
+		dispatcher.Dispatch<KeyPressedEvent>(BIND_EVENT_FN(ImGuiLayer::OnKeyPressed));
+		if (event.GetEventType() == EventType::MouseButtonPressed)
+			event.Handled = ImGui::GetIO().WantCaptureMouse && BlockEvents;
+		if (event.GetEventType() == EventType::MouseScrolled)
+			event.Handled = ImGui::GetIO().WantCaptureMouse && BlockEvents;
+	}
+	bool ImGuiLayer::OnKeyPressed(KeyPressedEvent& e)
+	{
+		if (ImGui::GetIO().WantCaptureKeyboard && BlockEvents)
+		{
+			return true;
+		}
+		return false;
+	}
+	void ImGuiLayer::Begin()
+	{
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
+	}
+	void ImGuiLayer::End()
+	{
+		ImGui::Render();
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+		}
 	}
 	void ImGuiLayer::OnAttach()
 	{
-		//ImGui_ImplWin32_EnableDpiAwareness();
+		ImGui_ImplWin32_EnableDpiAwareness();
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -30,17 +61,23 @@ namespace Pistachio {
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		//io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
+		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
 		ImGui::StyleColorsDark();
-		io.Fonts->AddFontFromFileTTF("Cascadia.ttf", 14);
+		io.Fonts->AddFontFromFileTTF("Cascadia.ttf", 14* ((WindowData*)GetWindowDataPtr())->dpiscale);
 		// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
 		ImGuiStyle& style = ImGui::GetStyle();
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			style.WindowRounding = 0.0f;
 		}
-		style.FrameRounding = 1.0f;
-		style.GrabRounding = 1.0f;
-		style.TabRounding = 1.0f;
+		SetDarkTheme();
+		ImGui_ImplWin32_Init(Application::Get().GetWindow().pd.hwnd);
+		ImGui_ImplDX11_Init(RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());
+	}
+	void ImGuiLayer::SetGreenTheme()
+	{
+		ImGuiStyle& style = ImGui::GetStyle();
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		ImVec4* colors = style.Colors;
 		colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
@@ -98,10 +135,37 @@ namespace Pistachio {
 		colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
 		colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
 		colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+	}
+	void ImGuiLayer::SetDarkTheme()
+	{
+		ImGui::StyleColorsDark();
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.Colors[ImGuiCol_WindowBg].w = 1.f;
+		ImVec4* colors = style.Colors;
+		colors[ImGuiCol_WindowBg] = ImVec4(0.2f, 0.2f, 0.2f, 1.f);
+		colors[ImGuiCol_Header] =        ImVec4(0.2f, 0.205f, 0.21f, 1.f);
+		colors[ImGuiCol_HeaderHovered] = ImVec4(0.3f, 0.305f, 0.31f, 1.f);
+		colors[ImGuiCol_HeaderActive] =  ImVec4(0.15f, 0.1505f, 0.151f, 1.00f);
 
+		colors[ImGuiCol_Button] = ImVec4(0.2f, 0.205f, 0.21f, 1.f);
+		colors[ImGuiCol_ButtonHovered] = ImVec4(0.3f, 0.305f, 0.31f, 1.f);
+		colors[ImGuiCol_ButtonActive] = ImVec4(0.15f, 0.1505f, 0.151f, 1.00f);
 
+		colors[ImGuiCol_FrameBg] = ImVec4(0.14f, 0.145f, 0.15f, 1.f);
+		colors[ImGuiCol_FrameBgHovered] = ImVec4(0.3f, 0.305f, 0.31f, 1.f);
+		colors[ImGuiCol_FrameBgActive] = ImVec4(0.15f, 0.1505f, 0.151f, 1.00f);
 
-		ImGui_ImplWin32_Init(Application::Get().GetWindow().pd.hwnd);
-		ImGui_ImplDX11_Init(RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());
+		colors[ImGuiCol_Tab] = ImVec4(0.15f, 0.1505f, 0.151f, 1.00f);
+		colors[ImGuiCol_TabHovered] = ImVec4(0.38f, 0.3805f, 0.381f, 1.f);
+		colors[ImGuiCol_TabActive] = ImVec4(0.28f, 0.2805f, 0.281f, 1.00f);
+		colors[ImGuiCol_TabUnfocused] = ImVec4(0.15f, 0.1505f, 0.151f, 1.f);
+		colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.2f, 0.205f, 0.21f, 1.00f);
+
+		colors[ImGuiCol_TitleBg] = ImVec4(0.15f, 0.1505f, 0.151f, 1.00f);
+		colors[ImGuiCol_TitleBgActive] = ImVec4(0.15f, 0.1505f, 0.151f, 1.00f);
+		colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.95f, 0.1505f, 0.951f, 1.f);
+	}
+	void ImGuiLayer::SetLightTheme()
+	{
 	}
 }
