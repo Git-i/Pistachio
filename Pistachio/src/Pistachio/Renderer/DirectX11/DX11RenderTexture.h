@@ -10,5 +10,5 @@ class DX11RenderCubeMap
 {
 public:
 	static void Create(ID3D11ShaderResourceView* texture, int miplevels, ID3D11RenderTargetView** pRTV);
-	static void Bind(ID3D11DeviceContext** pCOntext, ID3D11RenderTargetView* pRenderTargetView, ID3D11DepthStencilView* pDSV);
+	static void Bind(ID3D11DeviceContext** pCOntext, ID3D11RenderTargetView*const* pRenderTargetView, ID3D11DepthStencilView* pDSV, int numtargets = 1);
 };

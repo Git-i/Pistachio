@@ -49,11 +49,13 @@ namespace Pistachio {
 			pDSV = NULL;
 		}
 		if (g_mainRenderTargetView) { while (g_mainRenderTargetView->Release()) {}; g_mainRenderTargetView = NULL; }
+		Pistachio::RendererBase::GetSwapChain()->SetFullscreenState(FALSE, NULL);
 		DX11RendererBase::CleanupDevice(g_pSwapChain, g_pd3dDevice, g_pd3dDeviceContext);
 	#endif
 	}
 	bool RendererBase::Init(HWND hwnd)
 	{
+		PT_PROFILE_FUNCTION();
 	#ifdef PISTACHIO_RENDER_API_DX11
 		Error::LogErrorToConsole(DX11RendererBase::CreateDevice(hwnd, &g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext, &pDSV, &g_mainRenderTargetView));
 		PT_CORE_INFO("RendererBase Initialized with API: DirectX 11");
@@ -123,6 +125,7 @@ namespace Pistachio {
 
 	void RendererBase::Resize(int width, int height)
 	{
+		PT_PROFILE_FUNCTION()
 		ClearTarget();
 		g_pSwapChain->ResizeBuffers(0, (UINT)width, (UINT)height, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
 		CreateTarget();
@@ -142,10 +145,11 @@ namespace Pistachio {
 		m_ClearColor[3] = a;
 	}
 
-	void RendererBase::DrawIndexed(Buffer& buffer)
+	void RendererBase::DrawIndexed(const Buffer& buffer, unsigned int indexCount)
 	{
+		unsigned int count = indexCount ? indexCount : buffer.ib->GetCount();
 		buffer.Bind();
-		g_pd3dDeviceContext->DrawIndexed(buffer.ib->GetCount(), 0, 0);
+		g_pd3dDeviceContext->DrawIndexed(count, 0, 0);
 	}
 
 	void RendererBase::SetCullMode(CullMode cullmode)

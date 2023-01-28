@@ -1,10 +1,10 @@
 Texture2D BRDFLUT : register(t0);
 TextureCube irradianceMap : register(t1);
 TextureCube prefilterMap : register(t2);
-Texture2D albedot : register(t4);
-Texture2D roughnesst : register(t5);
-Texture2D metalt : register(t6);
-Texture2D aot : register(t7);
+Texture2D albedot : register(t3);
+Texture2D roughnesst : register(t4);
+Texture2D metalt : register(t5);
+Texture2D aot : register(t6);
 SamplerState my_sampler;
 
 float  DistributionGGX(float3 N, float3 H, float roughness);
@@ -17,22 +17,31 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness);
 struct PS_OUTPUT
 {
     float4 color1 : SV_Target0;
+    int color2 : SV_Target1;
 };
-PS_OUTPUT main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, float2 uv : UV, float3 viewPos : V_POSITION, float3 albedo : ALBEDO, float metallic : METALLIC, float roughness : ROUGHNESS,float ao : AO)
+struct Light
+{
+    float4 positionxtype; // for directional lights this is direction and type
+    float4 colorxintensity;
+};
+cbuffer CBuff : register(b0)
+{
+    Light lights[128];
+    float4 numlights;
+};
+cbuffer MaterialData : register(b1)
+{
+    float4 albedo;
+    float metallic;
+    float roughness;
+    int entityID;
+}
+
+PS_OUTPUT main(float3 position : WORLD_POSITION, float3 Normal : FRAGMENT_NORMAL, float2 uv : UV, float3 camPos : V_POSITION)
 {
     PS_OUTPUT pso;
-    //albedo = albedot.Sample(my_sampler, uv).rgb;
-    //roughness = roughnesst.Sample(my_sampler, uv).r;
-    //metallic = metalt.Sample(my_sampler, uv).r;
-    float3 worldPos = position;
-    float3 camPos = viewPos;
-    float3 WorldPos = worldPos;
+    float3 WorldPos = position;
 	
-	
-    float3 Normal = normal;// * aot.Sample(my_sampler, uv).rgb;
-    roughness = clamp(roughness, 0.0, 0.999);
-    //float ao = 1.0;
-
     float3 N = normalize(Normal);
     float3 V = normalize(camPos.xyz - WorldPos);
     float3 R = reflect(-V, N);
@@ -42,16 +51,25 @@ PS_OUTPUT main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL
     
     // reflectance equation
     float3 Lo = float3(0.0, 0.0, 0.0);
-    float3 lightPosition = float3(0.0, 1.0, 1.0);
-    float3 lightColour = float3(1.0, 1.0, 1.0);
-    // Directional Lighting
+    // Lighting
+    for (int i = 0; i < numlights.x; i++)
     {
+        float3 L;
+        float attenuation;
         // calculate per-light radiance
-        float3 L = normalize(lightPosition.xyz);
+        if(lights[i].positionxtype.w == 0)
+            L = normalize(lights[i].positionxtype.xyz);
+        else if (lights[i].positionxtype.w == 1)
+            L = normalize(lights[i].positionxtype.xyz-WorldPos);
         float3 H = normalize(V + L);
-        float attenuation = 1.0;
-        //float attenuation = 10.0 / (distance);
-        float3 radiance = lightColour.xyz * attenuation;
+        if(lights[i].positionxtype.w == 0)
+            attenuation = lights[i].colorxintensity.w;
+        else if (lights[i].positionxtype.w == 1)
+        {
+            float distance = length(lights[i].positionxtype.xyz - WorldPos);
+            attenuation = lights[i].colorxintensity.w / (distance * distance);
+        }
+        float3 radiance = (lights[i].colorxintensity.xyz) * attenuation;
 
         // cook-torrance brdf
         float NDF = DistributionGGX(N, H, roughness);
@@ -63,44 +81,13 @@ PS_OUTPUT main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL
         kD *= 1.0 - metallic;
 
         float3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-        float3 specular = numerator / max(denominator, 0.001);
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+        float3 specular = numerator / denominator;
 
         // add to outgoing radiance Lo
         float NdotL = max(dot(N, L), 0.0);
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
-
-    /*
-    for(int i = 0; i < 4; ++i) 
-    {
-        // calculate per-light radiance
-        float3 L = normalize(lightPositions[i].xyz - WorldPos);
-        float3 H = normalize(V + L);
-        float distance    = length(lightPositions[i].xyz - WorldPos);
-        float attenuation = 1.0 / (distance * distance);
-        //float attenuation = 10.0 / (distance);
-		float3 radiance     = lightColours[i].xyz * attenuation;        
-        
-        // cook-torrance brdf
-        float NDF = DistributionGGX(N, H, roughness);        
-        float G   = GeometrySmith(N, V, L, roughness);      
-        float3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
-        
-        float3 kS = F;
-        float3 kD = float3(1.0, 1.0, 1.0) - kS;
-        kD *= 1.0 - metallic;	  
-        
-        float3 numerator    = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-        float3 specular     = numerator / max(denominator, 0.001);  
-            
-        // add to outgoing radiance Lo
-        float NdotL = max(dot(N, L), 0.0);                
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
-    }   
-    */
-
     float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
     float3 kS = F;
@@ -108,21 +95,16 @@ PS_OUTPUT main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL
     kD *= 1.0 - metallic;
 
     // -------------IBL Lighting-----------------------//
-    float3 irradiance = irradianceMap.Sample(my_sampler, N).rgb;
+    float3 irradiance = irradianceMap.Sample(my_sampler, -N).rgb;
     float3 indirectDiffuse = irradiance * albedo;
     const float MAX_REFLECTION_LOD = 4.0;
     float3 prefilteredColor = prefilterMap.SampleLevel(my_sampler, -R, roughness * MAX_REFLECTION_LOD).rgb;
-    float2 envBRDF;
-    //if(roughness<0.5)
-    envBRDF = BRDFLUT.Sample(my_sampler, float2(-clamp(max(dot(N, V), 0.0), 0.0, 0.9), roughness)).rg;
-    //else
-    //envBRDF = BRDFLUT.Sample(my_sampler, float2(max(dot(N, V), 0.0), roughness)).rg;
+    float2 envBRDF = BRDFLUT.Sample(my_sampler, float2(-clamp(max(dot(N, V), 0.0), 0.0, 0.9), roughness)).rg;
     
     float3 indirectSpecular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
-   
     // ------------------------------------------------//
 
-    float3 ambient = (kD * indirectDiffuse + indirectSpecular) * ao;
+    float3 ambient = (kD * indirectDiffuse + indirectSpecular) * 1;
    
     float3 color = ambient + Lo;
 	
@@ -133,6 +115,7 @@ PS_OUTPUT main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL
     float invGamma = 1.0f / 2.2f;
     color = pow(color, float3(invGamma, invGamma, invGamma));
     pso.color1 = float4(color, 1.0);
+    pso.color2 = entityID;
     return pso;
 }
 
@@ -143,7 +126,7 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
 
 float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
 {
-    return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+    return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta , 5.0);
 }
 
 float DistributionGGX(float3 N, float3 H, float roughness)

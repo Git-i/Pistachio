@@ -41,6 +41,7 @@ namespace Pistachio {
 		ID3D11DepthStencilState* pDSState;
 		(*pd3dDevice)->CreateDepthStencilState(&dsc, &pDSState);
 		(*pd3dDeviceContext)->OMSetDepthStencilState(pDSState, 1);
+
 		pDSState->Release();
 		return 0;
 	}

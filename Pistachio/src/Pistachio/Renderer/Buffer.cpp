@@ -25,8 +25,28 @@ namespace Pistachio {
 	void VertexBuffer::UnBind()
 	{
 	}
+	VertexBuffer* VertexBuffer::Create(unsigned int size, unsigned int stride)
+	{
+		VertexBuffer* result = new VertexBuffer();
+		result->CreateStack(size, stride);
+		return result;
+	}
+	void VertexBuffer::CreateStack(unsigned int size, unsigned int Stride)
+	{
+		stride = Stride;
+		DX11Buffer::CreateVertexBuffer(size, &pVertexBuffer);
+	}
+	void VertexBuffer::SetData(const void* data, unsigned int size)
+	{
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+		RendererBase::Getd3dDeviceContext()->Map(pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		memcpy(mappedResource.pData, data, size);
+		RendererBase::Getd3dDeviceContext()->Unmap(pVertexBuffer, 0);
+	}
 	VertexBuffer* VertexBuffer::Create(const void* vertices, unsigned int size, unsigned int Stride)
 	{
+		PT_PROFILE_FUNCTION()
 		VertexBuffer* result = new VertexBuffer;
 		result->stride = Stride;
 		#ifdef PISTACHIO_RENDER_API_DX11
@@ -36,6 +56,7 @@ namespace Pistachio {
 	}
 	void VertexBuffer::CreateStack(const void* vertices, unsigned int size, unsigned int Stride)
 	{
+		PT_PROFILE_FUNCTION()
 		stride = Stride;
 		#ifdef PISTACHIO_RENDER_API_DX11
 			Error::LogErrorToConsole(DX11Buffer::CreateVertexBuffer(vertices, size, Stride, &pVertexBuffer));
@@ -47,6 +68,7 @@ namespace Pistachio {
 	}
 	void IndexBuffer::ShutDown()
 	{
+		PT_PROFILE_FUNCTION()
 		#ifdef PISTACHIO_RENDER_API_DX11
 		if (pIndexBuffer) {
 			UnBind();
@@ -67,6 +89,7 @@ namespace Pistachio {
 	}
 	void IndexBuffer::CreateStack(const void* indices, unsigned int size, unsigned int stride)
 	{
+		PT_PROFILE_FUNCTION()
 		count = size / stride;
 		#ifdef PISTACHIO_RENDER_API_DX11
 			Error::LogErrorToConsole(DX11Buffer::CreateIndexBuffer(indices, size, stride, &pIndexBuffer));

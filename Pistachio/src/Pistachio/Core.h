@@ -1,4 +1,6 @@
 #pragma once
+#define PT_PLATFORM_WINDOWS
+#define PISTACHIO_RENDER_API_DX11
 typedef int KeyCode;
 #ifdef PT_PLATFORM_WINDOWS
 #ifdef DYNAMICLINK
@@ -19,20 +21,20 @@ typedef int KeyCode;
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 #if !(defined(PISTACHIO_RENDER_API_DX11) || defined(PISTACHIO_RENDER_API_VULKAN) || defined(PISTACHIO_RENDER_API_DX12))
-#define STRING2(x) #x  
-#define STRING(x) STRING2(x)  
+#define STRING2(x) #x
+#define STRING(x) STRING2(x)
 #pragma message(__FILE__ "(" STRING(__LINE__) "): warning: No Render API was selected, defaulting to DX11")
 #define PISTACHIO_RENDER_API_DX11
 #endif // !PISTACHIO_RENDER_API_DX11
 #if defined(PISTACHIO_RENDER_API_VULKAN)
-#define STRING2(x) #x  
-#define STRING(x) STRING2(x)  
+#define STRING2(x) #x
+#define STRING(x) STRING2(x)
 #pragma message(__FILE__ "(" STRING(__LINE__) "): warning: Vulkan is Currently not supported, defaulting to DX11")
 #define PISTACHIO_RENDER_API_DX11
 #endif // PISTACHIO_RENDER_API_VULKAN
 #if defined(PISTACHIO_RENDER_API_DX12)
-#define STRING2(x) #x  
-#define STRING(x) STRING2(x)  
+#define STRING2(x) #x
+#define STRING(x) STRING2(x)
 #pragma message(__FILE__ "(" STRING(__LINE__) "): warning: DirectX 12 is Currently not supported, defaulting to DX11")
 #define PISTACHIO_RENDER_API_DX11
 #endif // PISTACHIO_RENDER_API_DX12
@@ -52,3 +54,5 @@ namespace Pistachio {
 #pragma comment(lib, "XInput.lib")
 #pragma comment(lib, "Xinput9_1_0.lib")
 #pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "Comdlg32.lib")

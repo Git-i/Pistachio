@@ -3,13 +3,23 @@
 #include "../Core/Application.h"
 namespace Pistachio {
 	OrthographicCamera::OrthographicCamera(float left, float right, float top, float bottom, float aspectratio)
-		:m_projectionMatrix(DirectX::XMMatrixOrthographicLH(right-left * aspectratio, top-bottom * (1/aspectratio), 0.1f, 100.0f)), m_ViewMatrix(DirectX::XMMatrixIdentity())
+		:m_projectionMatrix(DirectX::XMMatrixOrthographicLH(right-left * aspectratio, top-bottom, 0.1f, 100.0f)), m_ViewMatrix(DirectX::XMMatrixIdentity())
 	{
-		m_ViewProjMatrix = m_ViewMatrix * m_projectionMatrix;
+		width = right - left;
+		height = top - bottom;
+		m_ViewProjMatrix = DirectX::XMMatrixTranspose(m_ViewMatrix * m_projectionMatrix);
 		m_Position.x = 0;
 		m_Position.y = 0;
 		m_Position.z = 0;
 
+	}
+	void OrthographicCamera::Zoom(float amount, float aspect)
+	{
+		width += amount;
+		height += amount;
+		if(!DirectX::XMScalarNearEqual(width, 0.f, 0.00001f))
+			m_projectionMatrix = DirectX::XMMatrixOrthographicLH((width) * aspect, (height), 0.1f, 100.f);
+		RecalculateViewMatrix();
 	}
 	void OrthographicCamera::RecalculateViewMatrix()
 	{
@@ -29,5 +39,54 @@ namespace Pistachio {
 	{
 		m_ViewMatrix = DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&m_eye), DirectX::XMLoadFloat3(&m_direction), DirectX::XMLoadFloat3(&m_up));
 		m_ViewProjMatrix = DirectX::XMMatrixTranspose(m_ViewMatrix * m_projectionMatrix);
+	}
+	SceneCamera::SceneCamera()
+	{
+		m_type = ProjectionType::Perspective;
+		SetPerspective(m_perspsize, m_perspnear, m_perspfar);
+	}
+	void SceneCamera::SetPerspective(float fov, float nearplane, float farplane)
+	{
+		if (DirectX::XMScalarNearEqual(nearplane, farplane, 0.1f))
+			farplane += 0.5f;
+		m_type = ProjectionType::Perspective;
+		m_perspsize = fov;
+		m_perspnear = nearplane;
+		m_perspfar = farplane;
+		m_projection = DirectX::XMMatrixPerspectiveFovLH(m_perspsize, m_aspectratio, m_perspnear, m_perspfar);
+	}
+	void SceneCamera::SetViewportSize(unsigned int width, unsigned int height)
+	{
+		m_aspectratio = (float)width / (float)height;
+		if (m_type == ProjectionType::Orthographic) {
+			float orthoLeft = -m_orthosize * m_aspectratio * 0.5f;
+			float orthoRight = -orthoLeft;
+			float orthoTop = m_orthosize * 0.5f;
+			float orthoBottom = -orthoTop;
+			m_projection = DirectX::XMMatrixOrthographicOffCenterLH(orthoLeft, orthoRight, orthoBottom, orthoTop, m_orthonear, m_orthofar); 
+		}
+		else
+		{
+			m_projection = DirectX::XMMatrixPerspectiveFovLH(m_perspsize, m_aspectratio, m_perspnear, m_perspfar);
+		}
+	}
+	void SceneCamera::SetOrthographic(float size, float nearplane, float farplane)
+	{
+		m_type = ProjectionType::Orthographic;
+		m_orthosize = size;
+		m_orthonear = nearplane;
+		m_orthofar = farplane;
+		float orthoLeft = -m_orthosize * m_aspectratio * 0.5f;
+		float orthoRight = -orthoLeft;
+		float orthoTop = m_orthosize * 0.5f;
+		float orthoBottom = -orthoTop;
+		m_projection = DirectX::XMMatrixOrthographicOffCenterLH(orthoLeft, orthoRight, orthoBottom, orthoTop, m_orthonear, m_orthofar);
+	}
+	void SceneCamera::SetProjectionType(ProjectionType type)
+	{
+		if (type == ProjectionType::Perspective)
+			SetPerspective(m_perspsize, m_perspnear, m_perspfar);
+		else
+			SetOrthographic(m_orthosize, m_orthonear, m_orthofar);
 	}
 }

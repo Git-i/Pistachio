@@ -57,9 +57,9 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;IMGUI</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\assimp\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
       <PreprocessToFile>false</PreprocessToFile>
@@ -77,8 +77,8 @@
       </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>assimp.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;zlibstaticd.lib;yaml-cppd.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -87,13 +87,15 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_BUILD_DLL;PISTACHIO_RENDER_API_DX11</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_BUILD_DLL;PISTACHIO_RENDER_API_DX11;IMGUI</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\assimp\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
       <PreprocessToFile>false</PreprocessToFile>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -107,12 +109,13 @@
       </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>d3d11.lib;assimp-vc143-mt.lib;zlibstatic.lib%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc143-mt.lib;zlibstatic.lib;yaml-cpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Pistachio\Core\Error.h" />
+    <ClInclude Include="src\Pistachio\Debug\Instrumentor.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Texture.h" />
@@ -121,6 +124,7 @@
     <ClInclude Include="src\Pistachio\Renderer\Camera.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Shader.h" />
+    <ClInclude Include="src\Pistachio\Renderer\EditorCamera.h" />
     <ClInclude Include="src\Pistachio\Renderer\Model.h" />
     <ClInclude Include="src\Pistachio\Renderer\Renderer2D.h" />
     <ClInclude Include="src\Pistachio\Renderer\RenderTexture.h" />
@@ -146,11 +150,133 @@
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.h" />
     <ClInclude Include="src\Pistachio\Core\Window.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.h" />
+    <ClInclude Include="src\Pistachio\Scene\Components.h" />
+    <ClInclude Include="src\Pistachio\Scene\Entity.h" />
+    <ClInclude Include="src\Pistachio\Scene\Scene.h" />
+    <ClInclude Include="src\Pistachio\Scene\SceneSerializer.h" />
+    <ClInclude Include="src\Pistachio\Scene\ScriptableComponent.h" />
     <ClInclude Include="src\ptpch.h" />
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Pistachio\Renderer\Buffer.h" />
     <ClInclude Include="src\Pistachio\Renderer\RendererBase.h" />
     <ClInclude Include="src\Pistachio\Renderer\Texture.h" />
+    <ClInclude Include="src\Pistachio\Utils\PlatformUtils.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\aabb.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\ai_assert.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\anim.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Base64.hpp" />
+    <ClInclude Include="vendor\assimp\include\assimp\BaseImporter.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Bitmap.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\BlobIOSystem.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\ByteSwapper.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\camera.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\cexport.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\cfileio.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\cimport.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\ColladaMetaData.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\color4.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\commonMetaData.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Compiler\poppack1.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Compiler\pstdint.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Compiler\pushpack1.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\config.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\CreateAnimMesh.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\DefaultIOStream.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\DefaultIOSystem.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\DefaultLogger.hpp" />
+    <ClInclude Include="vendor\assimp\include\assimp\defs.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Exceptional.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Exporter.hpp" />
+    <ClInclude Include="vendor\assimp\include\assimp\fast_atof.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\GenericProperty.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\GltfMaterial.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Hash.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Importer.hpp" />
+    <ClInclude Include="vendor\assimp\include\assimp\importerdesc.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\IOStream.hpp" />
+    <ClInclude Include="vendor\assimp\include\assimp\IOStreamBuffer.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\IOSystem.hpp" />
+    <ClInclude Include="vendor\assimp\include\assimp\light.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\LineSplitter.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\LogAux.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Logger.hpp" />
+    <ClInclude Include="vendor\assimp\include\assimp\LogStream.hpp" />
+    <ClInclude Include="vendor\assimp\include\assimp\material.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\MathFunctions.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\matrix3x3.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\matrix4x4.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\MemoryIOWrapper.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\mesh.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\metadata.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\NullLogger.hpp" />
+    <ClInclude Include="vendor\assimp\include\assimp\ObjMaterial.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\ParsingUtils.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\pbrmaterial.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\port\AndroidJNI\AndroidJNIIOSystem.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\port\AndroidJNI\BundledAssetIOSystem.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\postprocess.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Profiler.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\ProgressHandler.hpp" />
+    <ClInclude Include="vendor\assimp\include\assimp\qnan.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\quaternion.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\RemoveComments.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\scene.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\SceneCombiner.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\SGSpatialSort.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\SkeletonMeshBuilder.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\SmallVector.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\SmoothingGroups.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\SpatialSort.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\StandardShapes.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\StreamReader.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\StreamWriter.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\StringComparison.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\StringUtils.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Subdivision.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\texture.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\TinyFormatter.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\types.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\vector2.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\vector3.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\version.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\Vertex.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\XmlParser.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\XMLTools.h" />
+    <ClInclude Include="vendor\assimp\include\assimp\ZipArchiveIOSystem.h" />
+    <ClInclude Include="vendor\entt\include\entt.hpp" />
+    <ClInclude Include="vendor\gainput\include\gainput\gainput.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputAllocator.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputContainers.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputDebugRenderer.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputHelpers.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputDeltaState.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputDevice.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputDeviceBuiltIn.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputDeviceKeyboard.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputDeviceMouse.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputDevicePad.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputDeviceTouch.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputListener.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputManager.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputMap.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputInputState.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputIos.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputLog.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\GainputMapFilters.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\gestures\GainputButtonStickGesture.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\gestures\GainputDoubleClickGesture.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\gestures\GainputGestures.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\gestures\GainputHoldGesture.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\gestures\GainputPinchGesture.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\gestures\GainputRotateGesture.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\gestures\GainputSimultaneouslyDownGesture.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\gestures\GainputTapGesture.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\recorder\GainputInputPlayer.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\recorder\GainputInputRecorder.h" />
+    <ClInclude Include="vendor\gainput\include\gainput\recorder\GainputInputRecording.h" />
+    <ClInclude Include="vendor\glfw\include\GLFW\glfw3.h" />
+    <ClInclude Include="vendor\glfw\include\GLFW\glfw3native.h" />
+    <ClInclude Include="vendor\imguizmo\ImGuizmo.h" />
     <ClInclude Include="vendor\imgui\imconfig.h" />
     <ClInclude Include="vendor\imgui\imgui.h" />
     <ClInclude Include="vendor\imgui\imgui_impl_dx11.h" />
@@ -159,9 +285,111 @@
     <ClInclude Include="vendor\imgui\imstb_rectpack.h" />
     <ClInclude Include="vendor\imgui\imstb_textedit.h" />
     <ClInclude Include="vendor\imgui\imstb_truetype.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\async.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\async_logger-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\async_logger.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\cfg\argv.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\cfg\env.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\cfg\helpers-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\cfg\helpers.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\common-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\common.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\backtracer-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\backtracer.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\circular_q.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\console_globals.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\file_helper-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\file_helper.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\fmt_helper.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\log_msg-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\log_msg.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\log_msg_buffer-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\log_msg_buffer.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\mpmc_blocking_q.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\null_mutex.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\os-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\os.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\periodic_worker-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\periodic_worker.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\registry-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\registry.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\synchronous_factory.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\tcp_client-windows.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\tcp_client.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\thread_pool-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\thread_pool.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\udp_client-windows.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\udp_client.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\details\windows_include.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bin_to_hex.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\args.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\chrono.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\color.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\compile.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\core.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\format-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\format.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\locale.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\os.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\ostream.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\printf.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\ranges.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\std.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\bundled\xchar.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\chrono.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\compile.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\fmt.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\ostr.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\ranges.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\std.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fmt\xchar.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\formatter.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\fwd.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\logger-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\logger.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\pattern_formatter-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\pattern_formatter.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\android_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\ansicolor_sink-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\ansicolor_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\base_sink-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\base_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\basic_file_sink-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\basic_file_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\daily_file_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\dist_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\dup_filter_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\hourly_file_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\mongo_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\msvc_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\null_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\ostream_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\qt_sinks.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\ringbuffer_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\rotating_file_sink-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\rotating_file_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\sink-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\stdout_color_sinks-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\stdout_color_sinks.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\stdout_sinks-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\stdout_sinks.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\syslog_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\systemd_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\tcp_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\udp_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\wincolor_sink-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\wincolor_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\sinks\win_eventlog_sink.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\spdlog-inl.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\spdlog.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\stopwatch.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\tweakme.h" />
+    <ClInclude Include="vendor\spdlog\include\spdlog\version.h" />
     <ClInclude Include="vendor\stb_image\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Pistachio\Platform\Windows\WindowsPlatformUtils.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Texture.cpp" />
@@ -169,6 +397,7 @@
     <ClCompile Include="src\Pistachio\Renderer\Camera.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\EditorCamera.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Model.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Renderer2D.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RenderTexture.cpp" />
@@ -184,6 +413,9 @@
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputPoll.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.cpp" />
+    <ClCompile Include="src\Pistachio\Scene\Entity.cpp" />
+    <ClCompile Include="src\Pistachio\Scene\Scene.cpp" />
+    <ClCompile Include="src\Pistachio\Scene\SceneSerializer.cpp" />
     <ClCompile Include="src\ptpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ptpch.h</PrecompiledHeaderFile>
@@ -193,6 +425,10 @@
     <ClCompile Include="src\Pistachio\Renderer\Buffer.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RendererBase.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Texture.cpp" />
+    <ClCompile Include="vendor\imguizmo\ImGuizmo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="vendor\imgui\imgui.cpp" />
     <ClCompile Include="vendor\imgui\imgui_demo.cpp" />
     <ClCompile Include="vendor\imgui\imgui_draw.cpp" />
@@ -201,6 +437,16 @@
     <ClCompile Include="vendor\imgui\imgui_tables.cpp" />
     <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
     <ClCompile Include="vendor\stb_image\stb_image.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="vendor\assimp\include\assimp\color4.inl" />
+    <None Include="vendor\assimp\include\assimp\material.inl" />
+    <None Include="vendor\assimp\include\assimp\matrix3x3.inl" />
+    <None Include="vendor\assimp\include\assimp\matrix4x4.inl" />
+    <None Include="vendor\assimp\include\assimp\quaternion.inl" />
+    <None Include="vendor\assimp\include\assimp\SmoothingGroups.inl" />
+    <None Include="vendor\assimp\include\assimp\vector2.inl" />
+    <None Include="vendor\assimp\include\assimp\vector3.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

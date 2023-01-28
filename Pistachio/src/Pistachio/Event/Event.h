@@ -38,7 +38,7 @@ namespace Pistachio {
 		virtual const char* GetName() const = 0;
 		//-------------------------------------------
 		virtual char GetCategory() const = 0;
-		virtual std::string ToString() const = 0 { return GetName(); }
+		virtual std::string ToString() const { return GetName(); }
 
 		inline bool isInCategory(EventCategory category)
 		{

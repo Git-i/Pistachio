@@ -3,7 +3,7 @@ cbuffer CBuf
     matrix viewProjection;
     matrix transform;
     float4 viewPos;
-    float4 albedo; //(float3) my_texture.Sample(my_sampler, uv);
+    float4 albedo;
     float metallic;
     float roughness;
     float ao;

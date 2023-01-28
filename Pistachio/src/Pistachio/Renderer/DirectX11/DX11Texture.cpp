@@ -42,6 +42,40 @@ namespace Pistachio {
         ImageTexture->Release();
         return 0;
 	}
+	Error DX11Texture::Create(void* data, unsigned int width, unsigned int height, ID3D11ShaderResourceView** pSRV)
+    {
+        HRESULT Hr;
+        D3D11_TEXTURE2D_DESC ImageTextureDesc = {};
+
+        ImageTextureDesc.Width = width;
+        ImageTextureDesc.Height = height;
+        ImageTextureDesc.MipLevels = 1;
+        ImageTextureDesc.ArraySize = 1;
+        ImageTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        ImageTextureDesc.SampleDesc.Count = 1;
+        ImageTextureDesc.SampleDesc.Quality = 0;
+        ImageTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+        ImageTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        ImageTextureDesc.CPUAccessFlags = 0;
+        ImageTextureDesc.MiscFlags = 0;
+
+        D3D11_SUBRESOURCE_DATA ImageSubresourceData = {};
+
+        ImageSubresourceData.pSysMem = data;
+        ImageSubresourceData.SysMemPitch = (width) * 4;
+
+        ID3D11Texture2D* ImageTexture;
+        Hr = RendererBase::Getd3dDevice()->CreateTexture2D(&ImageTextureDesc, &ImageSubresourceData, &ImageTexture);
+        assert(SUCCEEDED(Hr));
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvdesc = {};
+        srvdesc.Format = ImageTextureDesc.Format;
+        srvdesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvdesc.Texture2D.MostDetailedMip = 0;
+        srvdesc.Texture2D.MipLevels = 1;
+        RendererBase::Getd3dDevice()->CreateShaderResourceView(ImageTexture, &srvdesc, pSRV);
+        ImageTexture->Release();
+        return 0;
+	}
     Error DX11Texture::CreateFloat(const char* path, unsigned int* width, unsigned int* height, ID3D11ShaderResourceView** pSRV)
     {
         HRESULT Hr;

@@ -6,7 +6,6 @@ namespace Pistachio {
     Error DX11Cubemap::Create(int Width, int Height, ID3D11Device* pDevice, ID3D11ShaderResourceView** pSRV, ID3D11Texture2D** renderTargetTexture, int miplevels)
     {
         D3D11_TEXTURE2D_DESC textureDesc;
-        D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
         D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
 
         ZeroMemory(&textureDesc, sizeof(textureDesc));

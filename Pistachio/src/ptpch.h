@@ -20,8 +20,8 @@
 	#include <d3dcompiler.h>
 	#include <DirectXMath.h>
 	#include <Xinput.h>
-#ifdef _DEBUG
-#endif // _DEBUG
-
 #endif // PT_PLATFORM_WINDOWS
+
+#include "Pistachio/Core/Log.h"
+#include "Pistachio/Debug/Instrumentor.h"
 

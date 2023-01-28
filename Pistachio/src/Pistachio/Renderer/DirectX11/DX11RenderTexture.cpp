@@ -60,8 +60,8 @@ void DX11RenderCubeMap::Create(ID3D11ShaderResourceView* texture, int miplevels,
     pDevice->Release();
     renderTargetTexture->Release();
 }
-void DX11RenderCubeMap::Bind(ID3D11DeviceContext** pCOntext, ID3D11RenderTargetView* pRenderTargetView, ID3D11DepthStencilView* pDSV)
+void DX11RenderCubeMap::Bind(ID3D11DeviceContext** pCOntext, ID3D11RenderTargetView*const* pRenderTargetView, ID3D11DepthStencilView* pDSV, int numtargets)
 {
-    (*pCOntext)->OMSetRenderTargets(1, &pRenderTargetView, pDSV);
+    (*pCOntext)->OMSetRenderTargets(numtargets, pRenderTargetView, pDSV);
 }
 

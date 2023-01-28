@@ -32,6 +32,7 @@ namespace Pistachio {
 		inline VertexBuffer* GetVertexBuffer() { return &m_VertexBuffer; }
 		inline IndexBuffer* GetIndexBuffer() { return &m_IndexBuffer; }
 		inline void DestroyMesh() { m_VertexBuffer.ShutDown(); m_IndexBuffer.ShutDown(); };
+		~Mesh() { m_VertexBuffer.ShutDown(); m_IndexBuffer.ShutDown(); };
 	private:
 		static BufferLayout layout[];
 		std::vector<Vertex> m_vertices;

@@ -2,7 +2,6 @@
 #include "Pistachio/Core.h"
 #include "Buffer.h"
 #include "DirectX11/DX11RendererBase.h"
-#include <atlbase.h>
 namespace Pistachio {
 	enum class CullMode {
 		None, Front, Back
@@ -23,7 +22,7 @@ namespace Pistachio {
 		static void Resize(int width, int height);
 		static void SetPrimitiveTopology(PrimitiveTopology Topology);
 		static void SetClearColor(float r, float g, float b, float a);
-		static void DrawIndexed(Buffer& buffer);
+		static void DrawIndexed(const Buffer& buffer, unsigned int indexCount=0);
 		static void SetCullMode(CullMode cullmode);
 		#ifdef PT_PLATFORM_WINDOWS
 			static bool Init(HWND hwnd);
