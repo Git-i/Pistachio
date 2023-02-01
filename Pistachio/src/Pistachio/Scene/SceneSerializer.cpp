@@ -99,7 +99,7 @@ namespace Pistachio {
 	static void SerializeEntity(YAML::Emitter& out, Entity entity)
 	{
 		out << YAML::BeginMap;
-		out << YAML::Key << "Entity" << YAML::Value << "12345676532123456";
+		out << YAML::Key << "Entity" << YAML::Value << entity.GetComponent<IDComponent>().uuid;
 		if (entity.HasComponent<TagComponent>())
 		{
 			out << YAML::Key << "TagComponent";
@@ -115,6 +115,7 @@ namespace Pistachio {
 			auto& tc = entity.GetComponent<TransformComponent>();
 			out << YAML::Key << "Translation" << YAML::Value << tc.Translation;
 			out << YAML::Key << "Rotation" << YAML::Value << tc.Rotation;
+			out << YAML::Key << "RotationEulerHint" << YAML::Value << tc.RotationEulerHint;
 			out << YAML::Key << "Scale" << YAML::Value << tc.Scale;
 			out << YAML::EndMap;
 		}
@@ -154,6 +155,26 @@ namespace Pistachio {
 			out << YAML::Key << "Color" << YAML::Value << lc.color;
 			out << YAML::Key << "Intensity" << YAML::Value << lc.Intensity;
 			out << YAML::Key << "Type" << YAML::Value << lc.Type;
+			out << YAML::EndMap;
+		}
+		if (entity.HasComponent<RigidBodyComponent>())
+		{
+			auto& rbc = entity.GetComponent<RigidBodyComponent>();
+			out << YAML::Key << "RigidBodyComponent";
+			out << YAML::BeginMap;
+			out << YAML::Key << "BodyType" << YAML::Comment("0 = Static, 1 = Dynamic, 2 = Kinematic")<< YAML::Value << (int)rbc.type;
+			out << YAML::Key << "Density" << YAML::Value << rbc.Density;
+			out << YAML::EndMap;
+		}
+		if (entity.HasComponent<BoxColliderComponent>())
+		{
+			auto& bc = entity.GetComponent<BoxColliderComponent>();
+			out << YAML::Key << "BoxColliderComponent";
+			out << YAML::BeginMap;
+			out << YAML::Key << "Size" << YAML::Value << bc.size;
+			out << YAML::Key << "Offset" << YAML::Value << bc.offset;
+			out << YAML::Key << "StaticFriction" << YAML::Value << bc.StaticFriction;
+			out << YAML::Key << "DynamicFriction" << YAML::Value << bc.DynamicFriction;
 			out << YAML::EndMap;
 		}
 		out << YAML::EndMap;
@@ -205,7 +226,7 @@ namespace Pistachio {
 				auto tagComponent = entity["TagComponent"];
 				if (tagComponent)
 					name = tagComponent["Tag"].as<std::string>();
-				Entity DeserializedEntity = m_Scene->CreateEntity(name);
+				Entity DeserializedEntity = m_Scene->CreateEntityWithUUID(uuid,name);
 
 				auto transformComponent = entity["TransformComponent"];
 				if (transformComponent)
@@ -250,6 +271,23 @@ namespace Pistachio {
 					lc.color = lightComponent["Color"].as<DirectX::XMFLOAT3>();
 					lc.Intensity = lightComponent["Intensity"].as<int>();
 					lc.Type = lightComponent["Type"].as<int>();
+				}
+				auto rigidbodycomponent = entity["RigidBodyComponent"];
+				if (rigidbodycomponent)
+				{
+					auto& rbc = DeserializedEntity.AddComponent<RigidBodyComponent>();
+					rbc.Density = rigidbodycomponent["Density"].as<float>();
+					rbc.type = (RigidBodyComponent::BodyType)rigidbodycomponent["Type"].as<int>();
+				}
+				auto boxcollidercomponent = entity["BoxColliderComponent"];
+				if (boxcollidercomponent)
+				{
+					auto& bc = DeserializedEntity.AddComponent<BoxColliderComponent>();
+					bc.size = boxcollidercomponent["Size"].as<DirectX::XMFLOAT3>();
+					bc.offset = boxcollidercomponent["Offset"].as<DirectX::XMFLOAT3>();
+					bc.DynamicFriction = boxcollidercomponent["DynamicFriction"].as<float>();
+					bc.StaticFriction = boxcollidercomponent["StaticFriction"].as<float>();
+					bc.Restitution = boxcollidercomponent["Restitution"].as<float>();
 				}
 			}
 		}

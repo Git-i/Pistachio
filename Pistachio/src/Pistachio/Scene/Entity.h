@@ -1,6 +1,7 @@
 #pragma once
-
+#include "Components.h"
 #include "Scene.h"
+#include "Pistachio/Core/UUID.h"
 namespace Pistachio {
 	class Entity {
 	public:
@@ -31,8 +32,9 @@ namespace Pistachio {
 		template<typename T>
 		bool RemoveComponent()
 		{
-			return m_Scene->m_Registry.remove <T>(m_EntityHandle);
+			return m_Scene->m_Registry.remove<T>(m_EntityHandle);
 		}
+		UUID GetUUID() { return GetComponent<IDComponent>().uuid; }
 		operator bool() const { return m_EntityHandle != entt::null; }
 		operator entt::entity() const { return m_EntityHandle; }
 		operator unsigned int() const { return (unsigned int)m_EntityHandle; }

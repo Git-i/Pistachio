@@ -7,14 +7,14 @@ namespace Pistachio {
 	int LastKeyPoll;
 	bool Input::IsKeyPressed(KeyCode code)
 	{
-		return 0x80000000 & GetAsyncKeyState(code);
+		return (::GetKeyState(code) & 0x8000) != 0;
 	}
 	bool Input::IsKeyJustPressed(KeyCode code)
 	{
 		bool a = 0;
 		bool first = 1;
 		if (GetActiveWindow() == Application::Get().GetWindow().pd.hwnd)
-			a = ((0x80000000 & GetAsyncKeyState(code)) && (!(KeyRepeatPoll && LastKeyPoll == code)));
+			a = ((::GetKeyState(code) & 0x8000) != 0) && (!(KeyRepeatPoll && LastKeyPoll == code));
 		if (first == 1) {
 			LastKeyPoll = code;
 			first = 0;

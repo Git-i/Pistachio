@@ -89,10 +89,9 @@ namespace Pistachio {
 	static void DrawVec3Control(const std::string& label, float* value, float reset = 0.f)
 	{
 		static int formatindex[3] = { 0.0,0.0,0.0 };
-		ImGui::PushID(label.c_str());
 		const char* formats[] = { "%.3f", "%.2f", "%.1f", "%.0f" };
-		ImGui::Columns(2);
-		//ImGui::SetColumnWidth(0, 150);
+		ImGui::Columns(2, "transformColunm");
+		ImGui::PushID(label.c_str());
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth() );
@@ -186,23 +185,53 @@ namespace Pistachio {
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
-			if (ImGui::MenuItem("Camera"))
+			if (!m_SelectionContext.HasComponent<CameraComponent>())
 			{
-				if (!m_SelectionContext.HasComponent<CameraComponent>())
+				if (ImGui::MenuItem("Camera"))
+				{
 					m_SelectionContext.AddComponent<CameraComponent>();
-				ImGui::CloseCurrentPopup();
+					ImGui::CloseCurrentPopup();
+				}
 			}
-			if (ImGui::MenuItem("Sprite Renderer"))
+			if (!m_SelectionContext.HasComponent<SpriteRendererComponent>())
 			{
-				if (!m_SelectionContext.HasComponent<SpriteRendererComponent>())
+				if (ImGui::MenuItem("Sprite Renderer"))
+				{
 					m_SelectionContext.AddComponent<SpriteRendererComponent>();
-				ImGui::CloseCurrentPopup();
+					ImGui::CloseCurrentPopup();
+				}
 			}
-			if (ImGui::MenuItem("Light"))
+			if (!m_SelectionContext.HasComponent<LightComponent>())
 			{
-				if (!m_SelectionContext.HasComponent<LightComponent>())
+				if (ImGui::MenuItem("Light"))
+				{
 					m_SelectionContext.AddComponent<LightComponent>();
-				ImGui::CloseCurrentPopup();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+			if(!m_SelectionContext.HasComponent<RigidBodyComponent>())
+			{
+				if (ImGui::MenuItem("Rigid Body"))
+				{
+					m_SelectionContext.AddComponent<RigidBodyComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+			if(!m_SelectionContext.HasComponent<BoxColliderComponent>())
+			{
+				if (ImGui::MenuItem("Box Collider"))
+				{
+					m_SelectionContext.AddComponent<BoxColliderComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+			if (!m_SelectionContext.HasComponent<MeshRendererComponent>())
+			{
+				if (ImGui::MenuItem("Mesh Renderer"))
+				{
+					m_SelectionContext.AddComponent<MeshRendererComponent>();
+					ImGui::CloseCurrentPopup();
+				}
 			}
 			ImGui::EndPopup();
 		}
@@ -214,13 +243,13 @@ namespace Pistachio {
 			
 			if (open) {
 				auto& tc = entity.GetComponent<TransformComponent>();
-				DirectX::XMFLOAT3 rotationDeg;
-				DirectX::XMStoreFloat3(&rotationDeg, tc.Rotation);
-				rotationDeg = { DirectX::XMConvertToDegrees(rotationDeg.x),DirectX::XMConvertToDegrees(rotationDeg.y),DirectX::XMConvertToDegrees(rotationDeg.z)};
+				DirectX::XMFLOAT4 rotationDeg = tc.RotationEulerHint;
+				rotationDeg = { DirectX::XMConvertToDegrees(rotationDeg.x),DirectX::XMConvertToDegrees(rotationDeg.y),DirectX::XMConvertToDegrees(rotationDeg.z), 1.f };
 				DrawVec3Control("Translation", (float*)&tc.Translation);
 				DrawVec3Control("Rotation", (float*)&rotationDeg);
 				DrawVec3Control("Scale", (float*)&tc.Scale, 1.f);
-				tc.Rotation = { DirectX::XMConvertToRadians(rotationDeg.x),DirectX::XMConvertToRadians(rotationDeg.y),DirectX::XMConvertToRadians(rotationDeg.z),1.f };
+				tc.RotationEulerHint = { DirectX::XMConvertToRadians(rotationDeg.x), DirectX::XMConvertToRadians(rotationDeg.y), DirectX::XMConvertToRadians(rotationDeg.z), 1.f };
+				tc.RecalculateRotation();
 				ImGui::TreePop();
 			}
 			ImGui::Separator();
@@ -258,6 +287,29 @@ namespace Pistachio {
 		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [](auto& component) {
 			ImGui::ColorEdit4("Color", (float*)&component.Color);
 		});
+		DrawComponent<MeshRendererComponent>("Mesh Renderer", entity, [](auto& component) {
+			ImGui::Button("Mesh");
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("3D_MODEL");
+				if (payload)
+				{
+					const wchar_t* data = (const wchar_t*)payload->Data;
+					auto path = std::filesystem::path("assets") / data;
+					if (component.Mesh) {
+						component.Mesh->DestroyMesh();
+						component.Mesh->CreateStack(path.string().c_str());
+					}
+					else {
+						component.Mesh = std::shared_ptr<Mesh>(Pistachio::Mesh::Create(path.string().c_str()));
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+			ImGui::ColorEdit3("Color", (float*)&component.color);
+			ImGui::SliderFloat("Metallic", &component.metallic, 0.0, 1.0);
+			ImGui::SliderFloat("Rougness", &component.roughness, 0.0, 1.0);
+		});
 		DrawComponent<LightComponent>("Light", entity, [](auto& component) {
 			const char* lightTypeStrings[] = { "Directional Light", "Point Light" };
 			const char* currentLightTypeString = lightTypeStrings[component.Type];
@@ -276,6 +328,33 @@ namespace Pistachio {
 			}
 			ImGui::ColorEdit3("Light Color", (float*)&component.color);
 			ImGui::DragFloat("Intensity", &component.Intensity);
+		});
+		DrawComponent<RigidBodyComponent>("Rigid Body", entity, [](auto& component) {
+			const char* BodyTypeStrings[] = { "Static", "Dynamic","!Kinematic"};
+			const char* currentBodyTypeString = BodyTypeStrings[(int)component.type];
+			if (ImGui::BeginCombo("Body Type", currentBodyTypeString))
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					bool isSelected = currentBodyTypeString == BodyTypeStrings[i];
+					if (ImGui::Selectable(BodyTypeStrings[i], isSelected))
+					{
+						currentBodyTypeString = BodyTypeStrings[i];
+						component.type = (RigidBodyComponent::BodyType)i;
+						if (i == 2)
+							ImGui::SetTooltip("NOT SUPPORTED");
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::DragFloat("Density", &component.Density);
+		});
+		DrawComponent<BoxColliderComponent>("Box Collider", entity, [](auto& component) {
+			ImGui::DragFloat3("Size", (float*)& component.size);
+			ImGui::DragFloat3("Offset", (float*)& component.offset);
+			ImGui::DragFloat("Static Friction", &component.StaticFriction);
+			ImGui::DragFloat("Dynamic Friction", &component.DynamicFriction);
+			ImGui::DragFloat("Restitution", &component.Restitution);
 		});
 	}
 }

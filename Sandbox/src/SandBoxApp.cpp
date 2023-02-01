@@ -17,9 +17,9 @@ public:
 		shader = new Pistachio::Shader(L"VertexShader.cso", L"PixelShader.cso");
 		noreflect = new Pistachio::Shader(L"PBR_no_reflect_vs.cso", L"PBR_no_reflect_fs.cso");
 		envshader = new Pistachio::Shader(L"background_vs.cso", L"background.cso");
+		envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		shader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		noreflect->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
-		envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		cam->SetPosition(0, 0, 5);
 	}
 	void OnUpdate(float delta) override
@@ -54,11 +54,11 @@ public:
 		//		}
 		//	}
 		//}
-		//Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Front);
-		//DirectX::XMFLOAT3X3 view;
-		//DirectX::XMStoreFloat3x3(&view, cam->GetViewMatrix());
-		//Pistachio::Renderer::Submit(&cube.meshes[0], envshader, color, metal, rough, ao, DirectX::XMMatrixIdentity(), DirectX::XMMatrixTranspose(DirectX::XMLoadFloat3x3(&view) * cam->GetProjectionMatrix()));
-		//Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Back);
+		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Front);
+		DirectX::XMFLOAT3X3 view;
+		DirectX::XMStoreFloat3x3(&view, cam->GetViewMatrix());
+		Pistachio::Renderer::Submit(&cube.meshes[0], envshader, color, metal, rough, ao, DirectX::XMMatrixIdentity(), DirectX::XMMatrixTranspose(DirectX::XMLoadFloat3x3(&view) * cam->GetProjectionMatrix()));
+		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Back);
 		//Pistachio::Renderer2D::BeginScene(ocam);
 		//static float positionx, positiony = 0, sizex =1, sizey = 1;
 		/*for (int i = 0; i < 100; i++)

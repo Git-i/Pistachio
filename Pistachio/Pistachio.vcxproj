@@ -59,7 +59,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;IMGUI</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo;$(SolutionDir)Pistachio\vendor\physx\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
       <PreprocessToFile>false</PreprocessToFile>
@@ -77,8 +77,8 @@
       </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>assimp-vc143-mtd.lib;zlibstaticd.lib;yaml-cppd.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;zlibstaticd.lib;yaml-cppd.lib;PhysXExtensions_static_64.lib;PhysXPvdSDK_static_64.lib;PhysXVehicle_static_64.lib;PhysXVehicle2_static_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCooking_64.lib;SnippetUtils_static_64.lib;PVDRuntime_64.lib;SnippetRender_static_64.lib;SceneQuery_static_64.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;$(SolutionDir)Pistachio\vendor\physx\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -89,7 +89,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_BUILD_DLL;PISTACHIO_RENDER_API_DX11;IMGUI</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo;$(SolutionDir)Pistachio\vendor\physx\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
       <PreprocessToFile>false</PreprocessToFile>
@@ -110,11 +110,12 @@
     </PostBuildEvent>
     <Lib>
       <AdditionalDependencies>assimp-vc143-mt.lib;zlibstatic.lib;yaml-cpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;$(SolutionDir)Pistachio\vendor\physx\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Pistachio\Core\Error.h" />
+    <ClInclude Include="src\Pistachio\Core\UUID.h" />
     <ClInclude Include="src\Pistachio\Debug\Instrumentor.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.h" />
@@ -285,6 +286,73 @@
     <ClInclude Include="vendor\imgui\imstb_rectpack.h" />
     <ClInclude Include="vendor\imgui\imstb_textedit.h" />
     <ClInclude Include="vendor\imgui\imstb_truetype.h" />
+    <ClInclude Include="vendor\physx\include\PxActor.h" />
+    <ClInclude Include="vendor\physx\include\PxActorData.h" />
+    <ClInclude Include="vendor\physx\include\PxAggregate.h" />
+    <ClInclude Include="vendor\physx\include\PxArticulationFlag.h" />
+    <ClInclude Include="vendor\physx\include\PxArticulationJointReducedCoordinate.h" />
+    <ClInclude Include="vendor\physx\include\PxArticulationLink.h" />
+    <ClInclude Include="vendor\physx\include\PxArticulationReducedCoordinate.h" />
+    <ClInclude Include="vendor\physx\include\PxArticulationTendon.h" />
+    <ClInclude Include="vendor\physx\include\PxArticulationTendonData.h" />
+    <ClInclude Include="vendor\physx\include\PxAttachment.h" />
+    <ClInclude Include="vendor\physx\include\PxBaseMaterial.h" />
+    <ClInclude Include="vendor\physx\include\PxBroadPhase.h" />
+    <ClInclude Include="vendor\physx\include\PxBuffer.h" />
+    <ClInclude Include="vendor\physx\include\PxClient.h" />
+    <ClInclude Include="vendor\physx\include\PxConeLimitedConstraint.h" />
+    <ClInclude Include="vendor\physx\include\PxConfig.h" />
+    <ClInclude Include="vendor\physx\include\PxConstraint.h" />
+    <ClInclude Include="vendor\physx\include\PxConstraintDesc.h" />
+    <ClInclude Include="vendor\physx\include\PxContact.h" />
+    <ClInclude Include="vendor\physx\include\PxContactModifyCallback.h" />
+    <ClInclude Include="vendor\physx\include\PxCustomParticleSystemSolverCallback.h" />
+    <ClInclude Include="vendor\physx\include\PxDeletionListener.h" />
+    <ClInclude Include="vendor\physx\include\PxFEMClothFlags.h" />
+    <ClInclude Include="vendor\physx\include\PxFEMClothMaterial.h" />
+    <ClInclude Include="vendor\physx\include\PxFEMMaterial.h" />
+    <ClInclude Include="vendor\physx\include\PxFEMParameter.h" />
+    <ClInclude Include="vendor\physx\include\PxFEMSoftBodyMaterial.h" />
+    <ClInclude Include="vendor\physx\include\PxFiltering.h" />
+    <ClInclude Include="vendor\physx\include\PxFLIPMaterial.h" />
+    <ClInclude Include="vendor\physx\include\PxForceMode.h" />
+    <ClInclude Include="vendor\physx\include\PxHairSystemFlag.h" />
+    <ClInclude Include="vendor\physx\include\PxImmediateMode.h" />
+    <ClInclude Include="vendor\physx\include\PxLockedData.h" />
+    <ClInclude Include="vendor\physx\include\PxMaterial.h" />
+    <ClInclude Include="vendor\physx\include\PxMPMMaterial.h" />
+    <ClInclude Include="vendor\physx\include\PxNodeIndex.h" />
+    <ClInclude Include="vendor\physx\include\PxParticleBuffer.h" />
+    <ClInclude Include="vendor\physx\include\PxParticleGpu.h" />
+    <ClInclude Include="vendor\physx\include\PxParticleMaterial.h" />
+    <ClInclude Include="vendor\physx\include\PxParticleSolverType.h" />
+    <ClInclude Include="vendor\physx\include\PxParticleSystem.h" />
+    <ClInclude Include="vendor\physx\include\PxParticleSystemFlag.h" />
+    <ClInclude Include="vendor\physx\include\PxPBDMaterial.h" />
+    <ClInclude Include="vendor\physx\include\PxPBDParticleSystem.h" />
+    <ClInclude Include="vendor\physx\include\PxPhysics.h" />
+    <ClInclude Include="vendor\physx\include\PxPhysicsAPI.h" />
+    <ClInclude Include="vendor\physx\include\PxPhysicsSerialization.h" />
+    <ClInclude Include="vendor\physx\include\PxPhysXConfig.h" />
+    <ClInclude Include="vendor\physx\include\PxPruningStructure.h" />
+    <ClInclude Include="vendor\physx\include\PxQueryFiltering.h" />
+    <ClInclude Include="vendor\physx\include\PxQueryReport.h" />
+    <ClInclude Include="vendor\physx\include\PxRigidActor.h" />
+    <ClInclude Include="vendor\physx\include\PxRigidBody.h" />
+    <ClInclude Include="vendor\physx\include\PxRigidDynamic.h" />
+    <ClInclude Include="vendor\physx\include\PxRigidStatic.h" />
+    <ClInclude Include="vendor\physx\include\PxScene.h" />
+    <ClInclude Include="vendor\physx\include\PxSceneDesc.h" />
+    <ClInclude Include="vendor\physx\include\PxSceneLock.h" />
+    <ClInclude Include="vendor\physx\include\PxSceneQueryDesc.h" />
+    <ClInclude Include="vendor\physx\include\PxSceneQuerySystem.h" />
+    <ClInclude Include="vendor\physx\include\PxShape.h" />
+    <ClInclude Include="vendor\physx\include\PxSimulationEventCallback.h" />
+    <ClInclude Include="vendor\physx\include\PxSimulationStatistics.h" />
+    <ClInclude Include="vendor\physx\include\PxSoftBody.h" />
+    <ClInclude Include="vendor\physx\include\PxSoftBodyFlag.h" />
+    <ClInclude Include="vendor\physx\include\PxSparseGridParams.h" />
+    <ClInclude Include="vendor\physx\include\PxVisualizationParameter.h" />
     <ClInclude Include="vendor\spdlog\include\spdlog\async.h" />
     <ClInclude Include="vendor\spdlog\include\spdlog\async_logger-inl.h" />
     <ClInclude Include="vendor\spdlog\include\spdlog\async_logger.h" />
@@ -389,6 +457,7 @@
     <ClInclude Include="vendor\stb_image\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Pistachio\Core\UUID.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsPlatformUtils.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.cpp" />

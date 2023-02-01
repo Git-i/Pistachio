@@ -18,6 +18,7 @@ Pistachio::ConstantBuffer Pistachio::Renderer::CameraCB = {};
 Pistachio::Renderer::LD  Pistachio::Renderer::LightData = {};
 Pistachio::Light* Pistachio::Renderer::lightIndexPtr = nullptr;
 Pistachio::Renderer::CamerData Pistachio::Renderer::CameraData = {};
+
 namespace Pistachio {
 	void Renderer::Init(const char* skybox)
 	{
@@ -63,6 +64,12 @@ namespace Pistachio {
 		Mesh plane;
 		cube.CreateStack("cube.obj");
 		plane.CreateStack("plane.obj");
+		auto& cubeVB = cube.GetVertexBuffer();
+		auto& cubeIB = cube.GetIndexBuffer();
+		auto& planeVB = plane.GetVertexBuffer();
+		auto& planeIB = plane.GetIndexBuffer();
+		Buffer buffer = { &cubeVB, &cubeIB };
+		Buffer planebuffer = { &planeVB, &planeIB };
 		fbo.CreateStack(512, 512, 6);
 		float clearcolor[] = { 0.7f, 0.7f, 0.7f, 1.0f };
 		DirectX::XMMATRIX captureProjection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -82,7 +89,7 @@ namespace Pistachio {
 		for (int i = 0; i < 6; i++) {
 			fbo.Bind(i);
 			fbo.Clear(clearcolor, i);
-			Buffer buffer = { cube.GetVertexBuffer(), cube.GetIndexBuffer() };
+			
 			
 			DirectX::XMFLOAT4 campos = { 0.0, 0.0, 0.0, 1.0 };
 			camerabufferData = { DirectX::XMMatrixMultiplyTranspose(captureViews[i], captureProjection), campos};
@@ -97,7 +104,7 @@ namespace Pistachio {
 		irradianceShader.Bind(ShaderType::Pixel);
 		for (int i = 0; i < 6; i++)
 		{
-			Buffer buffer = { cube.GetVertexBuffer(), cube.GetIndexBuffer() };
+			
 			ifbo.Bind(i);
 			ifbo.Clear(clearcolor, i);
 			
@@ -138,7 +145,7 @@ namespace Pistachio {
 			RendererBase::ChangeViewport(mipWidth, mipHeight);
 			for (unsigned int i = 0; i < 6; ++i)
 			{
-				Buffer buffer = { cube.GetVertexBuffer(), cube.GetIndexBuffer() };
+				
 				PrefilterShaderConstBuffer.viewproj = DirectX::XMMatrixTranspose(captureViews[i] * captureProjection);
 				PrefilterShaderConstBuffer.transform = DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity());
 				PrefilterShaderConstBuffer.roughness = (float)mip / (float)(maxMipLevels - 1);
@@ -215,8 +222,8 @@ namespace Pistachio {
 			brdfShader.Bind(ShaderType::Pixel);
 			Pistachio::RendererBase::SetCullMode(CullMode::Back);
 			RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &pBrdfRTV, nullptr);
-			Buffer buffer = { plane.GetVertexBuffer(), plane.GetIndexBuffer() };
-			RendererBase::DrawIndexed(buffer);
+			
+			RendererBase::DrawIndexed(planebuffer);
 			Ref<Shader> pbrShader = std::make_shared<Shader>(L"resources/shaders/vertex/VertexShader.cso", L"resources/shaders/pixel/PixelShader.cso");
 			pbrShader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
 			shaderlib.Add("PBR-Shader", pbrShader);
@@ -316,7 +323,9 @@ namespace Pistachio {
 	void Renderer::Submit(Mesh* mesh, Shader* shader, float* c, float m, float r, int ID, const DirectX::XMMATRIX& transform, const DirectX::XMMATRIX& viewProjection)
 	{
 		PT_PROFILE_FUNCTION()
-		Buffer buffer = { mesh->GetVertexBuffer(), mesh->GetIndexBuffer()};
+		auto& VB = mesh->GetVertexBuffer(); 
+		auto& IB = mesh->GetIndexBuffer();
+		Buffer buffer = { &VB,&IB };
 		shader->Bind(ShaderType::Vertex);
 		shader->Bind(ShaderType::Pixel);
 		MaterialStruct cb;

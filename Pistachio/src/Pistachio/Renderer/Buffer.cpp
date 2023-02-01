@@ -2,6 +2,7 @@
 #include "Buffer.h"
 #include "DirectX11/DX11Buffer.h"
 #include "../Core/Error.h"
+
 namespace Pistachio {
 	VertexBuffer::VertexBuffer()
 	{
@@ -15,7 +16,7 @@ namespace Pistachio {
 		}
 		#endif // PISTACHIO_RENDER_API_DX11 
 	}
-	void VertexBuffer::Bind()
+	void VertexBuffer::Bind() const
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
 			UINT offset = 0;
@@ -78,7 +79,7 @@ namespace Pistachio {
 		#endif // PISTACHIO_RENDER_API_DX11
 
 	}
-	void IndexBuffer::Bind()
+	void IndexBuffer::Bind() const
 	{
 		#ifdef PISTACHIO_RENDER_API_DX11
 			RendererBase::Getd3dDeviceContext()->IASetIndexBuffer(pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
