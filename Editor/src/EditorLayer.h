@@ -12,6 +12,9 @@ namespace Pistachio {
 		void OnAttach() override;
 		void OnImGuiRender();
 		void OnEvent(Pistachio::Event& event) override;
+		void UI_ToolBar();
+		void OnScenePlay();
+		void OnSceneStop();
 		~EditorLayer();
 	private:
 		bool OnKeyPressed(Pistachio::KeyPressedEvent& e);
@@ -26,6 +29,9 @@ namespace Pistachio {
 		float wndwith = 0;
 		float wndheight = 0;
 		Ref<Scene> m_ActiveScene;
+		Ref<Texture2D> m_playButton, m_stopButton, m_translateButton, m_rotateButton, m_scaleButton;
+		Mesh cube;
+		Shader envshader;
 		Entity m_HoveredEntity;
 		Entity m_meshEntity;
 		int m_GizmoType = -1;
@@ -33,5 +39,11 @@ namespace Pistachio {
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
 		bool m_ViewportHovered;
+
+		enum class SceneState {
+			Edit, Play = 1
+		};
+
+		SceneState m_SceneState = SceneState::Edit;
 	};
 }

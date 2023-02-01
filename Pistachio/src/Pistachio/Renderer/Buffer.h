@@ -6,7 +6,7 @@ namespace Pistachio {
 	public:
 		VertexBuffer();
 		void ShutDown();
-		void Bind();
+		void Bind() const;
 		void UnBind();
 		static VertexBuffer* Create(unsigned int size, unsigned int stride);
 		void CreateStack(unsigned int size, unsigned int stride);
@@ -25,11 +25,11 @@ namespace Pistachio {
 	public:
 		IndexBuffer();
 		void ShutDown();
-		void Bind();
+		void Bind() const;
 		void UnBind();
 		static IndexBuffer* Create(const void* indices, unsigned int size, unsigned int stride);
 		void CreateStack(const void* indices, unsigned int size, unsigned int stride);
-		inline unsigned int GetCount() { return count; }
+		inline unsigned int GetCount() const{ return count; }
 	private:
 		unsigned int count;
 		#ifdef PISTACHIO_RENDER_API_DX11
@@ -39,9 +39,10 @@ namespace Pistachio {
 	struct Buffer
 	{
 	public:
-		VertexBuffer* vb;
-		IndexBuffer* ib;
-		Buffer(VertexBuffer* Vb, IndexBuffer* Ib) : vb(Vb), ib(Ib) {}
+		const VertexBuffer* vb;
+		const IndexBuffer* ib;
+		Buffer(const VertexBuffer* Vb, const IndexBuffer* Ib) : vb(Vb), ib(Ib) {}
+		~Buffer(){}
 		inline const void Bind() const
 		{
 			vb->Bind();

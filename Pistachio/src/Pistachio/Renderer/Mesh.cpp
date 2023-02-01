@@ -46,7 +46,6 @@ namespace Pistachio {
 		std::thread worker(ProcessIndices, (pmeshes), std::ref(m_indices));
 		for (unsigned int j = 0; j < pmeshes->mNumVertices; j++)
 		{
-
 			m_vertices.push_back(Vertex(
 				pmeshes->mVertices[j].x, pmeshes->mVertices[j].y, pmeshes->mVertices[j].z,
 				pmeshes->mNormals[j].x, pmeshes->mNormals[j].y, pmeshes->mNormals[j].z,

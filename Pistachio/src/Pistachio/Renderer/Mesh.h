@@ -29,10 +29,10 @@ namespace Pistachio {
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 		static BufferLayout* GetLayout();
 		inline static int GetLayoutSize() { return 3; }
-		inline VertexBuffer* GetVertexBuffer() { return &m_VertexBuffer; }
-		inline IndexBuffer* GetIndexBuffer() { return &m_IndexBuffer; }
-		inline void DestroyMesh() { m_VertexBuffer.ShutDown(); m_IndexBuffer.ShutDown(); };
-		~Mesh() { m_VertexBuffer.ShutDown(); m_IndexBuffer.ShutDown(); };
+		inline const VertexBuffer& GetVertexBuffer() const { return m_VertexBuffer; }
+		inline const IndexBuffer& GetIndexBuffer() const { return m_IndexBuffer; }
+		inline void DestroyMesh() { m_VertexBuffer.ShutDown(); m_IndexBuffer.ShutDown(); m_vertices.clear(); m_indices.clear();};
+		~Mesh() { DestroyMesh(); };
 	private:
 		static BufferLayout layout[];
 		std::vector<Vertex> m_vertices;

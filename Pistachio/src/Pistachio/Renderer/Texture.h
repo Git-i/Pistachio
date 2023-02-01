@@ -20,6 +20,7 @@ namespace Pistachio {
 		static Texture2D* Create(int width, int height, void* data);
 		void CreateStack(int width, int height, void* data);
 		unsigned int m_Width, m_Height;
+		ID3D11ShaderResourceView* GetSRV() const { return pTextureView; };
 		//TODO: Asset Management
 		bool operator==(const Texture2D& texture) const
 		{

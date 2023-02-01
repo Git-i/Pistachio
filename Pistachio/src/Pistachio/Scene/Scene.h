@@ -2,6 +2,10 @@
 #include "entt.hpp"
 #include "Pistachio/Renderer/RenderTexture.h"
 #include "Pistachio/Renderer/EditorCamera.h"
+#include "Pistachio/Core/UUID.h"
+namespace physx {
+	class PxScene;
+}
 namespace Pistachio {
 	class Entity;
 	class Scene {
@@ -9,6 +13,9 @@ namespace Pistachio {
 		Scene();
 		~Scene();
 		Entity CreateEntity(const std::string& name = "");
+		Entity CreateEntityWithUUID(UUID ID, const std::string& name = "");
+		void OnRuntimeStart();
+		void OnRuntimeStop();
 		void OnUpdateEditor(float delta, EditorCamera& camera);
 		void OnUpdateRuntime(float delta);
 		void OnViewportResize(unsigned int width, unsigned int height);
@@ -19,6 +26,7 @@ namespace Pistachio {
 		void OnComponentAdded(Entity entity, T& component);
 	private:
 		entt::registry m_Registry;
+		physx::PxScene* m_PhysicsScene = NULL;
 		friend class Entity;
 		friend class SceneHierarchyPanel;
 		friend class SceneSerializer;
