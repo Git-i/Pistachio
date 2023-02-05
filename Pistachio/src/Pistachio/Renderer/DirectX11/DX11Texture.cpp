@@ -2,6 +2,7 @@
 #include "DX11Texture.h"
 #include "stb_image.h"
 #include "../RendererBase.h"
+#include "../../Utils/RendererUtils.h"
 namespace Pistachio {
 	Error DX11Texture::Create(const char* path, unsigned int* width, unsigned int* height, ID3D11ShaderResourceView** pSRV)
 	{
@@ -42,7 +43,7 @@ namespace Pistachio {
         ImageTexture->Release();
         return 0;
 	}
-	Error DX11Texture::Create(void* data, unsigned int width, unsigned int height, ID3D11ShaderResourceView** pSRV)
+	Error DX11Texture::Create(void* data, unsigned int width, unsigned int height, TextureFormat format, ID3D11ShaderResourceView** pSRV)
     {
         HRESULT Hr;
         D3D11_TEXTURE2D_DESC ImageTextureDesc = {};
@@ -51,7 +52,7 @@ namespace Pistachio {
         ImageTextureDesc.Height = height;
         ImageTextureDesc.MipLevels = 1;
         ImageTextureDesc.ArraySize = 1;
-        ImageTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        ImageTextureDesc.Format = RendererUtils::DXGITextureFormat(format);
         ImageTextureDesc.SampleDesc.Count = 1;
         ImageTextureDesc.SampleDesc.Quality = 0;
         ImageTextureDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -132,14 +133,18 @@ namespace Pistachio {
         ImageSamplerDesc.AddressU = addressU;
         ImageSamplerDesc.AddressV = addressv;
         ImageSamplerDesc.AddressW = addressw;
+        ImageSamplerDesc.BorderColor[0] = 1.f;
+        ImageSamplerDesc.BorderColor[1] = 1.f;
+        ImageSamplerDesc.BorderColor[2] = 1.f;
+        ImageSamplerDesc.BorderColor[3] = 1.f;
         ImageSamplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
         ImageSamplerDesc.MinLOD = 0;
         ImageSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
         RendererBase::Getd3dDevice()->CreateSamplerState(&ImageSamplerDesc, ppSamplerState);
         return Error(ErrorType::Success, std::string(__FUNCTION__));
     }
-    void DX11SamplerState::Bind(ID3D11SamplerState* ImageSamplerState)
+    void DX11SamplerState::Bind(ID3D11SamplerState* ImageSamplerState, int slot)
     {
-        RendererBase::Getd3dDeviceContext()->PSSetSamplers(0, 1, &ImageSamplerState);
+        RendererBase::Getd3dDeviceContext()->PSSetSamplers(slot, 1, &ImageSamplerState);
     }
 }

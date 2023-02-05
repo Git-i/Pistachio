@@ -156,6 +156,7 @@
     <ClInclude Include="src\Pistachio\Scene\Scene.h" />
     <ClInclude Include="src\Pistachio\Scene\SceneSerializer.h" />
     <ClInclude Include="src\Pistachio\Scene\ScriptableComponent.h" />
+    <ClInclude Include="src\Pistachio\Utils\RendererUtils.h" />
     <ClInclude Include="src\ptpch.h" />
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Pistachio\Renderer\Buffer.h" />
@@ -455,6 +456,7 @@
     <ClInclude Include="vendor\spdlog\include\spdlog\tweakme.h" />
     <ClInclude Include="vendor\spdlog\include\spdlog\version.h" />
     <ClInclude Include="vendor\stb_image\stb_image.h" />
+    <ClInclude Include="vendor\text-editor\TextEditor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Pistachio\Core\UUID.cpp" />
@@ -506,6 +508,9 @@
     <ClCompile Include="vendor\imgui\imgui_tables.cpp" />
     <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
     <ClCompile Include="vendor\stb_image\stb_image.cpp" />
+    <ClCompile Include="vendor\text-editor\TextEditor.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vendor\assimp\include\assimp\color4.inl" />

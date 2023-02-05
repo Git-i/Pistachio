@@ -1,9 +1,6 @@
 #pragma once
 #include "Texture.h"
 namespace Pistachio {
-	enum class TextureFormat {
-		RGBA16F = 0, RGBA32F = 2, RGBA8U = 4, INT = 6,D24S8 = 1, D32F = 3
-	};
 	struct RenderTextureAttachmentSpecification {
 		RenderTextureAttachmentSpecification() = default;
 		RenderTextureAttachmentSpecification(std::initializer_list<TextureFormat> attachments) : Attachments(attachments) {}

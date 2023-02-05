@@ -5,25 +5,7 @@
 #include "RendererBase.h"
 #include "DirectX11/DX11Cubemap.h"
 namespace Pistachio {
-	DXGI_FORMAT DXGITextureFormat(Pistachio::TextureFormat format) {
-		switch (format)
-		{
-		case Pistachio::TextureFormat::RGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-			break;
-		case Pistachio::TextureFormat::RGBA32F: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			break;
-		case Pistachio::TextureFormat::RGBA8U: return DXGI_FORMAT_R8G8B8A8_UNORM;
-			break;
-		case Pistachio::TextureFormat::D32F: return DXGI_FORMAT_D32_FLOAT;
-			break;
-		case Pistachio::TextureFormat::D24S8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
-			break;
-		case Pistachio::TextureFormat::INT: return DXGI_FORMAT_R32_SINT;
-			break;
-		default: return DXGI_FORMAT_UNKNOWN;
-			break;
-		}
-	}
+	
 	void RenderCubeMap::Bind(int slot) const
 	{
 		auto context = RendererBase::Getd3dDeviceContext();
@@ -47,9 +29,7 @@ namespace Pistachio {
 	RenderCubeMap* RenderCubeMap::Create(int width, int height, int miplevels)
 	{
 		RenderCubeMap* result = new RenderCubeMap;
-		result->m_width = width;
-		result->m_height = height;
-		DX11RenderCubeMap::Create(result->m_shaderResourceView, miplevels, result->m_renderTargetView);
+		result->CreateStack(width, height, miplevels);
 		return result;
 	}
 	void RenderCubeMap::ShutDown() {
@@ -106,7 +86,7 @@ namespace Pistachio {
 			desc.Height = RTdesc.height;
 			desc.MipLevels = 1;
 			desc.ArraySize = 1;
-			desc.Format = DXGITextureFormat(format);
+			desc.Format = RendererUtils::DXGITextureFormat(format);
 			desc.SampleDesc.Count = 1;
 			desc.SampleDesc.Quality = 0;
 			desc.Usage = D3D11_USAGE_DEFAULT;
@@ -125,7 +105,7 @@ namespace Pistachio {
 			else
 			{
 				D3D11_DEPTH_STENCIL_VIEW_DESC dsv = {};
-				dsv.Format = DXGITextureFormat(format);
+				dsv.Format = RendererUtils::DXGITextureFormat(format);
 				dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 				dsv.Texture2D.MipSlice = 0;
 				RendererBase::Getd3dDevice()->CreateDepthStencilView(pTexture, &dsv, &m_pDSV);

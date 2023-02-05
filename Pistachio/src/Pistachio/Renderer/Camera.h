@@ -56,6 +56,7 @@ namespace Pistachio {
 		RuntimeCamera() : m_projection(DirectX::XMMatrixIdentity()){}
 		RuntimeCamera(const DirectX::XMMATRIX& projection) : m_projection(projection) {}
 		const DirectX::XMMATRIX& GetProjection() const { return m_projection; }
+		const DirectX::XMMATRIX& GetProjection() { return m_projection; }
 	protected:
 		DirectX::XMMATRIX m_projection;
 	};

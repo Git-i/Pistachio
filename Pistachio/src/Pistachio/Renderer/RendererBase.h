@@ -10,6 +10,9 @@ namespace Pistachio {
 	{
 		TriangleList, LineList, LineStrip, Points, TriangleStrip
 	};
+	enum class DepthStencilOp {
+		Less, Less_Equal
+	};
 	class RendererBase
 	{
 	public:
@@ -24,6 +27,7 @@ namespace Pistachio {
 		static void SetClearColor(float r, float g, float b, float a);
 		static void DrawIndexed(const Buffer& buffer, unsigned int indexCount=0);
 		static void SetCullMode(CullMode cullmode);
+		static void SetDepthStencilOp(DepthStencilOp op);
 		#ifdef PT_PLATFORM_WINDOWS
 			static bool Init(HWND hwnd);
 		#endif
@@ -44,6 +48,8 @@ namespace Pistachio {
 			static ID3D11RasterizerState* pRasterizerStateNoCull;
 			static ID3D11RasterizerState* pRasterizerStateCWCull;
 			static ID3D11RasterizerState* pRasterizerStateCCWCull;
+			static ID3D11DepthStencilState* pDSStateLess;
+			static ID3D11DepthStencilState* pDSStateLessEqual;
 		#endif
 		static FLOAT m_ClearColor[4];
 	};

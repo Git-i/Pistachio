@@ -198,7 +198,6 @@ namespace Pistachio {
 		out << YAML::EndMap;
 
 		std::ofstream fout(filepath, std::ios::binary | std::ios::out);
-		std::cout << fout.binary;
 		fout.write(out.c_str(), out.size());
 		fout.close();
 	}

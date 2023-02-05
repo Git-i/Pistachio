@@ -5,20 +5,22 @@
 #include "DirectX11/DX11Texture.h"
 DirectX::XMMATRIX Pistachio::Renderer::viewproj = DirectX::XMMatrixIdentity();
 DirectX::XMVECTOR Pistachio::Renderer::m_campos = DirectX::XMVectorZero();
+ID3D11ShaderResourceView* Pistachio::Renderer::pBrdfSRV = nullptr;
+ID3D11RenderTargetView* Pistachio::Renderer::pBrdfRTV = nullptr;
+Pistachio::ShaderLibrary Pistachio::Renderer::shaderlib = Pistachio::ShaderLibrary();
 Pistachio::ConstantBuffer Pistachio::Renderer::MaterialCB = Pistachio::ConstantBuffer();
 Pistachio::ConstantBuffer Pistachio::Renderer::LightCB = Pistachio::ConstantBuffer();
+Pistachio::ConstantBuffer Pistachio::Renderer::ShadowCB = Pistachio::ConstantBuffer();
 Pistachio::ConstantBuffer Pistachio::Renderer::TransformationBuffer = Pistachio::ConstantBuffer();
-Pistachio::ShaderLibrary Pistachio::Renderer::shaderlib = Pistachio::ShaderLibrary();
+Pistachio::ConstantBuffer Pistachio::Renderer::CameraCB = {};
 Pistachio::RenderCubeMap Pistachio::Renderer::fbo = Pistachio::RenderCubeMap();
 Pistachio::RenderCubeMap Pistachio::Renderer::ifbo = Pistachio::RenderCubeMap();
 Pistachio::RenderCubeMap Pistachio::Renderer::prefilter = { Pistachio::RenderCubeMap() };
-ID3D11ShaderResourceView* Pistachio::Renderer::pBrdfSRV = nullptr;
-ID3D11RenderTargetView* Pistachio::Renderer::pBrdfRTV = nullptr;
-Pistachio::ConstantBuffer Pistachio::Renderer::CameraCB = {};
 Pistachio::Renderer::LD  Pistachio::Renderer::LightData = {};
+Pistachio::Renderer::ShadowData Pistachio::Renderer::shadowData = {};
 Pistachio::Light* Pistachio::Renderer::lightIndexPtr = nullptr;
 Pistachio::Renderer::CamerData Pistachio::Renderer::CameraData = {};
-
+Pistachio::Texture2D Pistachio::Renderer::whiteTexture = Pistachio::Texture2D();
 namespace Pistachio {
 	void Renderer::Init(const char* skybox)
 	{
@@ -31,6 +33,11 @@ namespace Pistachio {
 		MaterialCB.Create(&cb, sizeof(MaterialStruct));
 		LightCB.Create(&LightData, sizeof(LightData));
 		CameraCB.Create(&camerabufferData, sizeof(camerabufferData));
+		ShadowCB.Create(&shadowData, sizeof(shadowData));
+		SamplerState* brdfsampler = SamplerState::Create(TextureAddress::Clamp, TextureAddress::Clamp, TextureAddress::Clamp);
+		SamplerState* shadowsampler = SamplerState::Create(TextureAddress::Border, TextureAddress::Border, TextureAddress::Border);
+		brdfsampler->Bind(1);
+		shadowsampler->Bind(2);
 		TransformationBuffer.Create(&camerabufferData, sizeof(DirectX::XMMATRIX)*2);
 		if (pBrdfSRV)
 		{
@@ -179,12 +186,12 @@ namespace Pistachio {
 		{
 			texture[i].Shutdown();
 		}
+		D3D11_TEXTURE2D_DESC textureDesc;
+		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
 		if (!pBrdfSRV) {
 			ID3D11Texture2D* BrdfLUT = NULL;
 
-			D3D11_TEXTURE2D_DESC textureDesc;
-			D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
-			D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
 
 			ZeroMemory(&textureDesc, sizeof(textureDesc));
 
@@ -220,14 +227,25 @@ namespace Pistachio {
 			BrdfLUT = NULL;
 			brdfShader.Bind(ShaderType::Vertex);
 			brdfShader.Bind(ShaderType::Pixel);
-			Pistachio::RendererBase::SetCullMode(CullMode::Back);
+			Pistachio::RendererBase::SetCullMode(CullMode::Front);
 			RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &pBrdfRTV, nullptr);
 			
 			RendererBase::DrawIndexed(planebuffer);
 			Ref<Shader> pbrShader = std::make_shared<Shader>(L"resources/shaders/vertex/VertexShader.cso", L"resources/shaders/pixel/PixelShader.cso");
 			pbrShader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
+			Ref<Shader> shadowShader = std::make_shared<Shader>(L"resources/shaders/vertex/VertexShader.cso", L"resources/shaders/pixel/Shadow_ps.cso");
+			shadowShader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
 			shaderlib.Add("PBR-Shader", pbrShader);
+			shaderlib.Add("Shadow-Shader", shadowShader);
+
+			char data[4] = { 255,255,255,255 };
+			whiteTexture.CreateStack(1, 1, TextureFormat::RGBA8U,data);
 		}
+		Shader::SetPSBuffer(LightCB, 0);
+		Shader::SetVSBuffer(CameraCB, 0);
+		Shader::SetPSBuffer(MaterialCB, 1);
+		Shader::SetVSBuffer(TransformationBuffer, 1);
+		Shader::SetVSBuffer(ShadowCB, 2);
 		auto data = GetWindowDataPtr();
 		RendererBase::ChangeViewport(((WindowData*)(data))->width, ((WindowData*)(data))->height);
 		RendererBase::SetCullMode(CullMode::Back);
@@ -245,7 +263,7 @@ namespace Pistachio {
 	{
 		*lightIndexPtr = light;
 		lightIndexPtr++;
-		LightData.numLights.x++;
+		shadowData.numlights.x++;
 	}
 	void Renderer::BeginScene(PerspectiveCamera* cam) {
 		viewproj = cam->GetViewProjectionMatrix();
@@ -253,27 +271,31 @@ namespace Pistachio {
 		Pistachio::DX11Texture::Bind(&pBrdfSRV, 0);
 		ifbo.BindResource(1);
 		prefilter.BindResource(2);
-		fbo.BindResource(3);
 		CameraData.viewProjection = viewproj;
 		CameraData.viewPos = {campos.x,campos.y, campos.z, 1.f};
 		LightCB.Update(&LightData, sizeof(LightData));
 		CameraCB.Update(&CameraData, sizeof(CameraData));
+		
+		whiteTexture.Bind(3);
+		whiteTexture.Bind(4);
+		whiteTexture.Bind(5);
 	}
 	void Renderer::BeginScene(RuntimeCamera* cam, const DirectX::XMMATRIX& transform) {
 		DirectX::XMFLOAT4 campos;
 		DirectX::XMStoreFloat4(&campos, transform.r[3]);
 		viewproj = DirectX::XMMatrixMultiplyTranspose(DirectX::XMMatrixInverse(nullptr, transform), cam->GetProjection());
-		auto maintarget = RendererBase::GetmainRenderTargetView();
 		Pistachio::DX11Texture::Bind(&pBrdfSRV, 0);
 		ifbo.BindResource(1);
 		prefilter.BindResource(2);
-		fbo.BindResource(3);
 		CameraData.viewProjection = viewproj;
 		CameraData.viewPos = campos;
 		LightCB.Update(&LightData, sizeof(LightData));
 		CameraCB.Update(&CameraData, sizeof(CameraData));
 		Shader::SetPSBuffer(LightCB, 0);
 		Shader::SetVSBuffer(CameraCB, 0);
+		whiteTexture.Bind(3);
+		whiteTexture.Bind(4);
+		whiteTexture.Bind(5);
 	}
 	void Renderer::BeginScene(EditorCamera& cam)
 	{
@@ -284,13 +306,14 @@ namespace Pistachio {
 		Pistachio::DX11Texture::Bind(&pBrdfSRV, 0);
 		ifbo.BindResource(1);
 		prefilter.BindResource(2);
-		fbo.BindResource(3); 
 		CameraData.viewProjection = viewproj;
 		CameraData.viewPos = campos;
 		LightCB.Update(&LightData, sizeof(LightData));
 		CameraCB.Update(&CameraData, sizeof(CameraData));
-		Shader::SetPSBuffer(LightCB, 0);
-		Shader::SetVSBuffer(CameraCB, 0);
+		ShadowCB.Update(&shadowData, sizeof(shadowData));
+		//whiteTexture.Bind(3);
+		whiteTexture.Bind(4);
+		whiteTexture.Bind(5);
 	}
 	void Renderer::EndScene()
 	{
@@ -302,7 +325,7 @@ namespace Pistachio {
 			RendererBase::GetSwapChain()->Present(0, DXGI_PRESENT_DO_NOT_WAIT | DXGI_PRESENT_ALLOW_TEARING);
 		ZeroMemory(&LightData, sizeof(LightData));
 		lightIndexPtr = LightData.lights;
-		LightData.numLights = {0,0,0,0};
+		shadowData.numlights = {0,0,0,0};
 	}
 	void Renderer::Shutdown() {
 		if (pBrdfRTV) {
@@ -322,21 +345,18 @@ namespace Pistachio {
 	}
 	void Renderer::Submit(Mesh* mesh, Shader* shader, float* c, float m, float r, int ID, const DirectX::XMMATRIX& transform, const DirectX::XMMATRIX& viewProjection)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 		auto& VB = mesh->GetVertexBuffer(); 
 		auto& IB = mesh->GetIndexBuffer();
 		Buffer buffer = { &VB,&IB };
-		shader->Bind(ShaderType::Vertex);
-		shader->Bind(ShaderType::Pixel);
 		MaterialStruct cb;
-		cb = { {c[0], c[1], c[2]},m,r,ID};
+		cb = { {c[0], c[1], c[2], c[3]},m,r,ID};
 		struct TransformData { DirectX::XMMATRIX transform; DirectX::XMMATRIX normal; } td;
 		td = { DirectX::XMMatrixTranspose(transform), DirectX::XMMatrixInverse(nullptr, transform) };
 		MaterialCB.Update(&cb, sizeof(MaterialStruct));
 		TransformationBuffer.Update(&td, sizeof(TransformData));
-		Shader::SetPSBuffer(MaterialCB, 1);
-		Shader::SetVSBuffer(TransformationBuffer, 1);
-		
+		shader->Bind(ShaderType::Vertex);
+		shader->Bind(ShaderType::Pixel);
 		RendererBase::DrawIndexed(buffer);
 	}
 	

@@ -61,7 +61,7 @@ namespace Pistachio {
 		s_Data.quadIB.reset(Pistachio::IndexBuffer::Create(quadIndices, s_Data.MaxIndices * sizeof(unsigned int), sizeof(unsigned int)));
 		delete[] quadIndices;
 		unsigned char white[4] = { 255, 255, 255, 255 };
-		s_Data.whiteTexture.reset(Pistachio::Texture2D::Create(1, 1, white));
+		s_Data.whiteTexture.reset(Pistachio::Texture2D::Create(1, 1, TextureFormat::RGBA8U,white));
 		s_Data._2DShader = std::make_shared<Shader>(L"resources/shaders/vertex/2D_vs.cso", L"resources/shaders/pixel/2D_fs.cso");
 		BufferLayout layout[5] = { {"POSITION", BufferLayoutFormat::FLOAT3, 0  }, 
 									{"UV",      BufferLayoutFormat::FLOAT2, 12 }, 

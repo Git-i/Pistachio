@@ -1,5 +1,6 @@
 #pragma once
 #include "../Core.h"
+#include "../Utils/RendererUtils.h"
 namespace Pistachio {
 	class Texture
 	{
@@ -16,10 +17,9 @@ namespace Pistachio {
 		~Texture2D();
 		void Bind(int slot = 0) const;
 		static Texture2D* Create(const char* path);
+		static Texture2D* Create(int width, int height, TextureFormat format,void* data);
 		void CreateStack(const char* path);
-		static Texture2D* Create(int width, int height, void* data);
-		void CreateStack(int width, int height, void* data);
-		unsigned int m_Width, m_Height;
+		void CreateStack(int width, int height, TextureFormat format,void* data);
 		ID3D11ShaderResourceView* GetSRV() const { return pTextureView; };
 		//TODO: Asset Management
 		bool operator==(const Texture2D& texture) const
@@ -30,6 +30,8 @@ namespace Pistachio {
 		#ifdef PISTACHIO_RENDER_API_DX11
 			ID3D11ShaderResourceView* pTextureView = NULL;
 		#endif // PISTACHIO_RENDER_API_DX11
+			unsigned int m_Width, m_Height;
+			TextureFormat m_format;
 	};
 	class FloatTexture2D : public Texture
 	{

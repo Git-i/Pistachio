@@ -55,13 +55,12 @@ namespace Pistachio {
 		m_ActiveScene = std::make_shared<Scene>();
 		m_EditorCamera = EditorCamera(30.f, 1.6, 0.1f, 1000.f);
 		auto e = m_ActiveScene->CreateEntity("Mesh");
-		e.AddComponent<MeshRendererComponent>("cube.obj");
-		e.AddComponent<RigidBodyComponent>().type = RigidBodyComponent::BodyType::Static;
-		e.AddComponent<BoxColliderComponent>();
+		e.AddComponent<MeshRendererComponent>("plane.obj");
+		e.GetComponent<TransformComponent>().RotationEulerHint.x = DirectX::XMVectorGetX(DirectX::g_XMHalfPi);
+		e.GetComponent<TransformComponent>().Translation = DirectX::XMVectorSet(0.0, -1.0, 0.0, 1.0);
+		e.GetComponent<TransformComponent>().RecalculateRotation();
 		auto e2 = m_ActiveScene->CreateEntity("Mesh 2");
 		e2.AddComponent<MeshRendererComponent>("circle.obj");
-		e2.AddComponent<RigidBodyComponent>().type = RigidBodyComponent::BodyType::Dynamic;
-		e2.AddComponent<SphereColliderComponent>();
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 	}
 	void EditorLayer::OnImGuiRender()
@@ -86,156 +85,155 @@ namespace Pistachio {
 		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &target, RendererBase::GetDepthStencilView());
 		m_SceneHierarchyPanel.OnImGuiRender();
 		m_ContentBrowserPanel.OnImGuiRender();
-		ImGui::Begin("Scene");
-		auto offset = ImGui::GetCursorPos();
-		Application::Get().GetImGuiLayer()->BlockEvents = !ImGui::IsWindowHovered();
-		ImVec2 viewportSize = ImGui::GetContentRegionAvail();
-		if (viewportSize.x != wndwith || viewportSize.y != wndheight) {
-			m_ActiveScene->OnViewportResize(viewportSize.x, viewportSize.y);
-			m_EditorCamera.SetViewportSize(viewportSize.x, viewportSize.y);
-		}
-		wndwith = viewportSize.x;
-		wndheight = viewportSize.y;
-		ImGui::Image(rtx.GetSRV(0), viewportSize);
-		if (ImGui::BeginDragDropTarget())
+		if (ImGui::Begin("Scene"))
 		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
-			if (payload)
-			{
-				const wchar_t* data = (const wchar_t*)payload->Data;
-				OpenScene(std::filesystem::path("assets")/data);
+			auto offset = ImGui::GetCursorPos();
+			Application::Get().GetImGuiLayer()->BlockEvents = !ImGui::IsWindowHovered();
+			ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+			if (viewportSize.x != wndwith || viewportSize.y != wndheight) {
+				m_ActiveScene->OnViewportResize(viewportSize.x, viewportSize.y);
+				m_EditorCamera.SetViewportSize(viewportSize.x, viewportSize.y);
 			}
-			ImGui::EndDragDropTarget();
-		}
-		wndPos = { ImGui::GetWindowPos().x + offset.x, ImGui::GetWindowPos().y + offset.y };
-		DirectX::XMFLOAT2 MouseScreenPos = { ImGui::GetMousePos().x - ImGui::GetWindowPos().x + offset.x, ImGui::GetMousePos().y - ImGui::GetWindowPos().y - offset.y };
-		m_ViewportHovered = ImGui::IsWindowHovered();
-		if(m_ViewportHovered)
-		if (MouseScreenPos.x >= 0 && MouseScreenPos.y >= 0 && MouseScreenPos.x <= wndwith-1 && MouseScreenPos.y <= wndheight-1)
-		{
-			ID3D11Texture2D* pSelectedEntityTexture;
-			D3D11_TEXTURE2D_DESC txDesc = {};
-			txDesc.Format = DXGI_FORMAT_R32_SINT;
-			txDesc.Height = 1;
-			txDesc.Width = 1;
-			txDesc.ArraySize = 1;
-			txDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-			txDesc.Usage = D3D11_USAGE_STAGING;
-			txDesc.SampleDesc.Count = 1;
-			txDesc.SampleDesc.Quality = 0;
-			RendererBase::Getd3dDevice()->CreateTexture2D(&txDesc, NULL, &pSelectedEntityTexture);
-			ID3D11Resource* pSrcResource;
-			rtx.GetRenderTexture(&pSrcResource, 1);
-			D3D11_BOX sourceRegion;
-			sourceRegion.left = MouseScreenPos.x * rtx.GetWidth()/wndwith;
-			sourceRegion.right = sourceRegion.left + 1;
-			sourceRegion.top = MouseScreenPos.y * rtx.GetHeight()/wndheight;
-			sourceRegion.bottom = sourceRegion.top + 1;
-			sourceRegion.front = 0;
-			sourceRegion.back = 1;
-			RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(pSelectedEntityTexture, 0, 0, 0, 0, pSrcResource, 0, &sourceRegion);
-			D3D11_MAPPED_SUBRESOURCE mappedResource;
-			RendererBase::Getd3dDeviceContext()->Map(pSelectedEntityTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
-			m_HoveredEntity =  *(int*)mappedResource.pData == -1 ? Entity() : Entity(*(entt::entity*)mappedResource.pData, m_ActiveScene.get());
-			pSrcResource->Release();
-			pSelectedEntityTexture->Release();
-		}
-
-		// Gizmos
-		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		if (selectedEntity && m_GizmoType != -1 && m_SceneState == SceneState::Edit)
-		{
-			auto& tc = selectedEntity.GetComponent<TransformComponent>();
-			ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
-			ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, wndwith, wndheight);
-			float tr[3];
-			DirectX::XMVectorGetByIndexPtr(tr, tc.Translation, 0);
-			DirectX::XMVectorGetByIndexPtr(&tr[1], tc.Translation, 1);
-			DirectX::XMVectorGetByIndexPtr(&tr[2], tc.Translation, 2);
-			float rt[3] = {
-			DirectX::XMConvertToDegrees(tc.RotationEulerHint.x),
-			DirectX::XMConvertToDegrees(tc.RotationEulerHint.y),
-			DirectX::XMConvertToDegrees(tc.RotationEulerHint.z),
-			};
-			float sc[3];
-			DirectX::XMVectorGetByIndexPtr(sc, tc.Scale, 0);
-			DirectX::XMVectorGetByIndexPtr(&sc[1], tc.Scale, 1);
-			DirectX::XMVectorGetByIndexPtr(&sc[2], tc.Scale, 2);
-
-			DirectX::XMFLOAT4X4 view;
-			DirectX::XMFLOAT4X4 projection;
-			DirectX::XMFLOAT4X4 transform;
-			ImGuizmo::RecomposeMatrixFromComponents(tr, rt, sc, (float*)&transform);
-			DirectX::XMStoreFloat4x4(&view, m_EditorCamera.GetViewMatrix());
-			DirectX::XMStoreFloat4x4(&projection, m_EditorCamera.GetProjection());
-
-			bool snap = Input::IsKeyPressed(PT_KEY_LCONTROL);
-			float snapvalue = m_GizmoType == ImGuizmo::OPERATION::ROTATE ? 45.f : 0.5f;
-			float snapvalues[3] = { snapvalue, snapvalue, snapvalue };
-			if(m_GizmoType == ImGuizmo::OPERATION::SCALE)
-				ImGuizmo::Manipulate((float*)&view, (float*)&projection, (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL, (float*)&transform, nullptr, snap ? snapvalues : nullptr);
-			else
-				ImGuizmo::Manipulate((float*)&view, (float*)&projection, (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::WORLD, (float*)&transform, nullptr, snap ? snapvalues : nullptr);
-			if (ImGuizmo::IsUsing())
+			wndwith = viewportSize.x;
+			wndheight = viewportSize.y;
+			ImGui::Image(rtx.GetSRV(0), viewportSize);
+			if (ImGui::BeginDragDropTarget())
 			{
-				DirectX::XMVECTOR eulerRotation = DirectX::XMLoadFloat4(&tc.RotationEulerHint);
-				ImGuizmo::DecomposeMatrixToComponents((float*)&transform, tr, rt, sc);
-				DirectX::XMMatrixDecompose(&tc.Scale, &tc.Rotation, &tc.Translation, DirectX::XMLoadFloat4x4(&transform));
-				DirectX::XMVECTOR deltaRotation = DirectX::XMVectorSubtract(DirectX::XMVectorSet(DirectX::XMConvertToRadians(rt[0]), DirectX::XMConvertToRadians(rt[1]), DirectX::XMConvertToRadians(rt[2]), 1.f), eulerRotation);
-				DirectX::XMStoreFloat4(&tc.RotationEulerHint, DirectX::XMVectorAdd(deltaRotation, eulerRotation));
-				//tc.RecalculateRotation();
-				//tc.Scale = DirectX::XMVectorSet(sc[0], sc[1], sc[2],1.f);
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+				if (payload)
+				{
+					const wchar_t* data = (const wchar_t*)payload->Data;
+					OpenScene(std::filesystem::path("assets") / data);
+				}
+				ImGui::EndDragDropTarget();
 			}
+			wndPos = { ImGui::GetWindowPos().x + offset.x, ImGui::GetWindowPos().y + offset.y };
+			DirectX::XMFLOAT2 MouseScreenPos = { ImGui::GetMousePos().x - ImGui::GetWindowPos().x + offset.x, ImGui::GetMousePos().y - ImGui::GetWindowPos().y - offset.y };
+			m_ViewportHovered = ImGui::IsWindowHovered();
+			if (m_ViewportHovered)
+				if (MouseScreenPos.x >= 0 && MouseScreenPos.y >= 0 && MouseScreenPos.x <= wndwith - 1 && MouseScreenPos.y <= wndheight - 1)
+				{
+					ID3D11Texture2D* pSelectedEntityTexture;
+					D3D11_TEXTURE2D_DESC txDesc = {};
+					txDesc.Format = DXGI_FORMAT_R32_SINT;
+					txDesc.Height = 1;
+					txDesc.Width = 1;
+					txDesc.ArraySize = 1;
+					txDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+					txDesc.Usage = D3D11_USAGE_STAGING;
+					txDesc.SampleDesc.Count = 1;
+					txDesc.SampleDesc.Quality = 0;
+					RendererBase::Getd3dDevice()->CreateTexture2D(&txDesc, NULL, &pSelectedEntityTexture);
+					ID3D11Resource* pSrcResource;
+					rtx.GetRenderTexture(&pSrcResource, 1);
+					D3D11_BOX sourceRegion;
+					sourceRegion.left = MouseScreenPos.x * rtx.GetWidth() / wndwith;
+					sourceRegion.right = sourceRegion.left + 1;
+					sourceRegion.top = MouseScreenPos.y * rtx.GetHeight() / wndheight;
+					sourceRegion.bottom = sourceRegion.top + 1;
+					sourceRegion.front = 0;
+					sourceRegion.back = 1;
+					RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(pSelectedEntityTexture, 0, 0, 0, 0, pSrcResource, 0, &sourceRegion);
+					D3D11_MAPPED_SUBRESOURCE mappedResource;
+					RendererBase::Getd3dDeviceContext()->Map(pSelectedEntityTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
+					m_HoveredEntity = *(int*)mappedResource.pData == -1 ? Entity() : Entity(*(entt::entity*)mappedResource.pData, m_ActiveScene.get());
+					pSrcResource->Release();
+					pSelectedEntityTexture->Release();
+				}
 
+			// Gizmos
+			Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+			if (selectedEntity && m_GizmoType != -1 && m_SceneState == SceneState::Edit)
+			{
+				auto& tc = selectedEntity.GetComponent<TransformComponent>();
+				ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+				ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, wndwith, wndheight);
+				float tr[3];
+				DirectX::XMVectorGetByIndexPtr(tr, tc.Translation, 0);
+				DirectX::XMVectorGetByIndexPtr(&tr[1], tc.Translation, 1);
+				DirectX::XMVectorGetByIndexPtr(&tr[2], tc.Translation, 2);
+				float rt[3] = {
+				DirectX::XMConvertToDegrees(tc.RotationEulerHint.x),
+				DirectX::XMConvertToDegrees(tc.RotationEulerHint.y),
+				DirectX::XMConvertToDegrees(tc.RotationEulerHint.z),
+				};
+				float sc[3];
+				DirectX::XMVectorGetByIndexPtr(sc, tc.Scale, 0);
+				DirectX::XMVectorGetByIndexPtr(&sc[1], tc.Scale, 1);
+				DirectX::XMVectorGetByIndexPtr(&sc[2], tc.Scale, 2);
+
+				DirectX::XMFLOAT4X4 view;
+				DirectX::XMFLOAT4X4 projection;
+				DirectX::XMFLOAT4X4 transform;
+				ImGuizmo::RecomposeMatrixFromComponents(tr, rt, sc, (float*)&transform);
+				DirectX::XMStoreFloat4x4(&view, m_EditorCamera.GetViewMatrix());
+				DirectX::XMStoreFloat4x4(&projection, m_EditorCamera.GetProjection());
+
+				bool snap = Input::IsKeyPressed(PT_KEY_LCONTROL);
+				float snapvalue = m_GizmoType == ImGuizmo::OPERATION::ROTATE ? 45.f : 0.5f;
+				float snapvalues[3] = { snapvalue, snapvalue, snapvalue };
+				if (m_GizmoType == ImGuizmo::OPERATION::SCALE)
+					ImGuizmo::Manipulate((float*)&view, (float*)&projection, (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL, (float*)&transform, nullptr, snap ? snapvalues : nullptr);
+				else
+					ImGuizmo::Manipulate((float*)&view, (float*)&projection, (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::WORLD, (float*)&transform, nullptr, snap ? snapvalues : nullptr);
+				if (ImGuizmo::IsUsing())
+				{
+					DirectX::XMVECTOR eulerRotation = DirectX::XMLoadFloat4(&tc.RotationEulerHint);
+					ImGuizmo::DecomposeMatrixToComponents((float*)&transform, tr, rt, sc);
+					DirectX::XMMatrixDecompose(&tc.Scale, &tc.Rotation, &tc.Translation, DirectX::XMLoadFloat4x4(&transform));
+					DirectX::XMVECTOR deltaRotation = DirectX::XMVectorSubtract(DirectX::XMVectorSet(DirectX::XMConvertToRadians(rt[0]), DirectX::XMConvertToRadians(rt[1]), DirectX::XMConvertToRadians(rt[2]), 1.f), eulerRotation);
+					DirectX::XMStoreFloat4(&tc.RotationEulerHint, DirectX::XMVectorAdd(deltaRotation, eulerRotation));
+					//tc.RecalculateRotation();
+					//tc.Scale = DirectX::XMVectorSet(sc[0], sc[1], sc[2],1.f);
+				}
+
+			}
+			bool focused = true;
+			if (focused)
+			{
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, { 10,10 });
+				ImGui::Begin("##control", nullptr, ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+				ImGui::SetWindowSize({ 276,50 }, ImGuiCond_Once);
+				ImGui::SetWindowPos({ wndPos.x + 20.f, wndPos.y + 20.f }, ImGuiCond_Always);
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 14, 4 });
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 5, 1 });
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0,0,0,0 });
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0,0,0,0 });
+				bool translate, rotate, scale;
+				if (m_GizmoType == ImGuizmo::OPERATION::TRANSLATE)
+					translate = ImGui::ImageButton(m_translateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 0.33, 0.41, 0.772, 1.0 });
+				else
+					translate = ImGui::ImageButton(m_translateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 1,1,1, 1.0 });
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
+					ImGui::SetTooltip("Translate (W)");
+				ImGui::SameLine();
+				if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
+					rotate = ImGui::ImageButton(m_rotateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 0.33, 0.41, 0.772, 1.0 });
+				else
+					rotate = ImGui::ImageButton(m_rotateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 1,1,1, 1.0 });
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
+					ImGui::SetTooltip("Rotate (E)");
+				ImGui::SameLine();
+				if (m_GizmoType == ImGuizmo::OPERATION::SCALE)
+					scale = ImGui::ImageButton(m_scaleButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 0.33, 0.41, 0.772, 1.0 });
+				else
+					scale = ImGui::ImageButton(m_scaleButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 1,1,1, 1.0 });
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
+					ImGui::SetTooltip("Scale (R)");
+				if (translate)
+					m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
+				else if (rotate)
+					m_GizmoType = ImGuizmo::OPERATION::ROTATE;
+				else if (scale)
+					m_GizmoType = ImGuizmo::OPERATION::SCALE;
+				ImGui::PopStyleVar(2);
+				ImGui::PopStyleColor(2);
+				ImGui::End();
+				ImGui::PopStyleVar(2);
+			}
 		}
 		ImGui::End();
-		if (wndwith >= 200)
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {10,10});
-			ImGui::Begin("##control", nullptr, ImGuiWindowFlags_NoMove  | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar| ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-			ImGui::SetWindowSize({ 276,50 }, ImGuiCond_Once);
-			ImGui::Columns(2, "##controlBar", true);
-			ImGui::SetWindowPos({wndPos.x + 20.f, wndPos.y + 20.f}, ImGuiCond_Always);
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {14, 4});
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {5, 1});
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0,0,0,0});
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, {0,0,0,0});	
-			bool translate, rotate, scale;
-			if(m_GizmoType == ImGuizmo::OPERATION::TRANSLATE)
-				translate = ImGui::ImageButton(m_translateButton->GetSRV(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {0.33, 0.41, 0.772, 1.0});
-			else
-				translate = ImGui::ImageButton(m_translateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 1,1,1, 1.0 });
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
-				ImGui::SetTooltip("Translate (W)");
-			ImGui::SameLine();
-			if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
-				rotate = ImGui::ImageButton(m_rotateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 0.33, 0.41, 0.772, 1.0 });
-			else
-				rotate = ImGui::ImageButton(m_rotateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 1,1,1, 1.0 });
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
-				ImGui::SetTooltip("Rotate (E)");
-			ImGui::SameLine();
-			if (m_GizmoType == ImGuizmo::OPERATION::SCALE)
-				scale = ImGui::ImageButton(m_scaleButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 0.33, 0.41, 0.772, 1.0 });
-			else
-				scale = ImGui::ImageButton(m_scaleButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 1,1,1, 1.0 });
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
-				ImGui::SetTooltip("Scale (R)");
-			ImGui::NextColumn();
-			//ImGui::Separator();
-			ImGui::Text("L");
-			if (translate)
-				m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
-			else if (rotate)
-				m_GizmoType = ImGuizmo::OPERATION::ROTATE;
-			else if (scale)
-				m_GizmoType = ImGuizmo::OPERATION::SCALE;
-			ImGui::PopStyleVar(2);
-			ImGui::PopStyleColor(2);
-			ImGui::End();
-			ImGui::PopStyleVar(2);
-		}
 		UI_ToolBar();
 	}
 	void EditorLayer::UI_ToolBar()
@@ -258,6 +256,7 @@ namespace Pistachio {
 			}
 		}
 		ImGui::End();
+
 	}
 	void EditorLayer::OnScenePlay()
 	{
