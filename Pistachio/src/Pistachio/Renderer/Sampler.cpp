@@ -25,9 +25,9 @@ namespace Pistachio {
 		DX11SamplerState::Create(D3DTextureAddress(addressU), D3DTextureAddress(addressV), D3DTextureAddress(addressW), &result->ImageSamplerState);
 		return result;
 	}
-	void SamplerState::Bind()
+	void SamplerState::Bind(int slot)
 	{
-		DX11SamplerState::Bind(ImageSamplerState);
+		DX11SamplerState::Bind(ImageSamplerState, slot);
 	}
 	void SamplerState::ShutDown()
 	{

@@ -3,7 +3,9 @@
 #include "Pistachio/Renderer/Camera.h"
 #include "Pistachio/Renderer/Mesh.h"
 #include "Pistachio/Core/UUID.h"
+#include "Entity.h"
 namespace Pistachio{
+	// Generic ----------------------------------------------------------------------------------
 	struct IDComponent
 	{
 		UUID uuid;
@@ -11,6 +13,9 @@ namespace Pistachio{
 		IDComponent(const IDComponent&) = default;
 		IDComponent(UUID uuid) : uuid(uuid)
 		{}
+	};
+	struct ParentComponent {
+		int parentID = 0;
 	};
 	struct TagComponent {
 		std::string Tag;
@@ -35,23 +40,37 @@ namespace Pistachio{
 		{
 			Rotation = DirectX::XMQuaternionRotationRollPitchYawFromVector(DirectX::XMLoadFloat4(&RotationEulerHint));
 		}
-		DirectX::XMMATRIX GetTransform() const
+		DirectX::XMMATRIX GetTransform(Entity parent) const
 		{
 			NumNegativeScaleComps = 0;
 			for (int i = 0; i < 3; i++)
 				if (((float*)&Scale)[i] < 0) NumNegativeScaleComps++;
-			return DirectX::XMMatrixScalingFromVector(Scale) *  DirectX::XMMatrixRotationQuaternion(Rotation) * DirectX::XMMatrixTranslationFromVector(Translation);
+			int PID = parent.GetComponent<ParentComponent>().parentID;
+			DirectX::XMMATRIX parentTransform = PID >=0 ? (parent.GetComponent<TransformComponent>().GetTransform({ (entt::entity)PID, parent.m_Scene})) : parent.GetComponent<TransformComponent>().GetLocalTransform();
+			return (DirectX::XMMatrixScalingFromVector(Scale) * DirectX::XMMatrixRotationQuaternion(Rotation) * DirectX::XMMatrixTranslationFromVector(Translation)) * parentTransform;
+		}
+	private:
+		DirectX::XMMATRIX GetLocalTransform() const
+		{
+			NumNegativeScaleComps = 0;
+			for (int i = 0; i < 3; i++)
+				if (((float*)&Scale)[i] < 0) NumNegativeScaleComps++;
+			return (DirectX::XMMatrixScalingFromVector(Scale) * DirectX::XMMatrixRotationQuaternion(Rotation) * DirectX::XMMatrixTranslationFromVector(Translation));
 		}
 	};
+	//-----------------------------------------------------------------------------------------------------------------------
+
+	// 3D -------------------------------------------------------------------------------------------------------------------
 	struct MeshRendererComponent {
 		Ref<Pistachio::Mesh> Mesh = nullptr;
 		DirectX::XMFLOAT3 color = { 1,1,1 };
 		float roughness = 0.5f;
-		float metallic = 0.5f;
+		float metallic = 0.f;
 		MeshRendererComponent() :Mesh(nullptr){ };
 		MeshRendererComponent(const MeshRendererComponent&) = default;
 		MeshRendererComponent(const char* path) { Mesh.reset(Pistachio::Mesh::Create(path)); }
 	};
+	// ----------------------------------------------------------------------------------------------------------------------
 	struct SpriteRendererComponent {
 		DirectX::XMFLOAT4 Color = {1.f,1.f,1.f, 1.f}; 
 		SpriteRendererComponent() = default;
@@ -86,10 +105,15 @@ namespace Pistachio{
 		}
 	};
 	struct LightComponent {
-		int Type;
-		float Intensity;
-		DirectX::XMFLOAT3 color;
+		int Type = 0;
+		float Intensity = 1.f;
+		DirectX::XMFLOAT3 color = {1,1,1};
+		bool CastShadow = true;
+		float exData;
+		ID3D11DepthStencilView* pDSV = nullptr;
+		ID3D11ShaderResourceView* pSRV = nullptr;
 	};
+	// Physics---------------------------------------------------------------------------------------------------------------
 	struct RigidBodyComponent {
 		enum class BodyType{Static, Dynamic, Kinematic};
 		BodyType type = BodyType::Static;
@@ -107,4 +131,5 @@ namespace Pistachio{
 		DirectX::XMFLOAT3 size = { 1.f, 1.f, 1.f };
 		DirectX::XMFLOAT3 offset = { .0f, .0f, .0f };
 	};
+	// -----------------------------------------------------------------------------------------------------------------------
 }

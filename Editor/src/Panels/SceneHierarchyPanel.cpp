@@ -21,11 +21,34 @@ namespace Pistachio {
 	void SceneHierarchyPanel::OnImGuiRender()
 	{
 		ImGui::Begin("Scene Hierarchy");
-		m_Context->m_Registry.each([&](auto entityID) {
-			Entity entity{ entityID, m_Context.get() };
-			DrawEntityNode(entity);
-		});
-
+		Entity root = { (entt::entity)0, m_Context.get() };
+		ImGuiTreeNodeFlags flags = ((m_SelectionContext == root) ? ImGuiTreeNodeFlags_Selected : 0) |ImGuiTreeNodeFlags_DefaultOpen| ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(unsigned int)root, flags, "Scene Root");
+		if (ImGui::IsItemClicked())
+		{
+			m_SelectionContext = root;
+		}
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY");
+			if (payload)
+			{
+				uint32_t* data = (uint32_t*)payload->Data;
+				Entity other = { (entt::entity)*data, m_Context.get() };
+				auto& pc = other.GetComponent<ParentComponent>();
+				pc.parentID = (uint32_t)root;
+			}
+			ImGui::EndDragDropTarget();
+		}
+		if (opened)
+		{
+			m_Context->m_Registry.each([&](auto entityID) {
+				Entity child{ entityID, m_Context.get() };
+			if (child.GetComponent<ParentComponent>().parentID == (uint32_t)root)
+				DrawEntityNode(child);
+				});
+			ImGui::TreePop();
+		}
 		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
 			m_SelectionContext = {};
 		if (ImGui::BeginPopupContextWindow(0, 1 | ImGuiPopupFlags_NoOpenOverItems))
@@ -42,8 +65,6 @@ namespace Pistachio {
 		if (m_SelectionContext)
 		{
 			DrawEntityComponents(m_SelectionContext);
-
-			
 		}
 		ImGui::End();
 	}
@@ -56,6 +77,24 @@ namespace Pistachio {
 		{
 			m_SelectionContext = entity;
 		}
+		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoPreviewTooltip))
+		{
+			uint32_t data = (uint32_t)entity;
+			ImGui::SetDragDropPayload("ENTITY", &data, sizeof(uint32_t), ImGuiCond_Once);
+			ImGui::EndDragDropSource();
+		}
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY");
+			if (payload)
+			{
+				uint32_t* data = (uint32_t*)payload->Data;
+				Entity other = { (entt::entity)*data, m_Context.get() };
+				auto& pc = other.GetComponent<ParentComponent>();
+				pc.parentID = (uint32_t)entity;
+			}
+			ImGui::EndDragDropTarget();
+		}
 		bool entityDeleted = false;
 		if (ImGui::BeginPopupContextItem())
 		{
@@ -65,7 +104,14 @@ namespace Pistachio {
 			ImGui::EndPopup();
 		}
 		if (opened)
+		{
+			m_Context->m_Registry.each([&](auto entityID) {
+			Entity child{ entityID, m_Context.get() };
+			if (child.GetComponent<ParentComponent>().parentID == (uint32_t)entity)
+				DrawEntityNode(child);
+			});
 			ImGui::TreePop();
+		}
 		if (entityDeleted) {
 			if (entity == m_SelectionContext)
 				m_SelectionContext = {};
@@ -180,8 +226,11 @@ namespace Pistachio {
 		}
 		ImGui::SameLine();
 		ImGui::PushItemWidth(-1);
-		if (ImGui::Button("Add Component"))
-			ImGui::OpenPopup("AddComponent");
+		if ((uint32_t)m_SelectionContext != 0)
+		{
+			if (ImGui::Button("Add Component"))
+				ImGui::OpenPopup("AddComponent");
+		}
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
@@ -328,6 +377,7 @@ namespace Pistachio {
 			}
 			ImGui::ColorEdit3("Light Color", (float*)&component.color);
 			ImGui::DragFloat("Intensity", &component.Intensity);
+			ImGui::Checkbox("Cast Shadow", &component.CastShadow);
 		});
 		DrawComponent<RigidBodyComponent>("Rigid Body", entity, [](auto& component) {
 			const char* BodyTypeStrings[] = { "Static", "Dynamic","!Kinematic"};

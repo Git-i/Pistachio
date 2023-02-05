@@ -7,7 +7,7 @@ struct VS_OUT
 VS_OUT main( float3 pos : POSITION, float3 normal:NORMAL,float2 UV : UV )
 {
     VS_OUT vso;
-    vso.TexCoords = UV;
-    vso.position = float4(pos, 1.0);
+    vso.TexCoords = float2(UV.y, -UV.x);
+    vso.position = float4(-pos.x, pos.y, pos.z, 1.0);
 	return vso;
 }

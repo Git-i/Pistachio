@@ -14,6 +14,7 @@ namespace Pistachio {
 	struct Light {
 		DirectX::XMFLOAT4 positionxtype; // for directional lights this is direction and type
 		DirectX::XMFLOAT4 colorxintensity;
+		DirectX::XMFLOAT4 exData;
 	};
 	class Renderer {
 	public:
@@ -37,9 +38,12 @@ namespace Pistachio {
 		static void OnWindowResize(WindowResizeEvent& e)
 		{
 		}
+		struct ShadowData {
+			DirectX::XMMATRIX lightSpaceMatrix[128];
+			DirectX::XMFLOAT4 numlights;
+		};
 		struct LD {
 			Light lights[128];
-			DirectX::XMFLOAT4 numLights;
 		};
 	private:
 		static RenderCubeMap fbo;
@@ -53,9 +57,13 @@ namespace Pistachio {
 		static ConstantBuffer MaterialCB;
 		static ConstantBuffer CameraCB;
 		static ConstantBuffer LightCB;
+		static ConstantBuffer ShadowCB;
 		static ConstantBuffer TransformationBuffer;
 		static struct CamerData{ DirectX::XMMATRIX viewProjection; DirectX::XMFLOAT4 viewPos; }CameraData;
+		static Texture2D whiteTexture;
+		static ShadowData shadowData;
 		static LD LightData;
 		static Light* lightIndexPtr;
+		friend class Scene;
 	};
 }

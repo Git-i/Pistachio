@@ -1,7 +1,14 @@
 #pragma once
-#include "Components.h"
 #include "Scene.h"
 #include "Pistachio/Core/UUID.h"
+struct IDComponent
+{
+	Pistachio::UUID uuid;
+	IDComponent() = default;
+	IDComponent(const IDComponent&) = default;
+	IDComponent(Pistachio::UUID uuid) : uuid(uuid)
+	{}
+};
 namespace Pistachio {
 	class Entity {
 	public:
@@ -18,7 +25,7 @@ namespace Pistachio {
 		}
 
 		template<typename T>
-		T& GetComponent()
+		T& GetComponent() const
 		{
 			return m_Scene->m_Registry.get<T>(m_EntityHandle);
 		}
@@ -42,6 +49,7 @@ namespace Pistachio {
 	private:
 		entt::entity m_EntityHandle = entt::null;
 		Scene* m_Scene = nullptr;
+		friend class TransformComponent;
 	};
 }
 

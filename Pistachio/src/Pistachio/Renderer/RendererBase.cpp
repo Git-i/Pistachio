@@ -6,6 +6,8 @@
 ID3D11RasterizerState* Pistachio::RendererBase::pRasterizerStateNoCull = NULL;
 ID3D11RasterizerState* Pistachio::RendererBase::pRasterizerStateCWCull = NULL;
 ID3D11RasterizerState* Pistachio::RendererBase::pRasterizerStateCCWCull = NULL;
+ID3D11DepthStencilState* Pistachio::RendererBase::pDSStateLess = NULL;
+ID3D11DepthStencilState* Pistachio::RendererBase::pDSStateLessEqual = NULL;
 ID3D11Device* Pistachio::RendererBase::g_pd3dDevice = NULL;
 ID3D11DeviceContext* Pistachio::RendererBase::g_pd3dDeviceContext = NULL;
 IDXGISwapChain* Pistachio::RendererBase::g_pSwapChain = NULL;
@@ -48,6 +50,14 @@ namespace Pistachio {
 			while (pDSV->Release()) {};
 			pDSV = NULL;
 		}
+		if (pDSStateLess) {
+			while (pDSStateLess->Release()) {};
+			pDSStateLess = NULL;
+		}
+		if (pDSStateLessEqual) {
+			while (pDSStateLessEqual->Release()) {};
+			pDSStateLessEqual = NULL;
+		}
 		if (g_mainRenderTargetView) { while (g_mainRenderTargetView->Release()) {}; g_mainRenderTargetView = NULL; }
 		Pistachio::RendererBase::GetSwapChain()->SetFullscreenState(FALSE, NULL);
 		DX11RendererBase::CleanupDevice(g_pSwapChain, g_pd3dDevice, g_pd3dDeviceContext);
@@ -63,6 +73,13 @@ namespace Pistachio {
 		IsDeviceNull = false;
 		g_pd3dDeviceContext->IASetPrimitiveTopology(DX11Topology(PrimitiveTopology::TriangleList));
 		D3D11_RASTERIZER_DESC desc = {};
+		D3D11_DEPTH_STENCIL_DESC dsc = {};
+		dsc.DepthEnable = TRUE;
+		dsc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		dsc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		g_pd3dDevice->CreateDepthStencilState(&dsc, &pDSStateLessEqual);
+		dsc.DepthFunc = D3D11_COMPARISON_LESS;
+		g_pd3dDevice->CreateDepthStencilState(&dsc, &pDSStateLess);
 		desc.FillMode = D3D11_FILL_SOLID;
 		desc.CullMode = D3D11_CULL_NONE;
 		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateNoCull);
@@ -165,5 +182,12 @@ namespace Pistachio {
 		default:
 			break;
 		}
+	}
+	void RendererBase::SetDepthStencilOp(DepthStencilOp op)
+	{
+		if (op == DepthStencilOp::Less)
+			g_pd3dDeviceContext->OMSetDepthStencilState(pDSStateLess, 1);
+		else if (op == DepthStencilOp::Less_Equal)
+			g_pd3dDeviceContext->OMSetDepthStencilState(pDSStateLessEqual, 1);
 	}
 }

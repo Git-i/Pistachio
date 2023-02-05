@@ -3,6 +3,7 @@
 #include "RendererBase.h"
 #include <stb_image.h>
 #include "DirectX11/DX11Texture.h"
+#include "../Utils/RendererUtils.h"
 namespace Pistachio {
     unsigned int Texture2D::GetHeight() const
     {
@@ -44,19 +45,20 @@ namespace Pistachio {
         m_Height = 0;
         DX11Texture::Create(path, &m_Width, &m_Height, &pTextureView);
     }
-    Texture2D* Texture2D::Create(int width, int height, void* data)
+    Texture2D* Texture2D::Create(int width, int height, TextureFormat format,void* data)
     {
         PT_PROFILE_FUNCTION()
         Texture2D* result = new Texture2D;
-        result->CreateStack(width, height, data);
+        result->CreateStack(width, height, format, data);
         return result;
     }
-    void Texture2D::CreateStack(int width, int height, void* data)
+    void Texture2D::CreateStack(int width, int height, TextureFormat format,void* data)
     {
         PT_PROFILE_FUNCTION()
         m_Width = width;
         m_Height = height;
-        DX11Texture::Create(data, width, height, &pTextureView);
+        m_format = format;
+        DX11Texture::Create(data, width, height, format,&pTextureView);
     }
     unsigned int FloatTexture2D::GetHeight() const
     {
