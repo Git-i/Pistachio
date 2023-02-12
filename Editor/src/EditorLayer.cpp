@@ -53,7 +53,7 @@ namespace Pistachio {
 	void EditorLayer::OnAttach()
 	{
 		m_ActiveScene = std::make_shared<Scene>();
-		m_EditorCamera = EditorCamera(30.f, 1.6, 0.1f, 1000.f);
+		m_EditorCamera = EditorCamera(30.f, 1.6, 0.1f, 100.f);
 		auto e = m_ActiveScene->CreateEntity("Mesh");
 		e.AddComponent<MeshRendererComponent>("plane.obj");
 		e.GetComponent<TransformComponent>().RotationEulerHint.x = DirectX::XMVectorGetX(DirectX::g_XMHalfPi);
@@ -294,6 +294,7 @@ namespace Pistachio {
 			return false;
 		bool control = Input::IsKeyPressed(PT_KEY_CONTROL);
 		bool shift = Input::IsKeyPressed(PT_KEY_SHIFT);
+		Entity selected = m_SceneHierarchyPanel.GetSelectedEntity();
 		switch (e.GetKeyCode())
 		{
 		case PT_KEY_S:
@@ -332,6 +333,11 @@ namespace Pistachio {
 		case PT_KEY_Q:
 		{
 			m_GizmoType = -1;
+			break;
+		}
+		case PT_KEY_D:
+		{
+			m_SceneHierarchyPanel.SetSelectedEntity(m_ActiveScene->DuplicateEntity(selected));
 			break;
 		}
 		default:

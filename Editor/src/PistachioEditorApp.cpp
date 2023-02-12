@@ -9,7 +9,6 @@ namespace Pistachio {
 	{
 	public:
 		PistachioEditor() : Application("Pistachio Editor") { PushLayer(new EditorLayer("EditorLayer")); GetWindow().SetVsync(1); }
-		~PistachioEditor() { Pistachio::Renderer::Shutdown(); }
 	private:
 	};
 	Pistachio::Application* Pistachio::CreateApplication()

@@ -55,7 +55,7 @@ namespace Pistachio {
 		{
 			if (ImGui::MenuItem("Create New Entity"))
 			{
-				m_Context->CreateEntity("Empty Entity");
+				m_SelectionContext = m_Context->CreateEntity();
 			}
 			ImGui::EndPopup();
 		}
@@ -100,6 +100,13 @@ namespace Pistachio {
 		{
 			if (ImGui::MenuItem("Delete Entity")) {
 				entityDeleted = true;
+			}
+			ImGui::EndPopup();
+		}
+		if (ImGui::BeginPopupContextItem())
+		{
+			if (ImGui::MenuItem("Duplicate Entity")) {
+				m_SelectionContext = m_Context->DuplicateEntity(entity);
 			}
 			ImGui::EndPopup();
 		}
@@ -250,37 +257,69 @@ namespace Pistachio {
 					ImGui::CloseCurrentPopup();
 				}
 			}
-			if (!m_SelectionContext.HasComponent<LightComponent>())
+			if(ImGui::BeginMenu("Physics"))
 			{
-				if (ImGui::MenuItem("Light"))
+				if (!m_SelectionContext.HasComponent<RigidBodyComponent>())
 				{
-					m_SelectionContext.AddComponent<LightComponent>();
-					ImGui::CloseCurrentPopup();
+					if (ImGui::MenuItem("Rigid Body"))
+					{
+						m_SelectionContext.AddComponent<RigidBodyComponent>();
+						ImGui::CloseCurrentPopup();
+					}
 				}
+				if (!m_SelectionContext.HasComponent<BoxColliderComponent>())
+				{
+					if (ImGui::MenuItem("Box Collider"))
+					{
+						m_SelectionContext.AddComponent<BoxColliderComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}
+				if (!m_SelectionContext.HasComponent<SphereColliderComponent>())
+				{
+					if (ImGui::MenuItem("Sphere Collider"))
+					{
+						m_SelectionContext.AddComponent<SphereColliderComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}
+				if (!m_SelectionContext.HasComponent<CapsuleColliderComponent>())
+				{
+					if (ImGui::MenuItem("Capsule Collider"))
+					{
+						m_SelectionContext.AddComponent<CapsuleColliderComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}
+				if (!m_SelectionContext.HasComponent<PlaneColliderComponent>())
+				{
+					if (ImGui::MenuItem("Plane Collider"))
+					{
+						m_SelectionContext.AddComponent<PlaneColliderComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}
+				ImGui::EndMenu();
 			}
-			if(!m_SelectionContext.HasComponent<RigidBodyComponent>())
+			if(ImGui::BeginMenu("Renderer"))
 			{
-				if (ImGui::MenuItem("Rigid Body"))
+				if (!m_SelectionContext.HasComponent<MeshRendererComponent>())
 				{
-					m_SelectionContext.AddComponent<RigidBodyComponent>();
-					ImGui::CloseCurrentPopup();
+					if (ImGui::MenuItem("Mesh Renderer"))
+					{
+						m_SelectionContext.AddComponent<MeshRendererComponent>();
+						ImGui::CloseCurrentPopup();
+					}
 				}
-			}
-			if(!m_SelectionContext.HasComponent<BoxColliderComponent>())
-			{
-				if (ImGui::MenuItem("Box Collider"))
+				if (!m_SelectionContext.HasComponent<LightComponent>())
 				{
-					m_SelectionContext.AddComponent<BoxColliderComponent>();
-					ImGui::CloseCurrentPopup();
+					if (ImGui::MenuItem("Light"))
+					{
+						m_SelectionContext.AddComponent<LightComponent>();
+						ImGui::CloseCurrentPopup();
+					}
 				}
-			}
-			if (!m_SelectionContext.HasComponent<MeshRendererComponent>())
-			{
-				if (ImGui::MenuItem("Mesh Renderer"))
-				{
-					m_SelectionContext.AddComponent<MeshRendererComponent>();
-					ImGui::CloseCurrentPopup();
-				}
+				ImGui::EndMenu();
 			}
 			ImGui::EndPopup();
 		}
@@ -360,11 +399,11 @@ namespace Pistachio {
 			ImGui::SliderFloat("Rougness", &component.roughness, 0.0, 1.0);
 		});
 		DrawComponent<LightComponent>("Light", entity, [](auto& component) {
-			const char* lightTypeStrings[] = { "Directional Light", "Point Light" };
+			const char* lightTypeStrings[] = { "Directional Light", "Point Light", "Spot Light"};
 			const char* currentLightTypeString = lightTypeStrings[component.Type];
 			if (ImGui::BeginCombo("Light Type", currentLightTypeString))
 			{
-				for (int i = 0; i < 2; i++)
+				for (int i = 0; i < 3; i++)
 				{
 					bool isSelected = currentLightTypeString == lightTypeStrings[i];
 					if (ImGui::Selectable(lightTypeStrings[i], isSelected))
@@ -378,6 +417,20 @@ namespace Pistachio {
 			ImGui::ColorEdit3("Light Color", (float*)&component.color);
 			ImGui::DragFloat("Intensity", &component.Intensity);
 			ImGui::Checkbox("Cast Shadow", &component.CastShadow);
+			if (component.Type == 1)
+			{
+				ImGui::DragFloat("Max. Distance", &component.exData.z);
+			}
+			if (component.Type == 2)
+			{
+				float outercone = DirectX::XMScalarACos(component.exData.x);
+				float innercone = DirectX::XMScalarACos(component.exData.y);
+				ImGui::SliderAngle("Outer Cone", (float*)&outercone, DirectX::XMConvertToDegrees(innercone), 90.f);
+				ImGui::SliderAngle("Inner Cone", (float*)&innercone, 0, DirectX::XMConvertToDegrees(outercone));
+				ImGui::DragFloat("Max. Distance", &component.exData.z);
+				component.exData.x = DirectX::XMScalarCos(outercone);
+				component.exData.y = DirectX::XMScalarCos(innercone);
+			}
 		});
 		DrawComponent<RigidBodyComponent>("Rigid Body", entity, [](auto& component) {
 			const char* BodyTypeStrings[] = { "Static", "Dynamic","!Kinematic"};
@@ -398,13 +451,25 @@ namespace Pistachio {
 				ImGui::EndCombo();
 			}
 			ImGui::DragFloat("Density", &component.Density);
+			ImGui::DragFloat("Static Friction", &component.StaticFriction);
+			ImGui::DragFloat("Dynamic Friction", &component.DynamicFriction);
+			ImGui::DragFloat("Restitution", &component.Restitution);
 		});
 		DrawComponent<BoxColliderComponent>("Box Collider", entity, [](auto& component) {
 			ImGui::DragFloat3("Size", (float*)& component.size);
 			ImGui::DragFloat3("Offset", (float*)& component.offset);
-			ImGui::DragFloat("Static Friction", &component.StaticFriction);
-			ImGui::DragFloat("Dynamic Friction", &component.DynamicFriction);
-			ImGui::DragFloat("Restitution", &component.Restitution);
+		});
+		DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [](auto& component) {
+			ImGui::DragFloat("Size", &component.size);
+			ImGui::DragFloat3("Offset", (float*)& component.offset);
+		});
+		DrawComponent<CapsuleColliderComponent>("Capsule Collider", entity, [](auto& component) {
+			ImGui::DragFloat("Size", &component.radius);
+			ImGui::DragFloat("Size", &component.height);
+			ImGui::DragFloat3("Offset", (float*)& component.offset);
+		});
+		DrawComponent<PlaneColliderComponent>("Plane Collider", entity, [](auto& component) {
+			ImGui::DragFloat3("Offset", (float*)& component.offset);
 		});
 	}
 }

@@ -164,6 +164,9 @@ namespace Pistachio {
 			out << YAML::BeginMap;
 			out << YAML::Key << "BodyType" << YAML::Comment("0 = Static, 1 = Dynamic, 2 = Kinematic")<< YAML::Value << (int)rbc.type;
 			out << YAML::Key << "Density" << YAML::Value << rbc.Density;
+			out << YAML::Key << "StaticFriction" << YAML::Value << rbc.StaticFriction;
+			out << YAML::Key << "DynamicFriction" << YAML::Value << rbc.DynamicFriction;
+			out << YAML::Key << "DynamicFriction" << YAML::Value << rbc.Restitution;
 			out << YAML::EndMap;
 		}
 		if (entity.HasComponent<BoxColliderComponent>())
@@ -173,8 +176,6 @@ namespace Pistachio {
 			out << YAML::BeginMap;
 			out << YAML::Key << "Size" << YAML::Value << bc.size;
 			out << YAML::Key << "Offset" << YAML::Value << bc.offset;
-			out << YAML::Key << "StaticFriction" << YAML::Value << bc.StaticFriction;
-			out << YAML::Key << "DynamicFriction" << YAML::Value << bc.DynamicFriction;
 			out << YAML::EndMap;
 		}
 		out << YAML::EndMap;
@@ -277,6 +278,9 @@ namespace Pistachio {
 					auto& rbc = DeserializedEntity.AddComponent<RigidBodyComponent>();
 					rbc.Density = rigidbodycomponent["Density"].as<float>();
 					rbc.type = (RigidBodyComponent::BodyType)rigidbodycomponent["Type"].as<int>();
+					rbc.DynamicFriction = rigidbodycomponent["DynamicFriction"].as<float>();
+					rbc.StaticFriction = rigidbodycomponent["StaticFriction"].as<float>();
+					rbc.Restitution = rigidbodycomponent["Restitution"].as<float>();
 				}
 				auto boxcollidercomponent = entity["BoxColliderComponent"];
 				if (boxcollidercomponent)
@@ -284,9 +288,6 @@ namespace Pistachio {
 					auto& bc = DeserializedEntity.AddComponent<BoxColliderComponent>();
 					bc.size = boxcollidercomponent["Size"].as<DirectX::XMFLOAT3>();
 					bc.offset = boxcollidercomponent["Offset"].as<DirectX::XMFLOAT3>();
-					bc.DynamicFriction = boxcollidercomponent["DynamicFriction"].as<float>();
-					bc.StaticFriction = boxcollidercomponent["StaticFriction"].as<float>();
-					bc.Restitution = boxcollidercomponent["Restitution"].as<float>();
 				}
 			}
 		}

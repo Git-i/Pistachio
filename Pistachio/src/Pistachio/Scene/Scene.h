@@ -13,6 +13,7 @@ namespace Pistachio {
 		Scene();
 		~Scene();
 		Entity CreateEntity(const std::string& name = "");
+		Entity DuplicateEntity(Entity e);
 		Entity CreateEntityWithUUID(UUID ID, const std::string& name = "");
 		void OnRuntimeStart();
 		void OnRuntimeStop();

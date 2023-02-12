@@ -34,6 +34,10 @@ namespace Pistachio {
 
 		float GetPitch() const { return m_Pitch; }
 		float GetYaw() const { return m_Yaw; }
+		float GetFOVdeg() const { return m_FOV; }
+		float GetNearClip() const { return m_NearClip; }
+		float GetFarClip() const { return m_FarClip; }
+		float GetAspectRatio() const { return m_AspectRatio; }
 	private:
 		void UpdateProjection();
 		void UpdateView();
