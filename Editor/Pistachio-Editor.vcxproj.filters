@@ -41,5 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="resources\shaders\pixel\Shadow_ps.hlsl" />
+    <FxCompile Include="resources\shaders\vertex\shadow_vs.hlsl" />
+    <FxCompile Include="resources\shaders\geometry\shadow_gs.hlsl" />
   </ItemGroup>
 </Project>

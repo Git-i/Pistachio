@@ -22,7 +22,8 @@ namespace Pistachio {
 	{
 		Vertex = 0,
 		Pixel = 1,
-		Fragment = 1
+		Fragment = 1,
+		Geometry = 2
 	};
 	enum class BufferLayoutFormat
 	{
@@ -70,23 +71,71 @@ namespace Pistachio {
 		}
 	}
 
+
+	class GeometryShader {
+	public:
+		GeometryShader(const wchar_t* src);
+		GeometryShader();
+		void Bind();
+		void Shutdown();
+		~GeometryShader();
+	private:
+		#ifdef PISTACHIO_RENDER_API_DX11
+		ID3DBlob* pBlob = NULL;
+		ID3D11GeometryShader* pGeometryShader = NULL;
+		#endif // PISTACHIO_RENDER_API_DX11
+		friend class Shader;
+	};
+
+	class PixelShader {
+	public:
+		PixelShader(const wchar_t* src);
+		PixelShader();
+		void Bind();
+		void Shutdown();
+		~PixelShader();
+	private:
+		#ifdef PISTACHIO_RENDER_API_DX11
+		ID3DBlob* pBlob = NULL;
+		ID3D11PixelShader* pPixelShader = NULL;
+		#endif // PISTACHIO_RENDER_API_DX11
+		friend class Shader;
+	};
+
+	class VertexShader {
+	public:
+		VertexShader(const wchar_t* src);
+		VertexShader();
+		void Bind();
+		void Shutdown();
+		~VertexShader();
+	private:
+		#ifdef PISTACHIO_RENDER_API_DX11
+		ID3DBlob* pBlob = NULL;
+		ID3D11VertexShader* pVertexShader = NULL;
+		#endif // PISTACHIO_RENDER_API_DX11
+		friend class Shader;
+	};
+
 	class Shader
 	{
 	public:
 		Shader(const wchar_t* vsrc, const wchar_t* fsrc);
+		Shader(const wchar_t* vsrc, const wchar_t* fsrc, const wchar_t* gsrc);
+		Shader(const PixelShader& ps, const VertexShader& vs, const GeometryShader& gs);
+		Shader(const PixelShader& ps, const VertexShader& vs);
 		void CreateLayout(BufferLayout* layout, int nAttributes);
 		void Bind(ShaderType type);
-		static void SetVSBuffer(const ConstantBuffer& buffer, int starttslot = 0);
-		static void SetPSBuffer(const ConstantBuffer& buffer, int starrtslot = 0);
+		static void SetVSBuffer(const ConstantBuffer& buffer, int startslot = 0);
+		static void SetPSBuffer(const ConstantBuffer& buffer, int startslot = 0);
+		static void SetGSBuffer(const ConstantBuffer& buffer, int startslot = 0);
 		void Shutdown();
 		~Shader();
 	private:
-		#ifdef PISTACHIO_RENDER_API_DX11
-			ID3DBlob* pBlob = NULL;
-			ID3D11VertexShader* pVertexShader = NULL;
-			ID3D11PixelShader* pPixelShader = NULL;
-			ID3D11InputLayout* pInputLayout = NULL;
-		#endif // PISTACHIO_RENDER_API_DX11
+		PixelShader m_ps;
+		VertexShader m_vs;
+		GeometryShader m_gs;
+		ID3D11InputLayout* pInputLayout;
 	};
 	class ShaderLibrary
 	{

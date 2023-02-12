@@ -83,12 +83,9 @@ namespace Pistachio {
         //stbi_set_flip_vertically_on_load(true);
         int Width, Height, nrComponents;
         float* data = nullptr;
-        if (stbi_is_hdr(path)) {
             data = stbi_loadf(path, &Width, &Height, &nrComponents, 4);
             *width = Width;
             *height = Height;
-        }
-
             D3D11_TEXTURE2D_DESC ImageTextureDesc = {};
 
             ImageTextureDesc.Width = *width;

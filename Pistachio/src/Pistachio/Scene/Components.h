@@ -108,8 +108,9 @@ namespace Pistachio{
 		int Type = 0;
 		float Intensity = 1.f;
 		DirectX::XMFLOAT3 color = {1,1,1};
-		bool CastShadow = true;
-		float exData;
+		bool CastShadow = false;
+		DirectX::XMFLOAT3 exData = { 0.01,0.1,10 };
+		DirectX::XMFLOAT3 rotation;
 		ID3D11DepthStencilView* pDSV = nullptr;
 		ID3D11ShaderResourceView* pSRV = nullptr;
 	};
@@ -119,16 +120,26 @@ namespace Pistachio{
 		BodyType type = BodyType::Static;
 		float Density = 10.f;
 		void* RuntimeBody = nullptr;
-	};
-	struct BoxColliderComponent {
-		DirectX::XMFLOAT3 size = { 1.f, 1.f, 1.f };
-		DirectX::XMFLOAT3 offset = { .0f, .0f, .0f };
 		float StaticFriction = .5f;
 		float DynamicFriction = .5f;
 		float Restitution = .5f;
 	};
-	struct SphereColliderComponent {
+	struct BoxColliderComponent {
 		DirectX::XMFLOAT3 size = { 1.f, 1.f, 1.f };
+		DirectX::XMFLOAT3 offset = { .0f, .0f, .0f };
+		
+	};
+	struct SphereColliderComponent {
+		float size = 1.f;
+		DirectX::XMFLOAT3 offset = { .0f, .0f, .0f };
+	};
+	struct CapsuleColliderComponent {
+		float radius = 1.f;
+		float height;
+		DirectX::XMFLOAT3 offset = { .0f, .0f, .0f };
+	};
+	struct PlaneColliderComponent {
+		float size = 1.f;
 		DirectX::XMFLOAT3 offset = { .0f, .0f, .0f };
 	};
 	// -----------------------------------------------------------------------------------------------------------------------

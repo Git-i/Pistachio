@@ -4,9 +4,9 @@
 #include "Pistachio/Event/Event.h"
 #include "Pistachio/Core/KeyCodes.h"
 #include "Pistachio/Core/Input.h"
-
+#include "Pistachio/Physics/Physics.h"
+#include "Pistachio/Renderer/Renderer2D.h"
 namespace Pistachio {
-
 	Application* Application::s_Instance = nullptr;
 	Application::Application(const char* name)
 	{
@@ -20,6 +20,11 @@ namespace Pistachio {
 		info.vsync = 0;
 		info.title = name;
 		m_Window = Scope<Window>(Window::Create(info));
+		Pistachio::Log::Init();
+		RendererBase::Init(m_Window->pd.hwnd);
+		Renderer::Init("resources/textures/hdr/panorama_image.png");
+		Renderer2D::Init();
+		Physics::Init();
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 #ifdef IMGUI
 		PushOverlay(m_ImGuiLayer);
@@ -32,6 +37,8 @@ namespace Pistachio {
 
 	Application::~Application()
 	{
+		Pistachio::Renderer::Shutdown();
+		Pistachio::Physics::Shutdown();
 	}
 
 	void Application::PushLayer(Layer* layer)
@@ -65,7 +72,10 @@ namespace Pistachio {
 		if (e.GetWidth() == 0)
 			m_minimized = true;
 		else
+		{
+			RendererBase::Resize(e.GetWidth(), e.GetHeight());
 			m_minimized = false;
+		}
 		return false;
 	}
 	void Application::Run()

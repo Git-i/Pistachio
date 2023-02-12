@@ -8,35 +8,102 @@
 #include "ImGuizmo.h"
 #include "PxPhysicsAPI.h"
 #include "ScriptableComponent.h"
-class ErrorCallBack : public physx::PxErrorCallback
+#include "Pistachio/Physics/Physics.h"
+static void getFrustumCornersWorldSpace(const DirectX::XMMATRIX& proj, const DirectX::XMMATRIX& view, DirectX::XMVECTOR* corners)
 {
-	virtual void reportError(physx::PxErrorCode::Enum code, const char* message, const char* file, int line) override
+	const auto inv = DirectX::XMMatrixInverse(nullptr, view * proj);
+	int index = 0;
+	for (unsigned int x = 0; x < 2; ++x)
 	{
-		// error processing implementation
-		PT_CORE_INFO("{0}", message);
+		for (unsigned int y = 0; y < 2; ++y)
+		{
+			for (unsigned int z = 0; z < 2; ++z)
+			{
+				auto pt = DirectX::XMVector4Transform(DirectX::XMVectorSet(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f), inv);
+				corners[index] = DirectX::XMVectorScale(pt, 1.f/DirectX::XMVectorGetW(pt));
+				index++;
+			}
+		}
 	}
-};
+}
+static DirectX::XMMATRIX GetLightMatrixFromCamera(const DirectX::XMMATRIX& camView, const DirectX::XMMATRIX& camProj, const Pistachio::Light& light, float zMult)
+{
+	DirectX::XMVECTOR corners[8];
+	getFrustumCornersWorldSpace(camProj, camView, corners);
+	DirectX::XMVECTOR center = DirectX::XMVectorZero();
+	for (const auto& v : corners)
+	{
+		center = DirectX::XMVectorAdd(v, center);
+	}
+	center = DirectX::XMVectorScale(center, 1.f / 8.f);
 
-static physx::PxDefaultAllocator	gAllocator;
-static ErrorCallBack gErrorCallback;
-static physx::PxFoundation* gFoundation = NULL;
-static physx::PxPhysics* gPhysics = NULL;
-static physx::PxDefaultCpuDispatcher* gDispatcher = NULL;
-static physx::PxPvd* gPvd = NULL;
-static physx::PxMaterial* gMaterial = NULL;
+	const auto lightView = DirectX::XMMatrixLookAtLH(DirectX::XMVectorAdd(center, DirectX::XMLoadFloat4(&light.rotation)),
+		center,
+		DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.f));
+	float minX = std::numeric_limits<float>::max();
+	float maxX = std::numeric_limits<float>::lowest();
+	float minY = std::numeric_limits<float>::max();
+	float maxY = std::numeric_limits<float>::lowest();
+	float minZ = std::numeric_limits<float>::max();
+	float maxZ = std::numeric_limits<float>::lowest();
+	for (const auto& v : corners)
+	{
+		DirectX::XMVECTOR trf_xmv = DirectX::XMVector4Transform(v, lightView);
+		DirectX::XMFLOAT3 trf;
+		DirectX::XMStoreFloat3(&trf, trf_xmv);
+		minX = std::min(minX, trf.x);
+		maxX = std::max(maxX, trf.x);
+		minY = std::min(minY, trf.y);
+		maxY = std::max(maxY, trf.y);
+		minZ = std::min(minZ, trf.z);
+		maxZ = std::max(maxZ, trf.z);
+	}
+	if (minZ < 0)
+	{
+		minZ *= zMult;
+	}
+	else
+	{
+		minZ /= zMult;
+	}
+	if (maxZ < 0)
+	{
+		maxZ /= zMult;
+	}
+	else
+	{
+		maxZ *= zMult;
+	}
+
+	const DirectX::XMMATRIX lightProjection = DirectX::XMMatrixOrthographicOffCenterLH(minX, maxX, minY, maxY, minZ, maxZ);
+	return DirectX::XMMatrixMultiplyTranspose(lightView, lightProjection);
+}
+static D3D11_VIEWPORT vp[4];
+
+void OnDestroy(entt::registry& r, entt::entity e)
+{
+	auto& lc = r.get<Pistachio::LightComponent>(e);
+	if(lc.pDSV)
+	{
+		lc.pDSV->Release();
+		lc.pSRV->Release();
+	}
+}
 namespace Pistachio {
 	Scene::Scene()
 	{
-		gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gAllocator, gErrorCallback);
-
-		gPvd = PxCreatePvd(*gFoundation);
-		physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("192.168.8.1", 5425, 10);
-		gPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
-
-		gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, physx::PxTolerancesScale(), true, gPvd);
-
 		CreateEntity("Root").GetComponent<ParentComponent>().parentID = -1;
-
+		vp[0].TopLeftX = 0;
+		vp[0].TopLeftY = 0;
+		vp[0].Width = 1024;
+		vp[0].Height = 1024;
+		vp[0].MinDepth = 0;
+		vp[0].MaxDepth = 1;
+		vp[1] = vp[2] = vp[3] = vp[0];
+		vp[1].TopLeftX = 1024;
+		vp[2].TopLeftY = 1024;
+		vp[3].TopLeftX = vp[3].TopLeftY = 1024;
+		m_Registry.on_destroy<LightComponent>().connect<&OnDestroy>();
 	}
 	Scene::~Scene()
 	{
@@ -45,6 +112,21 @@ namespace Pistachio {
 	{
 		return CreateEntityWithUUID(UUID(), name);
 	}
+	Entity Scene::DuplicateEntity(Entity entity)
+	{
+		if (entity.GetComponent<ParentComponent>().parentID == -1)
+			return entity;
+		Entity newEntity = CreateEntity(entity.GetComponent<TagComponent>().Tag + "-Copy");
+		newEntity.GetComponent<TransformComponent>() = entity.GetComponent<TransformComponent>();
+		newEntity.GetComponent<ParentComponent>() = entity.GetComponent<ParentComponent>();
+		if (entity.HasComponent<LightComponent>()) newEntity.AddComponent<LightComponent>() = entity.GetComponent<LightComponent>();
+		if (entity.HasComponent<SpriteRendererComponent>()) newEntity.AddComponent<SpriteRendererComponent>() = entity.GetComponent<SpriteRendererComponent>();
+		if (entity.HasComponent<MeshRendererComponent>()) newEntity.AddComponent<MeshRendererComponent>() = entity.GetComponent<MeshRendererComponent>();
+		if (entity.HasComponent<RigidBodyComponent>()) newEntity.AddComponent<RigidBodyComponent>() = entity.GetComponent<RigidBodyComponent>();
+		if (entity.HasComponent<BoxColliderComponent>()) newEntity.AddComponent<BoxColliderComponent>() = entity.GetComponent<BoxColliderComponent>();
+		if (entity.HasComponent<SphereColliderComponent>()) newEntity.AddComponent<SphereColliderComponent>() = entity.GetComponent<SphereColliderComponent>();
+		return newEntity;
+	}
 	Entity Scene::CreateEntityWithUUID(UUID ID, const std::string& name)
 	{
 		Entity entity = { m_Registry.create(), this };
@@ -52,17 +134,19 @@ namespace Pistachio {
 		entity.AddComponent<ParentComponent>();
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
-		tag.Tag = name.empty() ? "Entity" : name;
+		char id[100] = {'E','n','t','i','t', 'y', '0', '0', '0', '\0'};
+		_itoa_s((uint32_t)entity, &id[6], 4, 10);
+		tag.Tag = name.empty() ? id : name;
 		return entity;
 	}
 	void Scene::OnRuntimeStart()
 	{
-		physx::PxSceneDesc sceneDesc(gPhysics->getTolerancesScale());
+		physx::PxSceneDesc sceneDesc(Physics::gPhysics->getTolerancesScale());
 		sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
-		gDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
-		sceneDesc.cpuDispatcher = gDispatcher;
+		Physics::gDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
+		sceneDesc.cpuDispatcher = Physics::gDispatcher;
 		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
-		m_PhysicsScene = gPhysics->createScene(sceneDesc);
+		m_PhysicsScene = Physics::gPhysics->createScene(sceneDesc);
 
 		physx::PxPvdSceneClient* pvdClient = m_PhysicsScene->getScenePvdClient();
 		if (pvdClient)
@@ -76,12 +160,13 @@ namespace Pistachio {
 		{
 			Entity entity = { e, this };
 			auto& transform = entity.GetComponent<TransformComponent>();
-			auto& rigidBody = entity.GetComponent<RigidBodyComponent>();
+			auto& rigidBody = view.get<RigidBodyComponent>(e);
+			Physics::gMaterial = Physics::gPhysics->createMaterial(rigidBody.StaticFriction, rigidBody.DynamicFriction, rigidBody.Restitution);
 			if (rigidBody.type == RigidBodyComponent::BodyType::Dynamic)
 			{
 				physx::PxQuat rotation(DirectX::XMVectorGetX(transform.Rotation), DirectX::XMVectorGetY(transform.Rotation), DirectX::XMVectorGetZ(transform.Rotation), DirectX::XMVectorGetW(transform.Rotation));
 				physx::PxTransform pxtransform(DirectX::XMVectorGetX(transform.Translation), DirectX::XMVectorGetY(transform.Translation), DirectX::XMVectorGetZ(transform.Translation), rotation);
-				rigidBody.RuntimeBody = gPhysics->createRigidDynamic(pxtransform);
+				rigidBody.RuntimeBody = Physics::gPhysics->createRigidDynamic(pxtransform);
 				physx::PxRigidBodyExt::updateMassAndInertia(*((physx::PxRigidBody*)rigidBody.RuntimeBody), rigidBody.Density);
 				m_PhysicsScene->addActor(*((physx::PxRigidDynamic*)rigidBody.RuntimeBody));
 			}
@@ -89,30 +174,43 @@ namespace Pistachio {
 			{
 				physx::PxQuat rotation(DirectX::XMVectorGetX(transform.Rotation), DirectX::XMVectorGetY(transform.Rotation), DirectX::XMVectorGetZ(transform.Rotation), DirectX::XMVectorGetW(transform.Rotation));
 				physx::PxTransform pxtransform(DirectX::XMVectorGetX(transform.Translation), DirectX::XMVectorGetY(transform.Translation), DirectX::XMVectorGetZ(transform.Translation), rotation);
-				rigidBody.RuntimeBody = gPhysics->createRigidStatic(pxtransform);
+				rigidBody.RuntimeBody = Physics::gPhysics->createRigidStatic(pxtransform);
 				m_PhysicsScene->addActor(*((physx::PxRigidStatic*)rigidBody.RuntimeBody));
 			}
 
 			if (entity.HasComponent<BoxColliderComponent>())
 			{
 				auto& bc = entity.GetComponent<BoxColliderComponent>();
-				gMaterial = gPhysics->createMaterial(bc.StaticFriction, bc.DynamicFriction, bc.Restitution);
-				physx::PxShape* shape = gPhysics->createShape(physx::PxBoxGeometry(bc.size.x * DirectX::XMVectorGetX(transform.Scale), bc.size.y * DirectX::XMVectorGetY(transform.Scale), bc.size.z * DirectX::XMVectorGetZ(transform.Scale)), *gMaterial);
+				physx::PxShape* shape = Physics::gPhysics->createShape(physx::PxBoxGeometry(bc.size.x * DirectX::XMVectorGetX(transform.Scale), bc.size.y * DirectX::XMVectorGetY(transform.Scale), bc.size.z * DirectX::XMVectorGetZ(transform.Scale)), *Physics::gMaterial);
 				physx::PxTransform pose(bc.offset.x, bc.offset.y, bc.offset.z);
 				shape->setLocalPose(pose);
 				((physx::PxRigidActor*)rigidBody.RuntimeBody)->attachShape(*shape);
-				gMaterial->release();
 			}
 			if (entity.HasComponent<SphereColliderComponent>())
 			{
-				auto& bc = entity.GetComponent<SphereColliderComponent>();
-				gMaterial = gPhysics->createMaterial(.5f, .5f, .6f);
-				physx::PxShape* shape = gPhysics->createShape(physx::PxSphereGeometry(1.f), *gMaterial);
-				physx::PxTransform pose(bc.offset.x, bc.offset.y, bc.offset.z);
+				auto& sc = entity.GetComponent<SphereColliderComponent>();
+				physx::PxShape* shape = Physics::gPhysics->createShape(physx::PxSphereGeometry(sc.size), *Physics::gMaterial);
+				physx::PxTransform pose(sc.offset.x, sc.offset.y, sc.offset.z);
 				shape->setLocalPose(pose);
 				((physx::PxRigidActor*)rigidBody.RuntimeBody)->attachShape(*shape);
-				gMaterial->release();
 			}
+			if (entity.HasComponent<CapsuleColliderComponent>())
+			{
+				auto& sc = entity.GetComponent<CapsuleColliderComponent>();
+				physx::PxShape* shape = Physics::gPhysics->createShape(physx::PxCapsuleGeometry(sc.radius, sc.height), *Physics::gMaterial);
+				physx::PxTransform pose(sc.offset.x, sc.offset.y, sc.offset.z);
+				shape->setLocalPose(pose);
+				((physx::PxRigidActor*)rigidBody.RuntimeBody)->attachShape(*shape);
+			}
+			if (entity.HasComponent<PlaneColliderComponent>())
+			{
+				auto& pc = entity.GetComponent<PlaneColliderComponent>();
+				physx::PxShape* shape = Physics::gPhysics->createShape(physx::PxPlaneGeometry(), *Physics::gMaterial);
+				physx::PxTransform pose(pc.offset.x, pc.offset.y, pc.offset.z);
+				shape->setLocalPose(pose);
+				((physx::PxRigidActor*)rigidBody.RuntimeBody)->attachShape(*shape);
+			}
+			Physics::gMaterial->release();
 		}
 	}
 	void Scene::OnRuntimeStop()
@@ -138,26 +236,33 @@ namespace Pistachio {
 	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
 	{
 		{
-			Renderer::whiteTexture.Bind(7);
+			Renderer::whiteTexture.Bind(9);
+			Renderer::whiteTexture.Bind(10);
 			auto group = m_Registry.view<TransformComponent, LightComponent>();
 			for (auto& entity : group)
 			{
 				Light light;
 				auto [tc, lightcomponent] = group.get<TransformComponent, LightComponent>(entity);
-				if (lightcomponent.Type == 0) {
-					DirectX::XMVECTOR lightTransform = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.f, 0.f,-1.f,1.f), DirectX::XMQuaternionRotationRollPitchYawFromVector(tc.Rotation));
-					light.positionxtype = { DirectX::XMVectorGetX(lightTransform), DirectX::XMVectorGetY(lightTransform), DirectX::XMVectorGetZ(lightTransform), 0 };
-				}
-				else if (lightcomponent.Type == 1)
-				{
-					light.positionxtype = { DirectX::XMVectorGetX(tc.Translation), DirectX::XMVectorGetY(tc.Translation), DirectX::XMVectorGetZ(tc.Translation), 1 };
-				}
-				light.exData = { lightcomponent.exData , (float)lightcomponent.CastShadow, 0, 0};
+				DirectX::XMStoreFloat4(&light.positionxtype, tc.Translation);
+				light.positionxtype.w = (float)lightcomponent.Type;
+				DirectX::XMVECTOR lightTransform = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.f, 0.f, -1.f, 1.f), tc.Rotation);
+				DirectX::XMStoreFloat4(&light.rotation, lightTransform);
+				light.exData = { lightcomponent.exData.x , lightcomponent.exData.y, lightcomponent.exData.z, (float)lightcomponent.CastShadow};
 				light.colorxintensity = { lightcomponent.color.x, lightcomponent.color.y, lightcomponent.color.z, lightcomponent.Intensity };
-				auto lightMatrix = DirectX::XMMatrixIdentity();
+				DirectX::XMMATRIX lightMatrix[4] = { DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity() };
 				if (lightcomponent.CastShadow)
 				{
-					lightMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, tc.GetTransform({(entt::entity)0, this})) * DirectX::XMMatrixOrthographicOffCenterLH(-10, 10, -10, 10, 1.0, 10.f));
+					if(lightcomponent.Type == 0)
+					{
+						lightMatrix[0] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), camera.GetNearClip(), 10.f), light, 1.05f);
+						lightMatrix[1] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), 10.f, 50.f), light, 1.2f);
+						lightMatrix[2] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), 50.f, 70.f), light, 1.f);
+						lightMatrix[3] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), 70.f, camera.GetFarClip()), light, 1.f);
+					}
+					else if (lightcomponent.Type == 2)
+					{
+						lightMatrix[0] = lightMatrix[1] = lightMatrix[2] = lightMatrix[3] = DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(tc.Translation, DirectX::XMVectorAdd(tc.Translation, DirectX::XMLoadFloat4(&light.rotation)), DirectX::XMVectorSet(0,1,0,0)) * DirectX::XMMatrixPerspectiveFovLH(DirectX::XMScalarACos(lightcomponent.exData.x) * 2, 1, 0.1f, lightcomponent.exData.z));
+					}
 					if (!lightcomponent.pDSV)
 					{
 						ID3D11Texture2D* pShadowMap;
@@ -178,6 +283,7 @@ namespace Pistachio {
 						dsv.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 						dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 						dsv.Texture2D.MipSlice = 0;
+						dsv.Texture2D.MipSlice = 0;
 						RendererBase::Getd3dDevice()->CreateDepthStencilView(pShadowMap, &dsv, &lightcomponent.pDSV);
 
 						D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -194,6 +300,14 @@ namespace Pistachio {
 					RendererBase::Getd3dDeviceContext()->ClearDepthStencilView(lightcomponent.pDSV, D3D11_CLEAR_DEPTH, 1.f, 0);
 					RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(0, nullptr, lightcomponent.pDSV);
 					auto group = m_Registry.view<TransformComponent, MeshRendererComponent>();
+					RendererBase::Getd3dDeviceContext()->PSSetShader(nullptr, nullptr, 0);
+					Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Vertex);
+					Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Geometry);
+					Renderer::shadowData.lightSpaceMatrix[((int)Renderer::shadowData.numlights.x*4)+0] = lightMatrix[0];
+					Renderer::shadowData.lightSpaceMatrix[((int)Renderer::shadowData.numlights.x*4)+1] = lightMatrix[1];
+					Renderer::shadowData.lightSpaceMatrix[((int)Renderer::shadowData.numlights.x*4)+2] = lightMatrix[2];
+					Renderer::shadowData.lightSpaceMatrix[((int)Renderer::shadowData.numlights.x*4)+3] = lightMatrix[3];
+					Renderer::ShadowCB.Update(&Renderer::shadowData, sizeof(Renderer::shadowData));
 					for (auto& entity : group)
 					{
 						//TO-DO MATERIALS
@@ -205,46 +319,35 @@ namespace Pistachio {
 							Buffer buffer = { &VB,&IB };
 							struct TransformData { DirectX::XMMATRIX transform; DirectX::XMMATRIX normal; } td;
 							td = { DirectX::XMMatrixTranspose(transformMatrix), DirectX::XMMatrixIdentity() };
-							Renderer::CameraCB.Update(&lightMatrix, sizeof(Renderer::CameraData));
 							Renderer::TransformationBuffer.Update(&td, sizeof(TransformData));
-							RendererBase::Getd3dDeviceContext()->PSSetShader(nullptr, nullptr, 0);
-							Renderer::GetShaderLibrary().Get("PBR-Shader")->Bind(ShaderType::Vertex);
-							RendererBase::ChangeViewport(2048,2048);
+							RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
 							RendererBase::DrawIndexed(buffer);
 						}
 					}
 					RendererBase::ChangeViewport(1920, 1080);
 					RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(2, pOldRTV, pOldDSV);
-					RendererBase::Getd3dDeviceContext()->PSSetShaderResources(7, 1, &lightcomponent.pSRV);
+					RendererBase::Getd3dDeviceContext()->PSSetShaderResources(9 + Renderer::shadowData.numlights.x, 1, &lightcomponent.pSRV);
 				}
-				Renderer::shadowData.lightSpaceMatrix[(int)Renderer::shadowData.numlights.x] = lightMatrix;
 				Renderer::AddLight(light);
+				RendererBase::Getd3dDeviceContext()->GSSetShader(nullptr, nullptr, 0);
 			}
 		}
-		Renderer::BeginScene(camera);
 		{
+			Renderer::BeginScene(camera);
 			auto group = m_Registry.view<TransformComponent, MeshRendererComponent>();
 			for (auto& entity : group)
 			{	
 				//TO-DO MATERIALS
 				auto [transform, mesh] = group.get<TransformComponent, MeshRendererComponent>(entity);
-				float c[4]{
-				std::pow(mesh.color.x, 2.2),
-				std::pow(mesh.color.y, 2.2),
-				std::pow(mesh.color.z, 2.2),
-				1.0
-				};
 				const auto& transformMatrix = transform.GetTransform({(entt::entity)m_Registry.get<ParentComponent>(entity).parentID, this});
-				if ((transform.NumNegativeScaleComps % 2))
-				{
-					RendererBase::SetCullMode(CullMode::Front);
-				}
-				else
-				{
-					RendererBase::SetCullMode(CullMode::Back);
-				}
+				float c[4]{
+						std::pow(mesh.color.x, 2.2),
+						std::pow(mesh.color.y, 2.2),
+						std::pow(mesh.color.z, 2.2),
+						1.0
+				};
 				if (mesh.Mesh)
-				Renderer::Submit(mesh.Mesh.get(), Renderer::GetShaderLibrary().Get("PBR-Shader").get(), c,mesh.metallic, mesh.roughness, (uint32_t)entity, transformMatrix);
+				Renderer::Submit(mesh.Mesh.get(), Renderer::GetShaderLibrary().Get("PBR-Shader").get(),c, mesh.metallic, mesh.roughness, (uint32_t)entity, transformMatrix);
 			}
 		}
 		//2D Rendering
@@ -308,25 +411,11 @@ namespace Pistachio {
 				tc.Rotation = DirectX::XMVectorSet(transform.q.x, transform.q.y, transform.q.z, transform.q.w);
 			}
 		}
-		{
-			auto group = m_Registry.view<TransformComponent, LightComponent>();
-			for (auto& entity : group)
-			{
-				Light light;
-				auto [tc, lightcomponent] = group.get<TransformComponent, LightComponent>(entity);
-				if (lightcomponent.Type == 0) {
-					DirectX::XMVECTOR lightTransform = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.f, 1.f, 0.f, 1.f), DirectX::XMQuaternionRotationRollPitchYawFromVector(tc.Rotation));
-					light.positionxtype = { DirectX::XMVectorGetX(lightTransform), DirectX::XMVectorGetY(lightTransform), DirectX::XMVectorGetZ(lightTransform), 0 };
-				}
-				else if (lightcomponent.Type == 1)
-					light.positionxtype = { DirectX::XMVectorGetX(tc.Translation), DirectX::XMVectorGetY(tc.Translation), DirectX::XMVectorGetZ(tc.Translation), 1 };
-				light.colorxintensity = { lightcomponent.color.x, lightcomponent.color.y, lightcomponent.color.z, lightcomponent.Intensity };
-				Renderer::AddLight(light);
-			}
-		}
+
+		
 		//TO-DO: Use Rigid-Body Transform Inverse for Camera Components
 		//Negative Translation * Rotation Transposed
-		RuntimeCamera* mainCamera = nullptr;
+		SceneCamera* mainCamera = nullptr;
 		DirectX::XMMATRIX cameraTransform = DirectX::XMMatrixIdentity();
 		{
 			auto group = m_Registry.view<TransformComponent, CameraComponent>();
@@ -343,6 +432,112 @@ namespace Pistachio {
 			}
 		}
 		if (mainCamera) {
+			{
+				DirectX::XMMATRIX view = DirectX::XMMatrixInverse(nullptr, cameraTransform);
+				Renderer::whiteTexture.Bind(7);
+				auto group = m_Registry.view<TransformComponent, LightComponent>();
+				for (auto& entity : group)
+				{
+					Light light;
+					auto [tc, lightcomponent] = group.get<TransformComponent, LightComponent>(entity);
+					if (lightcomponent.Type == 0) {
+						DirectX::XMVECTOR lightTransform = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.f, 0.f, -1.f, 1.f), DirectX::XMQuaternionRotationRollPitchYawFromVector(tc.Rotation));
+						light.positionxtype = { DirectX::XMVectorGetX(lightTransform), DirectX::XMVectorGetY(lightTransform), DirectX::XMVectorGetZ(lightTransform), 0 };
+					}
+					else
+					{
+						light.positionxtype = { DirectX::XMVectorGetX(tc.Translation), DirectX::XMVectorGetY(tc.Translation), DirectX::XMVectorGetZ(tc.Translation), (float)lightcomponent.Type };
+						DirectX::XMVECTOR lightTransform = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.f, 0.f, 1.f, 1.f), DirectX::XMQuaternionRotationRollPitchYawFromVector(tc.Rotation));
+						light.rotation = { DirectX::XMVectorGetX(lightTransform), DirectX::XMVectorGetY(lightTransform), DirectX::XMVectorGetZ(lightTransform), 0 };
+					}
+					light.exData = { lightcomponent.exData.x , lightcomponent.exData.y, lightcomponent.exData.z, (float)lightcomponent.CastShadow };
+					light.colorxintensity = { lightcomponent.color.x, lightcomponent.color.y, lightcomponent.color.z, lightcomponent.Intensity };
+					DirectX::XMMATRIX lightMatrix[4] = { DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity() };
+					if (lightcomponent.CastShadow)
+					{
+						if (lightcomponent.Type == 0)
+						{
+							float aspect = (float)m_viewportWidth / (float)m_ViewportHeight;
+							lightMatrix[0] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, mainCamera->GetPerspNear(), 10.f), light, 1.05f);
+							lightMatrix[1] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 10.f, 50.f), light, 1.2f);
+							lightMatrix[2] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 50.f, 70.f), light, 1.f);
+							lightMatrix[3] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 70.f, mainCamera->GetPerspFar()), light, 1.f);
+						}
+						else if (lightcomponent.Type == 2)
+							lightMatrix[0] = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, tc.GetTransform({ (entt::entity)0, this })) * DirectX::XMMatrixPerspectiveFovLH(DirectX::XMScalarACos(lightcomponent.exData.x), 1, 1.0, 10.f));
+						if (!lightcomponent.pDSV)
+						{
+							ID3D11Texture2D* pShadowMap;
+							D3D11_TEXTURE2D_DESC texDesc = {};
+							texDesc.ArraySize = 4;
+							texDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+							texDesc.MipLevels = 1;
+							texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+							texDesc.CPUAccessFlags = 0;
+							texDesc.MiscFlags = 0;
+							texDesc.SampleDesc.Count = 1;
+							texDesc.SampleDesc.Quality = 0;
+							texDesc.Usage = D3D11_USAGE_DEFAULT;
+							texDesc.Width = texDesc.Height = 2048;
+							RendererBase::Getd3dDevice()->CreateTexture2D(&texDesc, nullptr, &pShadowMap);
+#
+							D3D11_DEPTH_STENCIL_VIEW_DESC dsv = {};
+							dsv.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+							dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+							dsv.Texture2D.MipSlice = 0;
+							dsv.Texture2DArray.MipSlice = 0;
+							dsv.Texture2DArray.FirstArraySlice = 0;
+							dsv.Texture2DArray.ArraySize = 4;
+							RendererBase::Getd3dDevice()->CreateDepthStencilView(pShadowMap, &dsv, &lightcomponent.pDSV);
+
+							D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+							srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+							srvDesc.Texture2DArray.MipLevels = 1;
+							srvDesc.Texture2DArray.MostDetailedMip = 0;
+							srvDesc.Texture2DArray.FirstArraySlice = 0;
+							srvDesc.Texture2DArray.ArraySize = 4;
+							srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+
+							RendererBase::Getd3dDevice()->CreateShaderResourceView(pShadowMap, &srvDesc, &lightcomponent.pSRV);
+						}
+						ID3D11RenderTargetView* pOldRTV[2];
+						ID3D11DepthStencilView* pOldDSV;
+						RendererBase::Getd3dDeviceContext()->OMGetRenderTargets(2, pOldRTV, &pOldDSV);
+						RendererBase::Getd3dDeviceContext()->ClearDepthStencilView(lightcomponent.pDSV, D3D11_CLEAR_DEPTH, 1.f, 0);
+						RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(0, nullptr, lightcomponent.pDSV);
+						auto group = m_Registry.view<TransformComponent, MeshRendererComponent>();
+						RendererBase::Getd3dDeviceContext()->PSSetShader(nullptr, nullptr, 0);
+						Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Vertex);
+						Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Geometry);
+						for (auto& entity : group)
+						{
+							//TO-DO MATERIALS
+							auto [transform, mesh] = group.get<TransformComponent, MeshRendererComponent>(entity);
+							if (mesh.Mesh) {
+								const auto& transformMatrix = transform.GetTransform({ (entt::entity)m_Registry.get<ParentComponent>(entity).parentID, this });
+								auto& VB = mesh.Mesh->GetVertexBuffer();
+								auto& IB = mesh.Mesh->GetIndexBuffer();
+								Buffer buffer = { &VB,&IB };
+								struct TransformData { DirectX::XMMATRIX transform; DirectX::XMMATRIX normal; } td;
+								td = { DirectX::XMMatrixTranspose(transformMatrix), DirectX::XMMatrixIdentity() };
+								Renderer::shadowData.lightSpaceMatrix[(int)Renderer::shadowData.numlights.x * 4] = lightMatrix[0];
+								Renderer::shadowData.lightSpaceMatrix[(int)Renderer::shadowData.numlights.x * 4 + 1] = lightMatrix[1];
+								Renderer::shadowData.lightSpaceMatrix[(int)Renderer::shadowData.numlights.x * 4 + 2] = lightMatrix[2];
+								Renderer::shadowData.lightSpaceMatrix[(int)Renderer::shadowData.numlights.x * 4 + 3] = lightMatrix[3];
+								Renderer::ShadowCB.Update(&Renderer::shadowData, sizeof(Renderer::shadowData));
+								Renderer::TransformationBuffer.Update(&td, sizeof(TransformData));
+								RendererBase::ChangeViewport(2048, 2048);
+								RendererBase::DrawIndexed(buffer);
+							}
+						}
+						RendererBase::ChangeViewport(1920, 1080);
+						RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(2, pOldRTV, pOldDSV);
+						RendererBase::Getd3dDeviceContext()->PSSetShaderResources(7, 1, &lightcomponent.pSRV);
+					}
+					Renderer::AddLight(light);
+					RendererBase::Getd3dDeviceContext()->GSSetShader(nullptr, nullptr, 0);
+				}
+			}
 			Renderer::BeginScene(mainCamera, cameraTransform);
 			//3D Rendering
 			{
@@ -411,7 +606,6 @@ namespace Pistachio {
 	template<typename T>
 	void OnComponentAdded(Entity entity, T& component)
 	{
-		//static_assert(false);
 	}
 	template<>
 	void Scene::OnComponentAdded<TransformComponent>(Entity entity, TransformComponent& component)
@@ -459,7 +653,16 @@ namespace Pistachio {
 	{
 	}
 	template<>
+	void Scene::OnComponentAdded<CapsuleColliderComponent>(Entity entity, CapsuleColliderComponent& component)
+	{
+	}
+	template<>
+	void Scene::OnComponentAdded<PlaneColliderComponent>(Entity entity, PlaneColliderComponent& component)
+	{
+	}
+	template<>
 	void Scene::OnComponentAdded<ParentComponent>(Entity entity, ParentComponent& component)
 	{
 	}
+
 }

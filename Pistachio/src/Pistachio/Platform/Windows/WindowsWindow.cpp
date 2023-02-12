@@ -9,11 +9,7 @@
 #include "Pistachio/Event/KeyEvent.h"
 #include "Pistachio/Event/MouseEvent.h"
 #include "Pistachio/Platform/Windows/WindowsInputCallbacks.h"
-#include "Pistachio/Renderer/Renderer.h"
-#include "Pistachio/Renderer/Buffer.h"
-#include "Pistachio/Renderer/Shader.h"
-#include "Pistachio/Renderer/Camera.h"
-#include "Pistachio/Renderer/Renderer2D.h"
+
 #pragma comment(lib, "shell32.lib")
 void* WindowDataPtr = new void*;
 
@@ -52,10 +48,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			UINT width = LOWORD(lParam);
 			UINT height = HIWORD(lParam);
 			Pistachio::OnResize(width, height);
-			if (!Pistachio::RendererBase::IsDeviceNull && wParam != SIZE_MINIMIZED)
-			{
-				Pistachio::RendererBase::Resize(((WindowData*)GetWindowDataPtr())->width, ((WindowData*)GetWindowDataPtr())->height);
-			}
 			break;
 		}
 		case WM_CLOSE:
@@ -63,8 +55,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			int id = MessageBoxW(hwnd, L"Do you want to Exit", L"Exit Application", MB_ICONWARNING | MB_YESNO);
 			if (id == IDYES)
 			{
-				Pistachio::RendererBase::Getd3dDeviceContext()->ClearState();
-				Pistachio::RendererBase::Getd3dDeviceContext()->Flush();
 #ifdef IMGUI
 
 
@@ -288,10 +278,7 @@ namespace Pistachio {
 #endif
 		m_data.dpiscale = (float)GetDpiForWindow(pd.hwnd)/96.f;
 		ShowWindow(pd.hwnd, SW_SHOWDEFAULT);
-		Pistachio::Log::Init();
-		RendererBase::Init(pd.hwnd);
-		Renderer::Init("resources/textures/hdr/newport_loft.hdr");
-		Renderer2D::Init();
+		
 		return 0;
 
 	}
