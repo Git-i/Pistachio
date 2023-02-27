@@ -1,5 +1,5 @@
 #pragma once
-
+#include "RendererID_t.h"
 namespace Pistachio {
 	class VertexBuffer
 	{
@@ -16,9 +16,7 @@ namespace Pistachio {
 		
 	private:
 		unsigned int stride = 0;
-		#ifdef PISTACHIO_RENDER_API_DX11
-			ID3D11Buffer* pVertexBuffer = NULL;
-		#endif // PISTACHIO_RENDER_API_DX11
+		RendererID_t ID = NULL;
 	};
 	class IndexBuffer
 	{
@@ -32,9 +30,7 @@ namespace Pistachio {
 		inline unsigned int GetCount() const{ return count; }
 	private:
 		unsigned int count;
-		#ifdef PISTACHIO_RENDER_API_DX11
-			ID3D11Buffer* pIndexBuffer = NULL;
-		#endif // PISTACHIO_RENDER_API_DX11
+		RendererID_t ID = NULL;
 	};
 	struct Buffer
 	{

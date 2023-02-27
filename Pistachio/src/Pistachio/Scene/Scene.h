@@ -8,9 +8,14 @@ namespace physx {
 }
 namespace Pistachio {
 	class Entity;
+	struct SceneDesc
+	{
+		DirectX::XMFLOAT2 Resolution;
+		SceneDesc() : Resolution({1920, 1080}) {}
+	};
 	class Scene {
 	public:
-		Scene();
+		Scene(SceneDesc desc  = SceneDesc());
 		~Scene();
 		Entity CreateEntity(const std::string& name = "");
 		Entity DuplicateEntity(Entity e);
@@ -22,6 +27,8 @@ namespace Pistachio {
 		void OnViewportResize(unsigned int width, unsigned int height);
 		void DestroyEntity(Entity entity);
 		Entity GetPrimaryCameraEntity();
+		const RenderTexture& GetGBuffer() { return m_gBuffer; };
+		const RenderTexture& GetRenderedScene() { return m_finalRender; };
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
@@ -32,5 +39,7 @@ namespace Pistachio {
 		friend class SceneHierarchyPanel;
 		friend class SceneSerializer;
 		unsigned int m_viewportWidth, m_ViewportHeight;
+		RenderTexture m_gBuffer;
+		RenderTexture m_finalRender;
 	};
 }

@@ -63,16 +63,10 @@
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\Buffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Pistachio\Renderer\RendererBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp">
@@ -145,6 +139,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Physics\Physics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\MeshFactory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -236,13 +233,7 @@
     <ClInclude Include="src\Pistachio\Renderer\RendererBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Pistachio\Renderer\Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Renderer\Renderer.h">
@@ -1179,6 +1170,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Physics\Physics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Renderer\MeshFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Renderer\RendererID_t.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

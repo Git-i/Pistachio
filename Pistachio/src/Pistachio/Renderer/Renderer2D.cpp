@@ -3,6 +3,7 @@
 #include "Buffer.h"
 #include "Shader.h"
 #include "RendererBase.h"
+#include "Renderer.h"
 namespace Pistachio {
 	struct QuadVertex {
 		DirectX::XMFLOAT3 position;
@@ -85,9 +86,7 @@ namespace Pistachio {
 		s_Data._2DShader->Bind(ShaderType::Vertex);
 		s_Data._2DShader->Bind(ShaderType::Pixel);
 		auto viewproj = camera.GetViewProjectionMatrix();
-		ConstantBuffer buffer;
-		buffer.Create(&viewproj, sizeof(DirectX::XMMATRIX));
-		s_Data._2DShader->SetVSBuffer(buffer, 0);
+		
 		s_Data.QuadVerticesPtr = s_Data.QuadVerticesBase;
 		s_Data.QuadIndexCount = 0;
 		s_Data.TextureSlotsIndex = 1;
@@ -98,9 +97,7 @@ namespace Pistachio {
 		s_Data._2DShader->Bind(ShaderType::Vertex);
 		s_Data._2DShader->Bind(ShaderType::Pixel);
 		auto viewproj = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, transform) * camera.GetProjection());
-		ConstantBuffer buffer;
-		buffer.Create(&viewproj, sizeof(DirectX::XMMATRIX));
-		s_Data._2DShader->SetVSBuffer(buffer, 0);
+		
 		s_Data.QuadVerticesPtr = s_Data.QuadVerticesBase;
 		s_Data.QuadIndexCount = 0;
 		s_Data.TextureSlotsIndex = 1;
@@ -111,9 +108,7 @@ namespace Pistachio {
 		s_Data._2DShader->Bind(ShaderType::Vertex);
 		s_Data._2DShader->Bind(ShaderType::Pixel);
 		auto viewproj = DirectX::XMMatrixTranspose(camera.GetViewProjection());
-		ConstantBuffer buffer;
-		buffer.Create(&viewproj, sizeof(DirectX::XMMATRIX));
-		s_Data._2DShader->SetVSBuffer(buffer, 0);
+		
 		s_Data.QuadVerticesPtr = s_Data.QuadVerticesBase;
 		s_Data.QuadIndexCount = 0;
 		s_Data.TextureSlotsIndex = 1;

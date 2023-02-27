@@ -164,6 +164,10 @@ namespace Pistachio {
 		colors[ImGuiCol_TitleBg] = ImVec4(0.15f, 0.1505f, 0.151f, 1.00f);
 		colors[ImGuiCol_TitleBgActive] = ImVec4(0.15f, 0.1505f, 0.151f, 1.00f);
 		colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.95f, 0.1505f, 0.951f, 1.f);
+
+		colors[ImGuiCol_Header] = ImVec4(0.34f, 0.3359f, 0.34f, 1.0f);
+		colors[ImGuiCol_HeaderActive] = ImVec4(0.34f, 0.3359f, 0.34f, 1.0f);
+		colors[ImGuiCol_HeaderHovered] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
 	}
 	void ImGuiLayer::SetLightTheme()
 	{

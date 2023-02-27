@@ -125,10 +125,11 @@
     <ClInclude Include="src\Pistachio\Core\Transform.h" />
     <ClInclude Include="src\Pistachio\Renderer\Camera.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.h" />
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Shader.h" />
     <ClInclude Include="src\Pistachio\Renderer\EditorCamera.h" />
+    <ClInclude Include="src\Pistachio\Renderer\MeshFactory.h" />
     <ClInclude Include="src\Pistachio\Renderer\Model.h" />
     <ClInclude Include="src\Pistachio\Renderer\Renderer2D.h" />
+    <ClInclude Include="src\Pistachio\Renderer\RendererID_t.h" />
     <ClInclude Include="src\Pistachio\Renderer\RenderTexture.h" />
     <ClInclude Include="src\Pistachio\Renderer\Mesh.h" />
     <ClInclude Include="src\Pistachio\Renderer\Renderer.h" />
@@ -151,7 +152,6 @@
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputPoll.h" />
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.h" />
     <ClInclude Include="src\Pistachio\Core\Window.h" />
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.h" />
     <ClInclude Include="src\Pistachio\Scene\Components.h" />
     <ClInclude Include="src\Pistachio\Scene\Entity.h" />
     <ClInclude Include="src\Pistachio\Scene\Scene.h" />
@@ -471,13 +471,13 @@
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\EditorCamera.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\MeshFactory.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Model.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Renderer2D.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RenderTexture.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Mesh.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Sampler.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\Shader.cpp" />
     <ClCompile Include="src\Pistachio\Core\Layer.cpp" />
     <ClCompile Include="src\Pistachio\Core\LayerStack.cpp" />
     <ClCompile Include="src\Pistachio\Core\Log.cpp" />
@@ -495,7 +495,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsWindow.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\Buffer.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RendererBase.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Texture.cpp" />
     <ClCompile Include="vendor\imguizmo\ImGuizmo.cpp">

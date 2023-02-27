@@ -7,6 +7,7 @@ namespace Pistachio {
 	public:
 		ContentBrowserPanel();
 		void OnImGuiRender();
+		bool activated = true;
 	private:
 		static Ref<Texture2D> m_objIcon;
 		static Ref<Texture2D> m_txtIcon;

@@ -49,13 +49,10 @@ struct PSINTPUT
     float2 uv : UV;
     float3 camPos : V_POSITION;
     float depthViewspace : SM_LAYER;
+    int numlights : NUM_LIGHTS;
+    float4 lightSpacePositions[16] : LS_POS;
 };
 
-cbuffer shadowCbuf : register(b2)
-{
-    matrix lightSpaceMatrix[128];
-    float4 numlights;
-}
 PS_OUTPUT main(PSINTPUT input)
 {
     PS_OUTPUT pso;
@@ -73,7 +70,7 @@ PS_OUTPUT main(PSINTPUT input)
     // reflectance equation
     float3 Lo = float3(0.0, 0.0, 0.0);
     // Lighting
-    for (int i = 0; i < numlights.x; i++)
+    for (int i = 0; i < input.numlights; i++)
     {
         // -------------Evaluate L and Attenuation-----------------//
         float3 Ls[3] = { normalize(lights[i].rotation.xyz), normalize(lights[i].positionxtype.xyz - input.WorldPos), float3(0,0,0) };
@@ -110,7 +107,7 @@ PS_OUTPUT main(PSINTPUT input)
                 shadowMaplayer = 0;
             }
             shadowMaplayer += i * 4;
-            float4 lightSpacePos = mul(float4(input.WorldPos, 1.f), lightSpaceMatrix[shadowMaplayer]);
+            float4 lightSpacePos = input.lightSpacePositions[shadowMaplayer];
             shadow = Shadow(lightSpacePos.xyz / lightSpacePos.w, shadowMaplayer, NdotL, i);
         }
         if(shadow == 1.f)
