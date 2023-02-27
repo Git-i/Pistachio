@@ -40,7 +40,7 @@ namespace Pistachio {
 		{
 		}
 		struct ShadowData {
-			DirectX::XMMATRIX lightSpaceMatrix[128];
+			DirectX::XMMATRIX lightSpaceMatrix[16];
 			DirectX::XMFLOAT4 numlights;
 		};
 		struct LD {

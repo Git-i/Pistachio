@@ -2,6 +2,7 @@
 #include "Pistachio.h"
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
+#include "Panels/ConsolePanel.h"
 #include "Pistachio/Renderer/EditorCamera.h"
 namespace Pistachio {
 	class EditorLayer : public Pistachio::Layer
@@ -25,7 +26,6 @@ namespace Pistachio {
 		void OpenScene(const std::filesystem::path& File);
 		void SaveSceneAs();
 	private:
-		Pistachio::RenderTexture rtx;
 		float wndwith = 0;
 		float wndheight = 0;
 		Ref<Scene> m_ActiveScene;
@@ -38,6 +38,7 @@ namespace Pistachio {
 		EditorCamera m_EditorCamera;
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
+		ConsolePanel m_ConsolePanel;
 		bool m_ViewportHovered;
 
 		enum class SceneState {

@@ -113,6 +113,17 @@ namespace Pistachio{
 		DirectX::XMFLOAT3 rotation;
 		ID3D11DepthStencilView* pDSV = nullptr;
 		ID3D11ShaderResourceView* pSRV = nullptr;
+		LightComponent(const LightComponent& other)
+		{
+			Type = other.Type;
+			Intensity = other.Intensity;
+			color = other.color;
+			CastShadow = other.CastShadow;
+			exData = other.exData;
+			rotation = other.rotation;
+			pDSV = nullptr; pSRV = nullptr;
+		}
+		LightComponent() = default;
 	};
 	// Physics---------------------------------------------------------------------------------------------------------------
 	struct RigidBodyComponent {

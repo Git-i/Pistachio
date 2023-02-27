@@ -12,23 +12,12 @@ namespace Pistachio {
 		m_scaleButton(Texture2D::Create("resources/textures/icons/scale_icon.png")),
 		envshader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso")
 	{
-		RenderTextureDesc rtDesc;
-		rtDesc.width = 1920;
-		rtDesc.height = 1080;
-		rtDesc.miplevels = 1;
-		rtDesc.Attachments = { TextureFormat::RGBA8U, TextureFormat::INT,TextureFormat::D24S8};
-		rtx.CreateStack(rtDesc);
 		cube.CreateStack("cube.obj");
 		envshader.CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 	}
 	void EditorLayer::OnUpdate(float delta)
 	{
 		PT_PROFILE_FUNCTION()
-		float color[4] = { 1-.3f,1 - .3f,1 - .3f,1.f };
-		float color1[4] = { -1,-1,-1,-1 };
-		rtx.Clear(color1, 1);
-		rtx.Clear(color, 0);
-		rtx.Bind(0, 2);
 		switch(m_SceneState)
 		{
 			case SceneState::Edit:
@@ -46,7 +35,7 @@ namespace Pistachio {
 		DirectX::XMFLOAT3X3 view;
 		DirectX::XMStoreFloat3x3(&view, m_EditorCamera.GetViewMatrix());
 		Renderer::BeginScene(&m_EditorCamera, DirectX::XMMatrixInverse(nullptr,DirectX::XMLoadFloat3x3(&view)));
-		Pistachio::Renderer::Submit(&cube, &envshader, color, 0, 0, 1, DirectX::XMMatrixIdentity());
+		Pistachio::Renderer::Submit(&cube, &envshader, &delta, 0, 0, 1, DirectX::XMMatrixIdentity());
 		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Back);
 	}
 	ImVec2 wndPos;
@@ -80,11 +69,36 @@ namespace Pistachio {
 				PostMessageA(Application::Get().GetWindow().pd.hwnd, WM_CLOSE, 0, 0);
 			ImGui::EndMenu();
 		}
+		static bool gbuffervisualize = false;
+		if (ImGui::BeginMenu("Windows"))
+		{
+			if (ImGui::BeginMenu("Debug"))
+			{
+				if (ImGui::MenuItem("Gbuffer Visualizer"))
+					gbuffervisualize = true;
+				if (ImGui::MenuItem("Content Browser"))
+					m_ContentBrowserPanel.activated = true;
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenu();
+		}
 		ImGui::EndMainMenuBar();
 		auto target = RendererBase::GetmainRenderTargetView();
 		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &target, RendererBase::GetDepthStencilView());
 		m_SceneHierarchyPanel.OnImGuiRender();
 		m_ContentBrowserPanel.OnImGuiRender();
+		m_ConsolePanel.OnImGuiRender();
+		if(gbuffervisualize)
+		{
+			ImGui::Begin("Debug-GBuffer-Visualizer", &gbuffervisualize);
+			static int which = 0;
+			ImGui::SliderInt("Gbuffer-Index", &which, 0, 3);
+			if(ImGui::GetWindowWidth() < ImGui::GetWindowHeight())
+			ImGui::Image(m_ActiveScene->GetGBuffer().GetSRV(which), { ImGui::GetWindowWidth(), ImGui::GetWindowWidth() * wndheight / wndwith });
+			else
+			ImGui::Image(m_ActiveScene->GetGBuffer().GetSRV(which), { ImGui::GetWindowHeight() * wndwith/wndheight, ImGui::GetWindowHeight() });
+			ImGui::End();
+		}
 		if (ImGui::Begin("Scene"))
 		{
 			auto offset = ImGui::GetCursorPos();
@@ -96,7 +110,7 @@ namespace Pistachio {
 			}
 			wndwith = viewportSize.x;
 			wndheight = viewportSize.y;
-			ImGui::Image(rtx.GetSRV(0), viewportSize);
+			ImGui::Image(m_ActiveScene->GetRenderedScene().GetSRV(0), viewportSize);
 			if (ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
@@ -125,11 +139,11 @@ namespace Pistachio {
 					txDesc.SampleDesc.Quality = 0;
 					RendererBase::Getd3dDevice()->CreateTexture2D(&txDesc, NULL, &pSelectedEntityTexture);
 					ID3D11Resource* pSrcResource;
-					rtx.GetRenderTexture(&pSrcResource, 1);
+					m_ActiveScene->GetGBuffer().GetRenderTexture(&pSrcResource, 4);
 					D3D11_BOX sourceRegion;
-					sourceRegion.left = MouseScreenPos.x * rtx.GetWidth() / wndwith;
+					sourceRegion.left = MouseScreenPos.x * 1920 / wndwith;
 					sourceRegion.right = sourceRegion.left + 1;
-					sourceRegion.top = MouseScreenPos.y * rtx.GetHeight() / wndheight;
+					sourceRegion.top = MouseScreenPos.y * 1080 / wndheight;
 					sourceRegion.bottom = sourceRegion.top + 1;
 					sourceRegion.front = 0;
 					sourceRegion.back = 1;

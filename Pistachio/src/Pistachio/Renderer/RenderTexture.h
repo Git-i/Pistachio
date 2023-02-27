@@ -20,10 +20,11 @@ namespace Pistachio {
 		void Clear(float* clearcolor, int slot = 0);
 		void Resize(int width, int height);
 		static RenderTexture* Create(const RenderTextureDesc& desc);
-		inline ID3D11ShaderResourceView* GetSRV(int slot = 0) { return m_shaderResourceView[slot]; };
-		inline void GetRenderTexture(ID3D11Resource** pTexture, int slot = 0) { m_shaderResourceView[slot]->GetResource(pTexture); };
+		inline ID3D11ShaderResourceView* GetSRV(int slot = 0) const{ return m_shaderResourceView[slot]; };
+		inline void GetRenderTexture(ID3D11Resource** pTexture, int slot = 0)const { m_shaderResourceView[slot]->GetResource(pTexture); };
 		inline ID3D11RenderTargetView* GetRTV(int slot = 0) { return m_renderTargetView[slot]; };
 		inline ID3D11DepthStencilView* GetDSV() { return m_pDSV; };
+		inline void GetDepthTexture(ID3D11Resource** pTexture) { return m_pDSV->GetResource(pTexture); };
 		inline unsigned int GetWidth() const override { return m_width; }
 		inline unsigned int GetHeight() const override { return m_height; }
 	private:

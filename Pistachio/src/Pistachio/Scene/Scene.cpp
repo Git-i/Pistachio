@@ -9,6 +9,8 @@
 #include "PxPhysicsAPI.h"
 #include "ScriptableComponent.h"
 #include "Pistachio/Physics/Physics.h"
+#include "Pistachio/Renderer/MeshFactory.h"
+static Pistachio::Mesh* ScreenSpaceQuad;
 static void getFrustumCornersWorldSpace(const DirectX::XMMATRIX& proj, const DirectX::XMMATRIX& view, DirectX::XMVECTOR* corners)
 {
 	const auto inv = DirectX::XMMatrixInverse(nullptr, view * proj);
@@ -90,7 +92,7 @@ void OnDestroy(entt::registry& r, entt::entity e)
 	}
 }
 namespace Pistachio {
-	Scene::Scene()
+	Scene::Scene(SceneDesc desc)
 	{
 		CreateEntity("Root").GetComponent<ParentComponent>().parentID = -1;
 		vp[0].TopLeftX = 0;
@@ -104,9 +106,19 @@ namespace Pistachio {
 		vp[2].TopLeftY = 1024;
 		vp[3].TopLeftX = vp[3].TopLeftY = 1024;
 		m_Registry.on_destroy<LightComponent>().connect<&OnDestroy>();
+		RenderTextureDesc rtDesc;
+		rtDesc.width = desc.Resolution.x;
+		rtDesc.height = desc.Resolution.y;
+		rtDesc.miplevels = 1;
+		rtDesc.Attachments = { TextureFormat::RGBA8U,  TextureFormat::RGBA16F,TextureFormat::RGBA16F, TextureFormat::RGBA8U,TextureFormat::INT,TextureFormat::D24S8 };
+		m_gBuffer.CreateStack(rtDesc);
+		rtDesc.Attachments = { TextureFormat::RGBA8U, TextureFormat::D24S8 };
+		m_finalRender.CreateStack(rtDesc);
+		ScreenSpaceQuad = MeshFactory::CreatePlane();
 	}
 	Scene::~Scene()
 	{
+		delete ScreenSpaceQuad;
 	}
 	Entity Scene::CreateEntity(const std::string& name)
 	{
@@ -119,7 +131,7 @@ namespace Pistachio {
 		Entity newEntity = CreateEntity(entity.GetComponent<TagComponent>().Tag + "-Copy");
 		newEntity.GetComponent<TransformComponent>() = entity.GetComponent<TransformComponent>();
 		newEntity.GetComponent<ParentComponent>() = entity.GetComponent<ParentComponent>();
-		if (entity.HasComponent<LightComponent>()) newEntity.AddComponent<LightComponent>() = entity.GetComponent<LightComponent>();
+		if (entity.HasComponent<LightComponent>()) newEntity.AddComponent<LightComponent>(entity.GetComponent<LightComponent>());
 		if (entity.HasComponent<SpriteRendererComponent>()) newEntity.AddComponent<SpriteRendererComponent>() = entity.GetComponent<SpriteRendererComponent>();
 		if (entity.HasComponent<MeshRendererComponent>()) newEntity.AddComponent<MeshRendererComponent>() = entity.GetComponent<MeshRendererComponent>();
 		if (entity.HasComponent<RigidBodyComponent>()) newEntity.AddComponent<RigidBodyComponent>() = entity.GetComponent<RigidBodyComponent>();
@@ -135,7 +147,7 @@ namespace Pistachio {
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		char id[100] = {'E','n','t','i','t', 'y', '0', '0', '0', '\0'};
-		_itoa_s((uint32_t)entity, &id[6], 4, 10);
+		_itoa_s((uint32_t)entity, &id[6], 20, 10);
 		tag.Tag = name.empty() ? id : name;
 		return entity;
 	}
@@ -235,9 +247,20 @@ namespace Pistachio {
 	}
 	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
 	{
+		float color[4] = { 0,0,0,0 };
+		float color1[4] = { -1,-1,-1,-1 };
+		m_gBuffer.Clear(color, 0);
+		m_gBuffer.Clear(color, 1);
+		m_gBuffer.Clear(color, 2);
+		m_gBuffer.Clear(color, 3);
+		m_gBuffer.Clear(color1, 4);
+		m_gBuffer.Bind(0, 5);
+		m_finalRender.Clear(color, 0);
 		{
 			Renderer::whiteTexture.Bind(9);
 			Renderer::whiteTexture.Bind(10);
+			Renderer::whiteTexture.Bind(11);
+			Renderer::whiteTexture.Bind(12);
 			auto group = m_Registry.view<TransformComponent, LightComponent>();
 			for (auto& entity : group)
 			{
@@ -250,8 +273,13 @@ namespace Pistachio {
 				light.exData = { lightcomponent.exData.x , lightcomponent.exData.y, lightcomponent.exData.z, (float)lightcomponent.CastShadow};
 				light.colorxintensity = { lightcomponent.color.x, lightcomponent.color.y, lightcomponent.color.z, lightcomponent.Intensity };
 				DirectX::XMMATRIX lightMatrix[4] = { DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity() };
+				if (lightcomponent.pDSV)
+				{
+					RendererBase::Getd3dDeviceContext()->ClearDepthStencilView(lightcomponent.pDSV, D3D11_CLEAR_DEPTH, 1.f, 0); RendererBase::Getd3dDeviceContext()->ClearDepthStencilView(lightcomponent.pDSV, D3D11_CLEAR_DEPTH, 1.f, 0);
+				}
 				if (lightcomponent.CastShadow)
 				{
+					RendererBase::SetCullMode(CullMode::Front);
 					if(lightcomponent.Type == 0)
 					{
 						lightMatrix[0] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), camera.GetNearClip(), 10.f), light, 1.05f);
@@ -294,9 +322,6 @@ namespace Pistachio {
 						
 						RendererBase::Getd3dDevice()->CreateShaderResourceView(pShadowMap, &srvDesc, &lightcomponent.pSRV);
 					}
-					ID3D11RenderTargetView* pOldRTV[2];
-					ID3D11DepthStencilView* pOldDSV;
-					RendererBase::Getd3dDeviceContext()->OMGetRenderTargets(2, pOldRTV, &pOldDSV);
 					RendererBase::Getd3dDeviceContext()->ClearDepthStencilView(lightcomponent.pDSV, D3D11_CLEAR_DEPTH, 1.f, 0);
 					RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(0, nullptr, lightcomponent.pDSV);
 					auto group = m_Registry.view<TransformComponent, MeshRendererComponent>();
@@ -308,6 +333,7 @@ namespace Pistachio {
 					Renderer::shadowData.lightSpaceMatrix[((int)Renderer::shadowData.numlights.x*4)+2] = lightMatrix[2];
 					Renderer::shadowData.lightSpaceMatrix[((int)Renderer::shadowData.numlights.x*4)+3] = lightMatrix[3];
 					Renderer::ShadowCB.Update(&Renderer::shadowData, sizeof(Renderer::shadowData));
+					RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
 					for (auto& entity : group)
 					{
 						//TO-DO MATERIALS
@@ -320,13 +346,13 @@ namespace Pistachio {
 							struct TransformData { DirectX::XMMATRIX transform; DirectX::XMMATRIX normal; } td;
 							td = { DirectX::XMMatrixTranspose(transformMatrix), DirectX::XMMatrixIdentity() };
 							Renderer::TransformationBuffer.Update(&td, sizeof(TransformData));
-							RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
 							RendererBase::DrawIndexed(buffer);
 						}
 					}
 					RendererBase::ChangeViewport(1920, 1080);
-					RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(2, pOldRTV, pOldDSV);
+					m_gBuffer.Bind(0, 5);
 					RendererBase::Getd3dDeviceContext()->PSSetShaderResources(9 + Renderer::shadowData.numlights.x, 1, &lightcomponent.pSRV);
+					RendererBase::SetCullMode(CullMode::Back);
 				}
 				Renderer::AddLight(light);
 				RendererBase::Getd3dDeviceContext()->GSSetShader(nullptr, nullptr, 0);
@@ -347,9 +373,26 @@ namespace Pistachio {
 						1.0
 				};
 				if (mesh.Mesh)
-				Renderer::Submit(mesh.Mesh.get(), Renderer::GetShaderLibrary().Get("PBR-Shader").get(),c, mesh.metallic, mesh.roughness, (uint32_t)entity, transformMatrix);
+				Renderer::Submit(mesh.Mesh.get(), Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(),c, mesh.metallic, mesh.roughness, (uint32_t)entity, transformMatrix);
 			}
 		}
+		m_finalRender.Bind(0, 1);
+		m_gBuffer.BindResource(3, 4);
+		ID3D11Resource* pSrc;
+		ID3D11Resource* pDst;
+		m_finalRender.GetDepthTexture(&pDst);
+		m_gBuffer.GetDepthTexture(&pSrc);
+		auto& VB = ScreenSpaceQuad->GetVertexBuffer();
+		auto& IB = ScreenSpaceQuad->GetIndexBuffer();
+		Buffer buffer = { &VB,&IB };
+		Renderer::GetShaderLibrary().Get("PBR-Deffered-Shader").get()->Bind(ShaderType::Vertex);
+		Renderer::GetShaderLibrary().Get("PBR-Deffered-Shader").get()->Bind(ShaderType::Pixel);
+		RendererBase::DrawIndexed(buffer);
+		Renderer::whiteTexture.Bind(3);
+		Renderer::whiteTexture.Bind(4);
+		Renderer::whiteTexture.Bind(5);
+		Renderer::whiteTexture.Bind(6);
+		RendererBase::Getd3dDeviceContext()->CopyResource(pDst, pSrc);
 		//2D Rendering
 		Renderer2D::BeginScene(camera);
 		{

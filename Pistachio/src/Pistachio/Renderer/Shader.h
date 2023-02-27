@@ -1,14 +1,14 @@
 #pragma once
 #include "../Core.h"
-#include "Pistachio/Renderer/RendererBase.h"
+#include "RendererID_t.h"
 namespace Pistachio {
 	class ConstantBuffer {
 	public:
 		void Update(void* data, unsigned int size);
 		void Create(void* data, unsigned int size);
-		~ConstantBuffer() { if (pBuffer)while (pBuffer->Release()) {}; pBuffer = NULL; }
+		~ConstantBuffer();
 	private:
-		ID3D11Buffer* pBuffer;
+		RendererID_t ID;
 		friend class Shader;
 	};
 	struct MaterialStruct
@@ -80,10 +80,8 @@ namespace Pistachio {
 		void Shutdown();
 		~GeometryShader();
 	private:
-		#ifdef PISTACHIO_RENDER_API_DX11
-		ID3DBlob* pBlob = NULL;
-		ID3D11GeometryShader* pGeometryShader = NULL;
-		#endif // PISTACHIO_RENDER_API_DX11
+		RendererID_t Blob_ID = NULL;
+		RendererID_t ID = NULL;
 		friend class Shader;
 	};
 
@@ -95,10 +93,8 @@ namespace Pistachio {
 		void Shutdown();
 		~PixelShader();
 	private:
-		#ifdef PISTACHIO_RENDER_API_DX11
-		ID3DBlob* pBlob = NULL;
-		ID3D11PixelShader* pPixelShader = NULL;
-		#endif // PISTACHIO_RENDER_API_DX11
+		RendererID_t Blob_ID = NULL;
+		RendererID_t ID = NULL;
 		friend class Shader;
 	};
 
@@ -110,10 +106,8 @@ namespace Pistachio {
 		void Shutdown();
 		~VertexShader();
 	private:
-		#ifdef PISTACHIO_RENDER_API_DX11
-		ID3DBlob* pBlob = NULL;
-		ID3D11VertexShader* pVertexShader = NULL;
-		#endif // PISTACHIO_RENDER_API_DX11
+		RendererID_t Blob_ID = NULL;
+		RendererID_t ID = NULL;
 		friend class Shader;
 	};
 
@@ -135,7 +129,7 @@ namespace Pistachio {
 		PixelShader m_ps;
 		VertexShader m_vs;
 		GeometryShader m_gs;
-		ID3D11InputLayout* pInputLayout;
+		RendererID_t InputLayout_ID;
 	};
 	class ShaderLibrary
 	{

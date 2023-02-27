@@ -5,7 +5,7 @@ cbuffer CBuf2 : register(b1)
 };
 cbuffer shadowCbuf : register(b2)
 {
-    matrix lightSpaceMatrix[128];
+    matrix lightSpaceMatrix[16];
     float4 numlights;
 }
 struct VS_OUT

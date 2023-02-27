@@ -27,6 +27,12 @@
     <ClCompile Include="src\Panels\ContentBrowserPanel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Panels\ConsolePanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui-console\src\imgui_console.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\EditorLayer.h">
@@ -38,10 +44,16 @@
     <ClInclude Include="src\Panels\ContentBrowserPanel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Panels\ConsolePanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="resources\shaders\pixel\Shadow_ps.hlsl" />
     <FxCompile Include="resources\shaders\vertex\shadow_vs.hlsl" />
     <FxCompile Include="resources\shaders\geometry\shadow_gs.hlsl" />
+    <FxCompile Include="resources\shaders\pixel\gbuffer_write.hlsl" />
+    <FxCompile Include="resources\shaders\vertex\vertex_shader_no_transform.hlsl" />
+    <FxCompile Include="resources\shaders\pixel\DefferedShading_ps.hlsl" />
   </ItemGroup>
 </Project>
