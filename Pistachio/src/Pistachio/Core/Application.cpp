@@ -13,7 +13,6 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION();
 		m_ImGuiLayer = new ImGuiLayer;
 		s_Instance = this;
-		void* n = GetWindowDataPtr();
 		WindowInfo info;
 		info.height = 720;
 		info.width = 1280;

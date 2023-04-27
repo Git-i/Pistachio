@@ -42,7 +42,7 @@ namespace Pistachio {
 	void EditorLayer::OnAttach()
 	{
 		m_ActiveScene = std::make_shared<Scene>();
-		m_EditorCamera = EditorCamera(30.f, 1.6, 0.1f, 100.f);
+		m_EditorCamera = EditorCamera(30.f, 1.6, 0.1f, 1000.f);
 		auto e = m_ActiveScene->CreateEntity("Mesh");
 		e.AddComponent<MeshRendererComponent>("plane.obj");
 		e.GetComponent<TransformComponent>().RotationEulerHint.x = DirectX::XMVectorGetX(DirectX::g_XMHalfPi);
@@ -138,7 +138,7 @@ namespace Pistachio {
 					txDesc.SampleDesc.Count = 1;
 					txDesc.SampleDesc.Quality = 0;
 					RendererBase::Getd3dDevice()->CreateTexture2D(&txDesc, NULL, &pSelectedEntityTexture);
-					ID3D11Resource* pSrcResource;
+					RendererID_t pSrcResource;
 					m_ActiveScene->GetGBuffer().GetRenderTexture(&pSrcResource, 4);
 					D3D11_BOX sourceRegion;
 					sourceRegion.left = MouseScreenPos.x * 1920 / wndwith;
@@ -147,11 +147,11 @@ namespace Pistachio {
 					sourceRegion.bottom = sourceRegion.top + 1;
 					sourceRegion.front = 0;
 					sourceRegion.back = 1;
-					RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(pSelectedEntityTexture, 0, 0, 0, 0, pSrcResource, 0, &sourceRegion);
+					RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(pSelectedEntityTexture, 0, 0, 0, 0, ((ID3D11Resource*)pSrcResource), 0, &sourceRegion);
 					D3D11_MAPPED_SUBRESOURCE mappedResource;
 					RendererBase::Getd3dDeviceContext()->Map(pSelectedEntityTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
 					m_HoveredEntity = *(int*)mappedResource.pData == -1 ? Entity() : Entity(*(entt::entity*)mappedResource.pData, m_ActiveScene.get());
-					pSrcResource->Release();
+					((ID3D11Resource*)pSrcResource)->Release();
 					pSelectedEntityTexture->Release();
 				}
 

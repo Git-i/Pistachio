@@ -415,7 +415,7 @@ namespace Pistachio {
 				ImGui::EndCombo();
 			}
 			ImGui::ColorEdit3("Light Color", (float*)&component.color);
-			ImGui::DragFloat("Intensity", &component.Intensity);
+			ImGui::DragFloat("Intensity", &component.Intensity, 1.f, 0.f, 100.f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 			ImGui::Checkbox("Cast Shadow", &component.CastShadow);
 			if (component.Type == 1)
 			{

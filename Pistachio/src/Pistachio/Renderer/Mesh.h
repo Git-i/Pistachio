@@ -21,6 +21,10 @@ namespace Pistachio {
 		}
 		Vertex(){}
 	};
+	struct Face
+	{
+		unsigned int i0, i1, i2;
+	};
 	class Mesh {
 	public:
 		Mesh(){}
