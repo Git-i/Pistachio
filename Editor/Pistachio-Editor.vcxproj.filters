@@ -55,5 +55,6 @@
     <FxCompile Include="resources\shaders\pixel\gbuffer_write.hlsl" />
     <FxCompile Include="resources\shaders\vertex\vertex_shader_no_transform.hlsl" />
     <FxCompile Include="resources\shaders\pixel\DefferedShading_ps.hlsl" />
+    <FxCompile Include="resources\shaders\pixel\postprocess_ps.hlsl" />
   </ItemGroup>
 </Project>

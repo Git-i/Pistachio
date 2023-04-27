@@ -176,10 +176,10 @@ namespace Pistachio {
 				sourceRegion.bottom = mipHeight;
 				sourceRegion.front = 0;
 				sourceRegion.back = 1;
-				ID3D11Resource* pTexture;
+				RendererID_t pTexture;
 				texture[i].GetRenderTexture(&pTexture);
-				RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(prefilter.GetRenderTexture(), D3D11CalcSubresource(mip, i, 5), 0, 0, 0, pTexture, 0, &sourceRegion);
-				pTexture->Release();
+				RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(prefilter.GetRenderTexture(), D3D11CalcSubresource(mip, i, 5), 0, 0, 0, ((ID3D11Resource*)pTexture), 0, &sourceRegion);
+				((ID3D11Resource*)pTexture)->Release();
 			}
 			for (int i = 0; i < 6; ++i)
 			{
@@ -243,10 +243,13 @@ namespace Pistachio {
 			gBuffer_Shader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
 			Ref<Shader> deffered_Shader = std::make_shared<Shader>(L"resources/shaders/vertex/vertex_shader_no_transform.cso", L"resources/shaders/pixel/DefferedShading_ps.cso");
 			deffered_Shader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
+			Ref<Shader> postprocess_Shader = std::make_shared<Shader>(L"resources/shaders/vertex/vertex_shader_no_transform.cso", L"resources/shaders/pixel/postprocess_ps.cso");
+			postprocess_Shader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
 			shaderlib.Add("PBR-Forward-Shader", pbrShader);
 			shaderlib.Add("PBR-Deffered-Shader", deffered_Shader);
 			shaderlib.Add("GBuffer-Shader", gBuffer_Shader);
 			shaderlib.Add("Shadow-Shader", shadowShader);
+			shaderlib.Add("Post-Shader", postprocess_Shader);
 			char data[4] = { 255,255,255,255 };
 			whiteTexture.CreateStack(1, 1, TextureFormat::RGBA8U,data);
 		}
@@ -302,8 +305,6 @@ namespace Pistachio {
 		CameraData.viewPos = campos;
 		LightCB.Update(&LightData, sizeof(LightData));
 		CameraCB.Update(&CameraData, sizeof(CameraData));
-		Shader::SetPSBuffer(LightCB, 0);
-		Shader::SetVSBuffer(CameraCB, 0);
 		ShadowCB.Update(&shadowData, sizeof(shadowData));
 		whiteTexture.Bind(3);
 		whiteTexture.Bind(4);

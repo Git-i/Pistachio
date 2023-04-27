@@ -109,7 +109,7 @@ namespace Pistachio{
 		float Intensity = 1.f;
 		DirectX::XMFLOAT3 color = {1,1,1};
 		bool CastShadow = false;
-		DirectX::XMFLOAT3 exData = { 0.01,0.1,10 };
+		DirectX::XMFLOAT3 exData = { 0.01f,0.1f,1.0f };
 		DirectX::XMFLOAT3 rotation;
 		ID3D11DepthStencilView* pDSV = nullptr;
 		ID3D11ShaderResourceView* pSRV = nullptr;

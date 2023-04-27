@@ -119,7 +119,6 @@
     <ClInclude Include="src\Pistachio\Debug\Instrumentor.h" />
     <ClInclude Include="src\Pistachio\Physics\Physics.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.h" />
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Texture.h" />
     <ClInclude Include="src\Pistachio\Core\Timestep.h" />
     <ClInclude Include="src\Pistachio\Core\Transform.h" />
@@ -149,7 +148,6 @@
     <ClInclude Include="src\Pistachio\Core.h" />
     <ClInclude Include="src\Pistachio\Core\EntryPoint.h" />
     <ClInclude Include="src\Pistachio\ImGui\ImGuiLayer.h" />
-    <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputPoll.h" />
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.h" />
     <ClInclude Include="src\Pistachio\Core\Window.h" />
     <ClInclude Include="src\Pistachio\Scene\Components.h" />
@@ -474,7 +472,6 @@
     <ClCompile Include="src\Pistachio\Renderer\MeshFactory.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Model.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Renderer2D.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\RenderTexture.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Mesh.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Sampler.cpp" />

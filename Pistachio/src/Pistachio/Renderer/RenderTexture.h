@@ -1,5 +1,6 @@
 #pragma once
 #include "Texture.h"
+#include "RendererID_t.h"
 namespace Pistachio {
 	struct RenderTextureAttachmentSpecification {
 		RenderTextureAttachmentSpecification() = default;
@@ -15,22 +16,22 @@ namespace Pistachio {
 		~RenderTexture();
 		void Shutdown();
 		void Bind(int slot = 0, int count = 1) const;
-		void BindResource(int slot = 0, int count = 1) const;
+		void BindResource(int slot = 0, int count = 1, int index = 0) const;
 		void CreateStack(const RenderTextureDesc& desc);
 		void Clear(float* clearcolor, int slot = 0);
 		void Resize(int width, int height);
 		static RenderTexture* Create(const RenderTextureDesc& desc);
-		inline ID3D11ShaderResourceView* GetSRV(int slot = 0) const{ return m_shaderResourceView[slot]; };
-		inline void GetRenderTexture(ID3D11Resource** pTexture, int slot = 0)const { m_shaderResourceView[slot]->GetResource(pTexture); };
-		inline ID3D11RenderTargetView* GetRTV(int slot = 0) { return m_renderTargetView[slot]; };
-		inline ID3D11DepthStencilView* GetDSV() { return m_pDSV; };
-		inline void GetDepthTexture(ID3D11Resource** pTexture) { return m_pDSV->GetResource(pTexture); };
+		RendererID_t GetSRV(int slot = 0) const; 
+		void GetRenderTexture(RendererID_t* pTexture, int slot = 0)const;
+		RendererID_t GetRTV(int slot = 0); 
+		RendererID_t GetDSV();
+		void GetDepthTexture(RendererID_t* pTexture) const;
 		inline unsigned int GetWidth() const override { return m_width; }
 		inline unsigned int GetHeight() const override { return m_height; }
 	private:
-		std::vector<ID3D11ShaderResourceView*> m_shaderResourceView;
-		std::vector<ID3D11RenderTargetView*> m_renderTargetView;
-		ID3D11DepthStencilView* m_pDSV;
+		std::vector<RendererID_t> m_shaderResourceView;
+		std::vector<RendererID_t> m_renderTargetView;
+		RendererID_t m_pDSV;
 		int m_width, m_height, m_miplevels;
 	};
 	class RenderCubeMap : public Texture{	
