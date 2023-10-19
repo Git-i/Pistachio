@@ -26,7 +26,7 @@ namespace Pistachio {
 			ImGui::Begin("Content Browser", &activated);
 			if (m_CurrentDirectory != s_AssetPath)
 			{
-				if (ImGui::ImageButton(m_leftArrow->GetSRV(), ImVec2(32, 32))) {
+				if (ImGui::ImageButton(m_leftArrow->GetImGuiID(), ImVec2(32, 32))) {
 					m_CurrentDirectory = m_CurrentDirectory.parent_path();
 				}
 				ImGui::SameLine();
@@ -35,7 +35,7 @@ namespace Pistachio {
 			{
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-				ImGui::ImageButton(m_leftArrow->GetSRV(), ImVec2(32, 32), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5, 0.5, 0.5, 1.0));
+				ImGui::ImageButton(m_leftArrow->GetImGuiID(), ImVec2(32, 32), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5, 0.5, 0.5, 1.0));
 				ImGui::SameLine();
 				ImGui::PopStyleColor(2);
 			}
@@ -52,7 +52,7 @@ namespace Pistachio {
 				std::string relativePathStr = relativePath.filename().string();
 				ImGui::PushID(relativePathStr.c_str());
 				if (directoryEntry.is_directory()) {
-					ImGui::ImageButton(m_folderIcon->GetSRV(), ImVec2(200, 200));
+					ImGui::ImageButton(m_folderIcon->GetImGuiID(), ImVec2(200, 200));
 					if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
 						m_CurrentDirectory /= path.filename();
 					}
@@ -63,7 +63,7 @@ namespace Pistachio {
 				{
 					if (relativePath.extension().string() == ".obj")
 					{
-						ImGui::ImageButton(m_objIcon->GetSRV(), ImVec2(200, 200));
+						ImGui::ImageButton(m_objIcon->GetImGuiID(), ImVec2(200, 200));
 						if (ImGui::BeginDragDropSource())
 						{
 							const wchar_t* data = relativePath.c_str();
@@ -74,7 +74,7 @@ namespace Pistachio {
 					}
 					else if (relativePath.extension().string() == ".cpp")
 					{
-						ImGui::ImageButton(m_cppIcon->GetSRV(), ImVec2(200, 200));
+						ImGui::ImageButton(m_cppIcon->GetImGuiID(), ImVec2(200, 200));
 						if (ImGui::BeginDragDropSource())
 						{
 							const wchar_t* data = relativePath.c_str();
@@ -166,7 +166,7 @@ namespace Pistachio {
 					}
 					else if (relativePath.extension().string() == ".txt")
 					{
-						ImGui::ImageButton(m_txtIcon->GetSRV(), ImVec2(200, 200));
+						ImGui::ImageButton(m_txtIcon->GetImGuiID(), ImVec2(200, 200));
 						if (ImGui::BeginDragDropSource())
 						{
 							const wchar_t* data = relativePath.c_str();

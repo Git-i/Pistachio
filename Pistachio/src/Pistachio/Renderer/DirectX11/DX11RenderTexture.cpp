@@ -154,8 +154,8 @@ namespace Pistachio {
 				renderTargetViewDesc.Texture2D.MipSlice = 0;
 
 				RendererBase::Getd3dDevice()->CreateRenderTargetView(pTexture, &renderTargetViewDesc, &pRTV);
-				m_shaderResourceView.push_back(pSRV);
-				m_renderTargetView.push_back(pRTV);
+				m_shaderResourceView.push_back(reinterpret_cast<RendererID_t>(pSRV));
+				m_renderTargetView.push_back(reinterpret_cast<RendererID_t>(pRTV));
 			}
 			else
 			{
