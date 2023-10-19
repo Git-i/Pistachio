@@ -94,9 +94,9 @@ namespace Pistachio {
 			static int which = 0;
 			ImGui::SliderInt("Gbuffer-Index", &which, 0, 3);
 			if(ImGui::GetWindowWidth() < ImGui::GetWindowHeight())
-			ImGui::Image(m_ActiveScene->GetGBuffer().GetSRV(which), { ImGui::GetWindowWidth(), ImGui::GetWindowWidth() * wndheight / wndwith });
+			ImGui::Image(reinterpret_cast<void*>(m_ActiveScene->GetGBuffer().GetSRV(which)), { ImGui::GetWindowWidth(), ImGui::GetWindowWidth() * wndheight / wndwith });
 			else
-			ImGui::Image(m_ActiveScene->GetGBuffer().GetSRV(which), { ImGui::GetWindowHeight() * wndwith/wndheight, ImGui::GetWindowHeight() });
+			ImGui::Image(reinterpret_cast<void*>(m_ActiveScene->GetGBuffer().GetSRV(which)), { ImGui::GetWindowHeight() * wndwith/wndheight, ImGui::GetWindowHeight() });
 			ImGui::End();
 		}
 		if (ImGui::Begin("Scene"))
@@ -110,7 +110,7 @@ namespace Pistachio {
 			}
 			wndwith = viewportSize.x;
 			wndheight = viewportSize.y;
-			ImGui::Image(m_ActiveScene->GetRenderedScene().GetSRV(0), viewportSize);
+			ImGui::Image(reinterpret_cast<void*>(m_ActiveScene->GetRenderedScene().GetSRV(0)), viewportSize);
 			if (ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
@@ -216,23 +216,23 @@ namespace Pistachio {
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0,0,0,0 });
 				bool translate, rotate, scale;
 				if (m_GizmoType == ImGuizmo::OPERATION::TRANSLATE)
-					translate = ImGui::ImageButton(m_translateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 0.33, 0.41, 0.772, 1.0 });
+					translate = ImGui::ImageButton(m_translateButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {0.33, 0.41, 0.772, 1.0});
 				else
-					translate = ImGui::ImageButton(m_translateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 1,1,1, 1.0 });
+					translate = ImGui::ImageButton(m_translateButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, 1.0});
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
 					ImGui::SetTooltip("Translate (W)");
 				ImGui::SameLine();
 				if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
-					rotate = ImGui::ImageButton(m_rotateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 0.33, 0.41, 0.772, 1.0 });
+					rotate = ImGui::ImageButton(m_rotateButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {0.33, 0.41, 0.772, 1.0});
 				else
-					rotate = ImGui::ImageButton(m_rotateButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 1,1,1, 1.0 });
+					rotate = ImGui::ImageButton(m_rotateButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, 1.0});
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
 					ImGui::SetTooltip("Rotate (E)");
 				ImGui::SameLine();
 				if (m_GizmoType == ImGuizmo::OPERATION::SCALE)
-					scale = ImGui::ImageButton(m_scaleButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 0.33, 0.41, 0.772, 1.0 });
+					scale = ImGui::ImageButton(m_scaleButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {0.33, 0.41, 0.772, 1.0});
 				else
-					scale = ImGui::ImageButton(m_scaleButton->GetSRV(), ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 1,1,1, 1.0 });
+					scale = ImGui::ImageButton(m_scaleButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, 1.0});
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
 					ImGui::SetTooltip("Scale (R)");
 				if (translate)
@@ -257,14 +257,14 @@ namespace Pistachio {
 		ImGui::SetCursorPosX((ImGui::GetWindowWidth() - size) / 2);
 		if (m_SceneState == SceneState::Edit)
 		{
-			if (ImGui::ImageButton(m_playButton->GetSRV(), ImVec2(size, size)))
+			if (ImGui::ImageButton(m_playButton->GetImGuiID(), ImVec2(size, size)))
 			{
 				OnScenePlay();
 			}
 		}
 		else if (m_SceneState == SceneState::Play)
 		{
-			if (ImGui::ImageButton(m_stopButton->GetSRV(), ImVec2(size, size)))
+			if (ImGui::ImageButton(m_stopButton->GetImGuiID(), ImVec2(size, size)))
 			{
 				OnSceneStop();
 			}

@@ -61,8 +61,8 @@ namespace Pistachio {
 		RendererBase::SetCullMode(CullMode::Front);
 		SamplerState* ss = SamplerState::Create(TextureAddress::Wrap, TextureAddress::Wrap, TextureAddress::Wrap);
 		ss->Bind();
-		FloatTexture2D tex;
-		tex.CreateStack(skybox);
+		Texture2D tex;
+		tex.CreateStack(skybox, TextureFormat::RGBA32F);
 		Shader eqShader(L"resources/shaders/vertex/equirectangular_to_cubemap_vs.cso", L"resources/shaders/pixel/equirectangular_to_cubemap_fs.cso");
 		Shader irradianceShader(L"resources/shaders/vertex/equirectangular_to_cubemap_vs.cso", L"resources/shaders/pixel/irradiance_fs.cso");
 		Shader brdfShader(L"resources/shaders/vertex/brdf_vs.cso", L"resources/shaders/pixel/brdf_fs.cso");
