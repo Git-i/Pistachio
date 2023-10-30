@@ -1,23 +1,23 @@
 #include "ptpch.h"
 #include "../Shader.h"
 #include "../RendererBase.h"
-#define VERTEX_SHADER(ID) ((ID3D11VertexShader*)ID)
-#define VERTEX_SHADER_PP(ID) ((ID3D11VertexShader**)&ID)
+#define VERTEX_SHADER(ID) ((ID3D11VertexShader*)ID.Get())
+#define VERTEX_SHADER_PP(ID) ((ID3D11VertexShader**)ID.GetAddressOf())
 
-#define PIXEL_SHADER(ID) ((ID3D11PixelShader*)ID)
-#define PIXEL_SHADER_PP(ID) ((ID3D11PixelShader**)&ID)
+#define PIXEL_SHADER(ID) ((ID3D11PixelShader*)ID.Get())
+#define PIXEL_SHADER_PP(ID) ((ID3D11PixelShader**)ID.GetAddressOf())
 
-#define GEOMETRY_SHADER(ID) ((ID3D11GeometryShader*)ID)
-#define GEOMETRY_SHADER_PP(ID) ((ID3D11GeometryShader**)&ID)
+#define GEOMETRY_SHADER(ID) ((ID3D11GeometryShader*)ID.Get())
+#define GEOMETRY_SHADER_PP(ID) ((ID3D11GeometryShader**)ID.GetAddressOf())
 
-#define BLOB(ID) ((ID3D10Blob*)ID)
-#define BLOB_PP(ID) ((ID3D10Blob**)&ID)
+#define BLOB(ID) ((ID3D10Blob*)ID.Get())
+#define BLOB_PP(ID) ((ID3D10Blob**)ID.GetAddressOf())
 
-#define INPUT_LAYOUT(ID) ((ID3D11InputLayout*)ID)
-#define INPUT_LAYOUT_PP(ID) ((ID3D11InputLayout**)&ID)
+#define INPUT_LAYOUT(ID) ((ID3D11InputLayout*)ID.Get())
+#define INPUT_LAYOUT_PP(ID) ((ID3D11InputLayout**)ID.GetAddressOf())
 
-#define BUFFER(ID) ((ID3D11Buffer*)ID)
-#define BUFFER_PP(ID) ((ID3D11Buffer**)&ID)
+#define BUFFER(ID) ((ID3D11Buffer*)ID.Get())
+#define BUFFER_PP(ID) ((ID3D11Buffer**)ID.GetAddressOf())
 
 static DXGI_FORMAT DXGIFormat(Pistachio::BufferLayoutFormat format)
 {
@@ -75,17 +75,6 @@ namespace Pistachio {
 		else if (type == ShaderType::Fragment) Pistachio::RendererBase::Getd3dDeviceContext()->PSSetShader(PIXEL_SHADER(m_ps.ID), nullptr, 0);
 		else if (type == ShaderType::Geometry) Pistachio::RendererBase::Getd3dDeviceContext()->GSSetShader(GEOMETRY_SHADER(m_gs.ID), nullptr, 0);
 	}
-	void Shader::Shutdown()
-	{
-		m_ps.Shutdown();
-		m_vs.Shutdown();
-		m_gs.Shutdown();
-		if (InputLayout_ID) { while (INPUT_LAYOUT(InputLayout_ID)->Release()) {}; InputLayout_ID = NULL; };
-	}
-	Shader::~Shader()
-	{
-		Shutdown();
-	}
 
 
 	void ShaderLibrary::Add(const std::string& name, const Ref<Shader>& Shader)
@@ -124,14 +113,10 @@ namespace Pistachio {
 		cbd.StructureByteStride = 0;
 		D3D11_SUBRESOURCE_DATA sd;
 		sd.pSysMem = data;
-		RendererBase::Getd3dDevice()->CreateBuffer(&cbd, &sd, BUFFER_PP(ID));
-	}
-	ConstantBuffer::~ConstantBuffer()
-	{
-		if (ID) {
-			while (BUFFER(ID)->Release()) {};
-			ID = NULL;
-		}
+		if (data)
+			RendererBase::Getd3dDevice()->CreateBuffer(&cbd, &sd, (ID3D11Buffer**)(ID.ReleaseAndGetAddressOf()));
+		else
+			RendererBase::Getd3dDevice()->CreateBuffer(&cbd, nullptr, (ID3D11Buffer**)(ID.ReleaseAndGetAddressOf()));
 	}
 
 	void Shader::SetVSBuffer(const ConstantBuffer& buffer, int slot)
@@ -160,16 +145,6 @@ namespace Pistachio {
 	{
 		RendererBase::Getd3dDeviceContext()->GSSetShader(GEOMETRY_SHADER(ID), nullptr, 0);
 	}
-	void GeometryShader::Shutdown()
-	{
-		if (ID) { while (GEOMETRY_SHADER(ID)->Release()) {}; ID = NULL; }
-		if (Blob_ID) { while (BLOB(Blob_ID)->Release()) {}; Blob_ID = NULL; }
-	}
-	GeometryShader::~GeometryShader()
-	{
-		Shutdown();
-	}
-	GeometryShader::GeometryShader() { ID = NULL; Blob_ID = NULL; }
 
 
 	PixelShader::PixelShader(const wchar_t* src)
@@ -181,15 +156,6 @@ namespace Pistachio {
 	{
 		RendererBase::Getd3dDeviceContext()->PSSetShader(PIXEL_SHADER(ID), nullptr, 0);
 	}
-	void PixelShader::Shutdown()
-	{
-		if (ID) { while (PIXEL_SHADER(ID)->Release()) {}; ID = NULL; }
-		if (Blob_ID) { while (BLOB(Blob_ID)->Release()) {}; Blob_ID = NULL; }
-	}
-	PixelShader::~PixelShader() {
-		Shutdown();
-	}
-	PixelShader::PixelShader() { ID = NULL; Blob_ID = NULL; }
 
 
 	VertexShader::VertexShader(const wchar_t* src)
@@ -201,16 +167,6 @@ namespace Pistachio {
 	{
 		RendererBase::Getd3dDeviceContext()->VSSetShader(VERTEX_SHADER(ID), nullptr, 0);
 	}
-	VertexShader::~VertexShader()
-	{
-		Shutdown();
-	}
-	void VertexShader::Shutdown()
-	{
-		if (ID) { while (VERTEX_SHADER(ID)->Release()) {}; ID = NULL; }
-		if (Blob_ID) { while (BLOB(Blob_ID)->Release()) {}; Blob_ID = NULL; }
-	}
-	VertexShader::VertexShader() { ID = NULL; Blob_ID = NULL; }
 }
 
 #undef VERTEX_SHADER(ID)

@@ -3,8 +3,21 @@ cbuffer CBuf2 : register(b1)
     matrix transform;
     matrix normalmatrix;
 };
-cbuffer shadowCbuf : register(b2)
+cbuffer shadowCbuf : register(b0)
 {
+    float4x4 View;
+    float4x4 InvView;
+    float4x4 Proj;
+    float4x4 InvProj;
+    float4x4 ViewProj;
+    float4x4 InvViewProj;
+    float4 EyePosW;
+    float2 RenderTargetSize;
+    float2 InvRenderTargetSize;
+    float NearZ;
+    float FarZ;
+    float TotalTime;
+    float DeltaTime;
     matrix lightSpaceMatrix[16];
     float4 numlights;
 }

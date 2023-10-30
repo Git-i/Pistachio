@@ -1,11 +1,18 @@
 #include "ptpch.h"
 #include "DX11RendererBase.h"
 #include "../../Core/Window.h"
-
+#pragma comment(lib, "dxgi.lib")
 namespace Pistachio {
 
 	Error DX11RendererBase::CreateDevice(HWND hWnd, IDXGISwapChain** pSwapChain, ID3D11Device** pd3dDevice, ID3D11DeviceContext** pd3dDeviceContext, ID3D11DepthStencilView** pDSV, ID3D11RenderTargetView** pMainRTV)
 	{
+		IDXGIAdapter* pAdapter;
+		IDXGIFactory* pFactory;
+		CreateDXGIFactory(IID_PPV_ARGS(&pFactory));
+		pFactory->EnumAdapters(0, &pAdapter);
+		DXGI_ADAPTER_DESC desc;
+		pAdapter->GetDesc(&desc);
+		std::wcout << desc.Description;
 		WindowData* data = (WindowData*)(GetWindowDataPtr());
 		// Setup swap chain
 		DXGI_SWAP_CHAIN_DESC sd;
@@ -31,7 +38,7 @@ namespace Pistachio {
 
 		D3D_FEATURE_LEVEL featureLevel;
 		const D3D_FEATURE_LEVEL featureLevelArray[3] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
-		if (D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, pSwapChain, pd3dDevice, &featureLevel, pd3dDeviceContext) != S_OK)
+		if (D3D11CreateDeviceAndSwapChain(pAdapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, pSwapChain, pd3dDevice, &featureLevel, pd3dDeviceContext) != S_OK)
 			return 1;
 		//(*pd3dDevice)->CreateDeferredContext(0,pd3dDeviceContext); 
 		D3D11_DEPTH_STENCIL_DESC dsc = {};

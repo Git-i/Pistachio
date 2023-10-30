@@ -17,6 +17,30 @@ namespace Pistachio {
 		DirectX::XMFLOAT4 exData;
 		DirectX::XMFLOAT4 rotation;
 	};
+	struct PassConstants
+	{
+		DirectX::XMFLOAT4X4 View;
+		DirectX::XMFLOAT4X4 InvView;
+		DirectX::XMFLOAT4X4 Proj;
+		DirectX::XMFLOAT4X4 InvProj;
+		DirectX::XMFLOAT4X4 ViewProj;
+		DirectX::XMFLOAT4X4 InvViewProj;
+		DirectX::XMFLOAT4 EyePosW;
+		//float ShadowMapSize;
+		DirectX::XMFLOAT2 RenderTargetSize;
+		DirectX::XMFLOAT2 InvRenderTargetSize;
+		float NearZ;
+		float FarZ;
+		float TotalTime;
+		float DeltaTime;
+		DirectX::XMMATRIX lightSpaceMatrix[16];
+		DirectX::XMFLOAT4 numlights;
+	};
+	struct TransformData
+	{
+		DirectX::XMMATRIX transform;
+		DirectX::XMMATRIX normal;
+	};
 	class Renderer {
 	public:
 		static void Shutdown();
@@ -28,10 +52,10 @@ namespace Pistachio {
 		static void Submit(Mesh* mesh, Shader* shader,  float* c, float m, float r, int ID, const DirectX::XMMATRIX& transform = DirectX::XMMatrixIdentity(), const DirectX::XMMATRIX& viewProjection = viewproj);
 		static void AddLight(const Light& light);
 		inline static ShaderLibrary& GetShaderLibrary() { return shaderlib; }
-		inline static ID3D11ShaderResourceView* GetFrambufferSRV() { return fbo.GetSRV(); };
-		inline static ID3D11ShaderResourceView* GetIrradianceFrambufferSRV() { return ifbo.GetSRV(); };
-		inline static ID3D11ShaderResourceView* GetPrefilterFrambufferSRV(int level) { return prefilter.GetSRV(); };
-		inline static ID3D11ShaderResourceView* GetBrdfSRV() { return pBrdfSRV; };
+		inline static ID3D11ShaderResourceView* GetFrambufferSRV() { return (ID3D11ShaderResourceView*)fbo.GetID().ptr; };
+		inline static ID3D11ShaderResourceView* GetIrradianceFrambufferSRV() { return (ID3D11ShaderResourceView*)ifbo.GetID().ptr; };
+		inline static ID3D11ShaderResourceView* GetPrefilterFrambufferSRV(int level) { return (ID3D11ShaderResourceView*)prefilter.GetID().ptr; };
+		inline static ID3D11ShaderResourceView* GetBrdfSRV() { return (ID3D11ShaderResourceView*)BrdfTex.GetSRV().ptr; };
 		static void OnEvent(Event& e) {
 			if (e.GetEventType() == EventType::WindowResize)
 				OnWindowResize((WindowResizeEvent&)e);
@@ -39,30 +63,27 @@ namespace Pistachio {
 		static void OnWindowResize(WindowResizeEvent& e)
 		{
 		}
-		struct ShadowData {
-			DirectX::XMMATRIX lightSpaceMatrix[16];
-			DirectX::XMFLOAT4 numlights;
-		};
 		struct LD {
 			Light lights[128];
 		};
 	private:
+		static void CreateConstantBuffers();
+		static void UpdatePassConstants();
+	private:
 		static RenderCubeMap fbo;
 		static RenderCubeMap ifbo;
 		static RenderCubeMap prefilter;
-		static ID3D11ShaderResourceView* pBrdfSRV;
-		static ID3D11RenderTargetView* pBrdfRTV;
+		static RenderTexture BrdfTex;
 		static DirectX::XMMATRIX viewproj;
 		static DirectX::XMVECTOR m_campos;
 		static ShaderLibrary shaderlib;
 		static ConstantBuffer MaterialCB;
-		static ConstantBuffer CameraCB;
+		static ConstantBuffer PassCB;
 		static ConstantBuffer LightCB;
-		static ConstantBuffer ShadowCB;
-		static ConstantBuffer TransformationBuffer;
+		static std::vector<ConstantBuffer> TransformationBuffer;
 		static struct CamerData { DirectX::XMMATRIX viewProjection; DirectX::XMMATRIX view;  DirectX::XMFLOAT4 viewPos; }CameraData;
 		static Texture2D whiteTexture;
-		static ShadowData shadowData;
+		static PassConstants passConstants;
 		static LD LightData;
 		static Light* lightIndexPtr;
 		friend class Scene;

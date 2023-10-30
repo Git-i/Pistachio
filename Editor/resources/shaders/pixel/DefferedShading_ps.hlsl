@@ -9,12 +9,9 @@ Texture2D position_metallic : register(t5);
 Texture2D shadow_t : register(t6);
 
 
-
 SamplerState my_sampler : register(s0);
 SamplerState Brdfsampler : register(s1);
 SamplerState ShadowSampler : register(s2);
-
-
 
 
 float DistributionGGX(float3 N, float3 H, float roughness);

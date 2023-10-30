@@ -1,5 +1,6 @@
 #pragma once
 #include "../Core.h"
+#include "RendererID_t.h"
 namespace Pistachio {
 	enum class TextureAddress {
 		Border, Clamp, Mirror, Wrap
@@ -12,6 +13,6 @@ namespace Pistachio {
 		void ShutDown();
 		~SamplerState() { ShutDown(); }
 	private:
-		ID3D11SamplerState* ImageSamplerState;
+		PlatformRendererID_t ImageSamplerState;
 	};
 }

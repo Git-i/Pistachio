@@ -13,7 +13,11 @@ public:
 		metalt.reset(Pistachio::Texture2D::Create("Cerberus_M.tga"));
 		roughnesst = Pistachio::Texture2D::Create("Cerberus_R.tga");
 		normalt = Pistachio::Texture2D::Create("Cerberus_N.tga");
-		rtx.CreateStack(1280, 720, 1, Pistachio::TextureFormat::RGBA8U);
+		Pistachio::RenderTextureDesc desc;
+		desc.width = 1280;
+		desc.height = 720;
+		desc.Attachments = { Pistachio::TextureFormat::RGBA8U, Pistachio::TextureFormat::D32F };
+		rtx.CreateStack(desc);
 		shader = new Pistachio::Shader(L"VertexShader.cso", L"PixelShader.cso");
 		noreflect = new Pistachio::Shader(L"PBR_no_reflect_vs.cso", L"PBR_no_reflect_fs.cso");
 		envshader = new Pistachio::Shader(L"background_vs.cso", L"background.cso");
@@ -29,7 +33,7 @@ public:
 		this->delta = delta;
 		//Pistachio::RendererBase::SetPrimitiveTopology(Pistachio::PrimitiveTopology::TriangleList);
 		cam->ChangeAspectRatio((float)wndwith / (float)wndheight);
-		Pistachio::Renderer::BeginScene(cam, &rtx, 1);
+		Pistachio::Renderer::BeginScene(cam);
 		rtx.Clear(color);
 		rtx.Bind();
 
@@ -143,7 +147,7 @@ public:
 		wndwith = (INT)ImGui::GetContentRegionAvail().x;
 		wndheight = (INT)ImGui::GetContentRegionAvail().y;
 		cam->SetPosition(pos);
-		ImGui::Image(rtx.GetSRV(), ImGui::GetContentRegionAvail());
+		ImGui::Image(rtx.GetSRV().ptr, ImGui::GetContentRegionAvail());
 		ImGui::End();
 
 	}
@@ -205,8 +209,8 @@ private:
 class Sandbox : public Pistachio::Application
 {
 public:
-	Sandbox() { PushLayer(new ExampleLayer("lol")); GetWindow().SetVsync(0); }
-	~Sandbox() { Pistachio::Renderer::Shutdown(); }
+	Sandbox() : Application("SandBoc") { PushLayer(new ExampleLayer("lol")); GetWindow().SetVsync(0); }
+	~Sandbox() { }
 private:
 };
 

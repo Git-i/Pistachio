@@ -12,7 +12,6 @@ namespace Pistachio {
     public:
         // model data 
         std::vector<Mesh> meshes;
-        ~Model() { for (auto& mesh : meshes) mesh.DestroyMesh(); }
         // constructor, expects a filepath to a 3D model.
         Model(const char* path)
         {

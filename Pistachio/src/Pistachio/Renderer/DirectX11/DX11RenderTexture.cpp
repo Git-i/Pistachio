@@ -1,37 +1,25 @@
 #include "ptpch.h"
 #include "../RenderTexture.h"
 #include "../RendererBase.h" 
-#define DSV(ID) ((ID3D11DepthStencilView*)ID)
-#define DSV_PP(ID) ((ID3D11DepthStencilView**)&ID)
-
-#define RTV_PP(ID) ((ID3D11RenderTargetView**)&ID)
-#define RTV_PP_ID_PP(ID) ((ID3D11RenderTargetView**)ID)
-#define RTV(ID) ((ID3D11RenderTargetView*)ID)
-
-#define SRV_PP(ID) ((ID3D11ShaderResourceView**)&ID)
-#define SRV_PP_ID_PP(ID) ((ID3D11ShaderResourceView**)ID)
-#define SRV(ID) ((ID3D11ShaderResourceView*)ID)
-
-#define RESOURCE(ID) ((ID3D11Resource*)ID)
-#define RESOURCE_PP(ID) ((ID3D11Resource**)&ID)
-#define RESOURCE_PP_ID_PP(ID) ((ID3D11Resource**)ID)
 namespace Pistachio {
 	void RenderCubeMap::Bind(int slot) const
 	{
 		auto context = RendererBase::Getd3dDeviceContext();
-		(context)->OMSetRenderTargets(1, &m_renderTargetView[slot], 0);
+		(context)->OMSetRenderTargets(1, (ID3D11RenderTargetView*const*)m_renderTargetView[slot].GetAddressOf(), 0);
 	}
 	void RenderCubeMap::BindResource(int slot) const
 	{
-		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, 1, &m_shaderResourceView);
+		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, 1, (ID3D11ShaderResourceView*const*)m_shaderResourceView.GetAddressOf());
 	}
 	void RenderCubeMap::CreateStack(int width, int height, int miplevels)
 	{
 		m_width = width;
 		m_height = height;
+		m_mipLevels = miplevels;
 		D3D11_TEXTURE2D_DESC textureDesc;
 		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
 		
+		ID3D11Texture2D* m_renderTargetTexture;
 		ZeroMemory(&textureDesc, sizeof(textureDesc));
 
 		textureDesc.Width = width;
@@ -52,7 +40,7 @@ namespace Pistachio {
 		shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
 		shaderResourceViewDesc.Texture2D.MipLevels = miplevels;
 
-		RendererBase::Getd3dDevice()->CreateShaderResourceView((m_renderTargetTexture), &shaderResourceViewDesc, &m_shaderResourceView);
+		RendererBase::Getd3dDevice()->CreateShaderResourceView((m_renderTargetTexture), &shaderResourceViewDesc, (ID3D11ShaderResourceView**)m_shaderResourceView.ReleaseAndGetAddressOf());
 
 		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
 		for (int i = 0; i < 6; i++) {
@@ -61,12 +49,13 @@ namespace Pistachio {
 			renderTargetViewDesc.Texture2DArray.MipSlice = 0;
 			renderTargetViewDesc.Texture2DArray.FirstArraySlice = i;
 			renderTargetViewDesc.Texture2DArray.ArraySize = 1;
-			RendererBase::Getd3dDevice()->CreateRenderTargetView(m_renderTargetTexture, &renderTargetViewDesc, &(m_renderTargetView[i]));
+			RendererBase::Getd3dDevice()->CreateRenderTargetView(m_renderTargetTexture, &renderTargetViewDesc, (ID3D11RenderTargetView**)(m_renderTargetView[i].ReleaseAndGetAddressOf()));
 		}
+		m_renderTargetTexture->Release();
 	}
 	void RenderCubeMap::Clear(float* clearcolor, int slot)
 	{
-		RendererBase::Getd3dDeviceContext()->ClearRenderTargetView(m_renderTargetView[slot], clearcolor);
+		RendererBase::Getd3dDeviceContext()->ClearRenderTargetView((ID3D11RenderTargetView*)m_renderTargetView[slot].Get(), clearcolor);
 	}
 	RenderCubeMap* RenderCubeMap::Create(int width, int height, int miplevels)
 	{
@@ -74,54 +63,35 @@ namespace Pistachio {
 		result->CreateStack(width, height, miplevels);
 		return result;
 	}
-	void RenderCubeMap::ShutDown() {
-		if (m_pDSV)
-		{
-			while (m_pDSV->Release()) {};
-			m_pDSV = NULL;
-		}
-		if (m_renderTargetTexture) {
-			while (m_renderTargetTexture->Release()) {};
-			m_renderTargetTexture = NULL;
-		}
-		if (m_renderTargetView[0]) {
-			while (m_renderTargetView[0]->Release()) {};
-			m_renderTargetView[0] = NULL;
-		}
-		if (m_renderTargetView[1]) {
-			while (m_renderTargetView[1]->Release()) {};
-			m_renderTargetView[1] = NULL;
-		}
-		if (m_renderTargetView[2]) {
-			while (m_renderTargetView[2]->Release()) {};
-			m_renderTargetView[2] = NULL;
-		}
-		if (m_renderTargetView[3]) {
-			while (m_renderTargetView[3]->Release()) {};
-			m_renderTargetView[3] = NULL;
-		}
-		if (m_renderTargetView[4]) {
-			while (m_renderTargetView[4]->Release()) {};
-			m_renderTargetView[4] = NULL;
-		}
-		if (m_renderTargetView[5]) {
-			while (m_renderTargetView[5]->Release()) {};
-			m_renderTargetView[5] = NULL;
-		}
-		if (m_shaderResourceView) {
-			while (m_shaderResourceView->Release()) {};
-			m_shaderResourceView = NULL;
-		}
+	RendererID_t RenderCubeMap::GetID()
+	{
+		RendererID_t ID;
+		ID.ptr = m_shaderResourceView.Get();
+		return ID;
 	}
-	RenderCubeMap::~RenderCubeMap() {};
+	Texture2D RenderCubeMap::GetResource()
+	{
+		Texture2D returnVal;
+		returnVal.m_ID = m_shaderResourceView;
+		returnVal.m_Height = m_height;
+		returnVal.m_Width = m_width;
+		returnVal.m_MipLevels = m_mipLevels;
+		return returnVal;
+	}
+	RendererID_t RenderCubeMap::Get_RTID(int slot)
+	{
+		RendererID_t ID;
+		ID.ptr = m_renderTargetView[slot].Get();
+		return ID;
+	}
 	void RenderTexture::CreateStack(const RenderTextureDesc& RTdesc)
 	{
 		static int i = 0;
-		char your_name[8] = "Collins";
-		std::cout << your_name << ++i<<std::endl;
 		m_width = RTdesc.width;
 		m_height = RTdesc.height;
 		m_miplevels = RTdesc.miplevels;
+		if (m_pDSV);
+		m_pDSV = nullptr;
 		for (auto format : RTdesc.Attachments.Attachments) {
 			bool IsColor = (int)format % 2 == 0;
 			ID3D11Texture2D* pTexture;
@@ -154,8 +124,10 @@ namespace Pistachio {
 				renderTargetViewDesc.Texture2D.MipSlice = 0;
 
 				RendererBase::Getd3dDevice()->CreateRenderTargetView(pTexture, &renderTargetViewDesc, &pRTV);
-				m_shaderResourceView.push_back(reinterpret_cast<RendererID_t>(pSRV));
-				m_renderTargetView.push_back(reinterpret_cast<RendererID_t>(pRTV));
+				m_shaderResourceView.push_back(pSRV);
+				m_renderTargetView.push_back(pRTV);
+				pSRV->Release();
+				pRTV->Release();
 			}
 			else
 			{
@@ -163,7 +135,7 @@ namespace Pistachio {
 				dsv.Format = RendererUtils::DXGITextureFormat(format);
 				dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 				dsv.Texture2D.MipSlice = 0;
-				RendererBase::Getd3dDevice()->CreateDepthStencilView(pTexture, &dsv, DSV_PP(m_pDSV));
+				RendererBase::Getd3dDevice()->CreateDepthStencilView(pTexture, &dsv, (ID3D11DepthStencilView**)(m_pDSV.GetAddressOf()));
 			}
 			pTexture->Release();
 		}
@@ -177,53 +149,55 @@ namespace Pistachio {
 	}
 	void RenderTexture::Bind(int slot, int count) const
 	{
-		auto context = RendererBase::Getd3dDeviceContext();
-		(context)->OMSetRenderTargets(count, RTV_PP_ID_PP(&m_renderTargetView[slot]), DSV(m_pDSV));
+		
+		if(m_pDSV)
+			RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(count, (ID3D11RenderTargetView* const*)m_renderTargetView[slot].GetAddressOf(), ((ID3D11DepthStencilView*)m_pDSV.Get()));
+		else
+			RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(count, (ID3D11RenderTargetView* const*)m_renderTargetView[slot].GetAddressOf(), nullptr);
 		Pistachio::RendererBase::ChangeViewport(m_width, m_height);
 	}
 	void RenderTexture::BindResource(int slot, int count, int index) const
 	{
-		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, count, SRV_PP_ID_PP(&m_shaderResourceView[index]));
+		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, count, (ID3D11ShaderResourceView*const*)m_shaderResourceView[index].GetAddressOf());
 	}
 	void RenderTexture::Clear(float* clearcolor, int slot)
 	{
-		RendererBase::Getd3dDeviceContext()->ClearRenderTargetView(RTV(m_renderTargetView[slot]), clearcolor);
-		if (m_pDSV)
-			RendererBase::Getd3dDeviceContext()->ClearDepthStencilView(DSV(m_pDSV), D3D11_CLEAR_DEPTH, 1.0f, 0);
+		RendererBase::Getd3dDeviceContext()->ClearRenderTargetView((ID3D11RenderTargetView*)m_renderTargetView[slot].Get(), clearcolor);
 	}
-	void RenderTexture::Resize(int width, int height)
+	void RenderTexture::ClearDepth()
 	{
-		Shutdown();
+		if (m_pDSV)
+			RendererBase::Getd3dDeviceContext()->ClearDepthStencilView((ID3D11DepthStencilView*)m_pDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
-	void RenderTexture::Shutdown() {
-		if (m_pDSV) {
-			while (DSV(m_pDSV)->Release()) {};
-			m_pDSV = NULL;
+	void RenderTexture::ClearAll(float* clearcolor)
+	{
+		for (auto& e : m_renderTargetView)
+		{
+			RendererBase::Getd3dDeviceContext()->ClearRenderTargetView((ID3D11RenderTargetView*)e.Get(), clearcolor);
 		}
-		for (auto rtv : m_renderTargetView) {
-			if (rtv)
-			{
-				while (RTV(rtv)->Release()) {};
-				rtv = NULL;
-			}
-		}
-		for (auto srv : m_shaderResourceView) {
-			if (srv)
-			{
-				while (SRV(srv)->Release()) {};
-				srv = NULL;
-			}
-		}
-		m_shaderResourceView.clear();
-		m_renderTargetView.clear();
+		if (m_pDSV)
+			RendererBase::Getd3dDeviceContext()->ClearDepthStencilView((ID3D11DepthStencilView*)m_pDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
-	RenderTexture::~RenderTexture() {
-		Shutdown();
+	RendererID_t RenderTexture::GetSRV(int slot) const { RendererID_t ID; ID.ptr = (void*)m_shaderResourceView[slot].Get(); return ID; }
+	Texture2D RenderTexture::GetRenderTexture(int slot) const
+	{
+		Texture2D returnVal;
+		returnVal.m_Height = m_height;
+		returnVal.m_Width = m_width;
+		returnVal.m_ID = m_shaderResourceView[slot];
+		returnVal.m_MipLevels = 1;
+		return returnVal;
 	}
-	RendererID_t RenderTexture::GetSRV(int slot) const{ return m_shaderResourceView[slot]; }
-	RendererID_t RenderTexture::GetRTV(int slot){ return m_renderTargetView[slot]; }
-	RendererID_t RenderTexture::GetDSV() { return m_pDSV; }
-	void RenderTexture::GetRenderTexture(RendererID_t* pTexture, int slot)const { SRV(m_shaderResourceView[slot])->GetResource(RESOURCE_PP_ID_PP(pTexture)); }
-	void RenderTexture::GetDepthTexture(RendererID_t* pTexture) const { return DSV(m_pDSV)->GetResource(RESOURCE_PP_ID_PP(pTexture)); }
+	RendererID_t RenderTexture::GetRTV(int slot) { RendererID_t ID; ID.ptr = (void*)m_renderTargetView[slot].Get(); return ID; }
+	RendererID_t RenderTexture::GetDSV() { RendererID_t ID; ID.ptr = m_pDSV.GetAddressOf(); return ID; }
+	Texture2D RenderTexture::GetDepthTexture() const
+	{
+		Texture2D returnVal;
+		returnVal.m_Height = m_height;
+		returnVal.m_Width = m_width;
+		returnVal.m_ID = m_pDSV;
+		returnVal.m_MipLevels = 1;
+		return returnVal;
+	}
 }
 
