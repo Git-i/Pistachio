@@ -10,6 +10,7 @@ namespace Pistachio {
 		m_translateButton(Texture2D::Create("resources/textures/icons/translate_icon.png")),
 		m_rotateButton(Texture2D::Create("resources/textures/icons/rotate_icon.png")),
 		m_scaleButton(Texture2D::Create("resources/textures/icons/scale_icon.png")),
+		m_EntityTexture(Texture2D::Create(1, 1, TextureFormat::INT, nullptr, (TextureFlags)((int)TextureFlags::ALLOW_CPU_ACCESS_READ | (int)TextureFlags::USAGE_STAGING))),
 		envshader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso")
 	{
 		cube.CreateStack("cube.obj");
@@ -94,9 +95,9 @@ namespace Pistachio {
 			static int which = 0;
 			ImGui::SliderInt("Gbuffer-Index", &which, 0, 3);
 			if(ImGui::GetWindowWidth() < ImGui::GetWindowHeight())
-			ImGui::Image(reinterpret_cast<void*>(m_ActiveScene->GetGBuffer().GetSRV(which)), { ImGui::GetWindowWidth(), ImGui::GetWindowWidth() * wndheight / wndwith });
+			ImGui::Image(m_ActiveScene->GetGBuffer().GetSRV(which).ptr, { ImGui::GetWindowWidth(), ImGui::GetWindowWidth() * wndheight / wndwith });
 			else
-			ImGui::Image(reinterpret_cast<void*>(m_ActiveScene->GetGBuffer().GetSRV(which)), { ImGui::GetWindowHeight() * wndwith/wndheight, ImGui::GetWindowHeight() });
+			ImGui::Image(m_ActiveScene->GetGBuffer().GetSRV(which).ptr, { ImGui::GetWindowHeight() * wndwith/wndheight, ImGui::GetWindowHeight() });
 			ImGui::End();
 		}
 		if (ImGui::Begin("Scene"))
@@ -110,7 +111,7 @@ namespace Pistachio {
 			}
 			wndwith = viewportSize.x;
 			wndheight = viewportSize.y;
-			ImGui::Image(reinterpret_cast<void*>(m_ActiveScene->GetRenderedScene().GetSRV(0)), viewportSize);
+			ImGui::Image(m_ActiveScene->GetRenderedScene().GetSRV(0).ptr, viewportSize);
 			if (ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
@@ -127,19 +128,7 @@ namespace Pistachio {
 			if (m_ViewportHovered)
 				if (MouseScreenPos.x >= 0 && MouseScreenPos.y >= 0 && MouseScreenPos.x <= wndwith - 1 && MouseScreenPos.y <= wndheight - 1)
 				{
-					ID3D11Texture2D* pSelectedEntityTexture;
-					D3D11_TEXTURE2D_DESC txDesc = {};
-					txDesc.Format = DXGI_FORMAT_R32_SINT;
-					txDesc.Height = 1;
-					txDesc.Width = 1;
-					txDesc.ArraySize = 1;
-					txDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-					txDesc.Usage = D3D11_USAGE_STAGING;
-					txDesc.SampleDesc.Count = 1;
-					txDesc.SampleDesc.Quality = 0;
-					RendererBase::Getd3dDevice()->CreateTexture2D(&txDesc, NULL, &pSelectedEntityTexture);
-					RendererID_t pSrcResource;
-					m_ActiveScene->GetGBuffer().GetRenderTexture(&pSrcResource, 4);
+					Texture2D src = m_ActiveScene->GetGBuffer().GetRenderTexture(4);
 					D3D11_BOX sourceRegion;
 					sourceRegion.left = MouseScreenPos.x * 1920 / wndwith;
 					sourceRegion.right = sourceRegion.left + 1;
@@ -147,12 +136,13 @@ namespace Pistachio {
 					sourceRegion.bottom = sourceRegion.top + 1;
 					sourceRegion.front = 0;
 					sourceRegion.back = 1;
-					RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(pSelectedEntityTexture, 0, 0, 0, 0, ((ID3D11Resource*)pSrcResource), 0, &sourceRegion);
+					m_EntityTexture->CopyIntoRegion(src, 0, 0, sourceRegion.left, sourceRegion.right, sourceRegion.top, sourceRegion.bottom);
+					ID3D11Resource* pSelectedEntityTexture = (ID3D11Resource*)m_EntityTexture->GetID().ptr;
+					//RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(pSelectedEntityTexture, 0, 0, 0, 0, ((ID3D11Resource*)pSrcResource), 0, &sourceRegion);
 					D3D11_MAPPED_SUBRESOURCE mappedResource;
 					RendererBase::Getd3dDeviceContext()->Map(pSelectedEntityTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
 					m_HoveredEntity = *(int*)mappedResource.pData == -1 ? Entity() : Entity(*(entt::entity*)mappedResource.pData, m_ActiveScene.get());
-					((ID3D11Resource*)pSrcResource)->Release();
-					pSelectedEntityTexture->Release();
+					RendererBase::Getd3dDeviceContext()->Unmap(pSelectedEntityTexture, 0);
 				}
 
 			// Gizmos
@@ -216,23 +206,23 @@ namespace Pistachio {
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0,0,0,0 });
 				bool translate, rotate, scale;
 				if (m_GizmoType == ImGuizmo::OPERATION::TRANSLATE)
-					translate = ImGui::ImageButton(m_translateButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {0.33, 0.41, 0.772, 1.0});
+					translate = ImGui::ImageButton(m_translateButton->GetID().ptr, ImVec2(32, 32), { 0,0 }, { 1,1 }, -1, { 0,0,0,0 }, { 0.33, 0.41, 0.772, 1.0 });
 				else
-					translate = ImGui::ImageButton(m_translateButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, 1.0});
+					translate = ImGui::ImageButton(m_translateButton->GetID().ptr, ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, 1.0});
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
 					ImGui::SetTooltip("Translate (W)");
 				ImGui::SameLine();
 				if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
-					rotate = ImGui::ImageButton(m_rotateButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {0.33, 0.41, 0.772, 1.0});
+					rotate = ImGui::ImageButton(m_rotateButton->GetID().ptr, ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {0.33, 0.41, 0.772, 1.0});
 				else
-					rotate = ImGui::ImageButton(m_rotateButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, 1.0});
+					rotate = ImGui::ImageButton(m_rotateButton->GetID().ptr, ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, 1.0});
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
 					ImGui::SetTooltip("Rotate (E)");
 				ImGui::SameLine();
 				if (m_GizmoType == ImGuizmo::OPERATION::SCALE)
-					scale = ImGui::ImageButton(m_scaleButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {0.33, 0.41, 0.772, 1.0});
+					scale = ImGui::ImageButton(m_scaleButton->GetID().ptr, ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {0.33, 0.41, 0.772, 1.0});
 				else
-					scale = ImGui::ImageButton(m_scaleButton->GetImGuiID(), ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, 1.0});
+					scale = ImGui::ImageButton(m_scaleButton->GetID().ptr, ImVec2(32, 32), {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, 1.0});
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
 					ImGui::SetTooltip("Scale (R)");
 				if (translate)
@@ -257,14 +247,14 @@ namespace Pistachio {
 		ImGui::SetCursorPosX((ImGui::GetWindowWidth() - size) / 2);
 		if (m_SceneState == SceneState::Edit)
 		{
-			if (ImGui::ImageButton(m_playButton->GetImGuiID(), ImVec2(size, size)))
+			if (ImGui::ImageButton(m_playButton->GetID().ptr, ImVec2(size, size)))
 			{
 				OnScenePlay();
 			}
 		}
 		else if (m_SceneState == SceneState::Play)
 		{
-			if (ImGui::ImageButton(m_stopButton->GetImGuiID(), ImVec2(size, size)))
+			if (ImGui::ImageButton(m_stopButton->GetID().ptr, ImVec2(size, size)))
 			{
 				OnSceneStop();
 			}

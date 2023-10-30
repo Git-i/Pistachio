@@ -29,7 +29,7 @@ namespace Pistachio {
 		float wndwith = 0;
 		float wndheight = 0;
 		Ref<Scene> m_ActiveScene;
-		Ref<Texture2D> m_playButton, m_stopButton, m_translateButton, m_rotateButton, m_scaleButton;
+		Ref<Texture2D> m_playButton, m_stopButton, m_translateButton, m_rotateButton, m_scaleButton, m_EntityTexture;
 		Mesh cube;
 		Shader envshader;
 		Entity m_HoveredEntity;

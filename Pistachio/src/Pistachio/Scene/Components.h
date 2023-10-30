@@ -2,6 +2,7 @@
 #include <DirectXMath.h>
 #include "Pistachio/Renderer/Camera.h"
 #include "Pistachio/Renderer/Mesh.h"
+#include "Pistachio\Renderer\ShadowMap.h"
 #include "Pistachio/Core/UUID.h"
 #include "Entity.h"
 namespace Pistachio{
@@ -32,6 +33,7 @@ namespace Pistachio{
 		DirectX::XMFLOAT4 RotationEulerHint = {0.f,0.f,0.f,0.f};
 		DirectX::XMVECTOR Scale = {1.f,1.f,1.f,1.f};
 		mutable int NumNegativeScaleComps = 0;
+		
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
 		TransformComponent(const DirectX::XMVECTOR& translation) : Translation(translation){}
@@ -66,6 +68,8 @@ namespace Pistachio{
 		DirectX::XMFLOAT3 color = { 1,1,1 };
 		float roughness = 0.5f;
 		float metallic = 0.f;
+		std::size_t cbIndex = 0;
+		bool bDirty = true;
 		MeshRendererComponent() :Mesh(nullptr){ };
 		MeshRendererComponent(const MeshRendererComponent&) = default;
 		MeshRendererComponent(const char* path) { Mesh.reset(Pistachio::Mesh::Create(path)); }
@@ -111,8 +115,7 @@ namespace Pistachio{
 		bool CastShadow = false;
 		DirectX::XMFLOAT3 exData = { 0.01f,0.1f,1.0f };
 		DirectX::XMFLOAT3 rotation;
-		ID3D11DepthStencilView* pDSV = nullptr;
-		ID3D11ShaderResourceView* pSRV = nullptr;
+		ShadowMap shadowMap;
 		LightComponent(const LightComponent& other)
 		{
 			Type = other.Type;
@@ -121,7 +124,6 @@ namespace Pistachio{
 			CastShadow = other.CastShadow;
 			exData = other.exData;
 			rotation = other.rotation;
-			pDSV = nullptr; pSRV = nullptr;
 		}
 		LightComponent() = default;
 	};

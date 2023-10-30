@@ -4,37 +4,45 @@ struct VS_OUT
 	float3 normal : FRAGMENT_NORMAL;
     float2 UV : UV;
     float3 viewPos : V_POSITION;
-    float depthViewSpace : SM_LAYER;
+    float shadowMaplayer : SM_LAYER;
     int numlights : NUM_LIGHTS;
     float4 lightSpacePositions[16] : LS_POS;
+    float shadowMapSize : SM_SIZE;
 	float4 position : SV_POSITION;
 };
 
-cbuffer CBuf : register(b0)
+cbuffer FrameCB : register(b0)
 {
-	matrix viewProjection;
-    matrix view;
-    float4 viewPos;
+    float4x4 View;
+    float4x4 InvView;
+    float4x4 Proj;
+    float4x4 InvProj;
+    float4x4 ViewProj;
+    float4x4 InvViewProj;
+    float4 EyePosW;
+    float2 RenderTargetSize;
+    float2 InvRenderTargetSize;
+    float NearZ;
+    float FarZ;
+    float TotalTime;
+    float DeltaTime;
+    matrix lightSpaceMatrix[16];
+    float4 numlights;
 };
-cbuffer CBuf2 : register(b1)
+cbuffer ModelCB : register(b1)
 {
     matrix transform;
     matrix normalmatrix;
 };
 
-cbuffer shadowCbuf : register(b2)
-{
-    matrix lightSpaceMatrix[16];
-    float4 numlights;
-}
 VS_OUT main(float3 pos : POSITION, float3 normal : NORMAL,float2 UV : UV)
 {
 	VS_OUT vso;
-    vso.worldpos = mul(float4(pos, 1.0f), transform);
+    vso.worldpos = mul(float4(pos, 1.0f), transform).xyz;
     vso.UV = UV;
     vso.normal = normalize(mul(normal, (float3x3) normalmatrix));
-    vso.viewPos = viewPos;
-    vso.position = mul(mul(float4(pos, 1.0f), transform), viewProjection);
+    vso.viewPos = EyePosW.xyz;
+    vso.position = mul(mul(float4(pos, 1.0f), transform), ViewProj);
     vso.numlights = numlights.x;
     for (int i = 0; i < 4; i++)
     {
@@ -43,8 +51,9 @@ VS_OUT main(float3 pos : POSITION, float3 normal : NORMAL,float2 UV : UV)
         vso.lightSpacePositions[i*4 + 2] = mul(float4(vso.worldpos, 1.f), lightSpaceMatrix[i*4 + 2]);
         vso.lightSpacePositions[i*4 + 3] = mul(float4(vso.worldpos, 1.f), lightSpaceMatrix[i*4 + 3]);
     }
-    float4 fragPosViewSpace = mul(float4(vso.worldpos, 1.0), view);
-    vso.depthViewSpace = abs(fragPosViewSpace.z);
-    
+    float4 fragPosViewSpace = mul(float4(vso.worldpos, 1.0), View);
+    float depthViewspace = abs(fragPosViewSpace.z);
+    vso.shadowMaplayer = depthViewspace;
+    vso.shadowMapSize = EyePosW.w;
     return vso;
 }

@@ -32,6 +32,8 @@ namespace Pistachio {
 	Error Mesh::CreateStack(const char* filepath)
 	{
 		PT_PROFILE_FUNCTION()
+		m_vertices.clear();
+		m_indices.clear();
 		PT_CORE_INFO("Loading Mesh {0}", filepath);
 		if(!Pistachio::Error::CheckFileExistence(filepath))
 			return Error(ErrorType::NonExistentFile, std::string(__FUNCTION__) + ", filename: " + filepath);

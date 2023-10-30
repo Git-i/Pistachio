@@ -30,8 +30,8 @@ namespace Pistachio {
 		const RenderTexture& GetGBuffer() { return m_gBuffer; };
 		const RenderTexture& GetRenderedScene() { return m_finalRender; };
 	private:
-		template<typename T>
-		void OnComponentAdded(Entity entity, T& component);
+		template<typename T> void OnComponentAdded(Entity entity, T& component);
+		void UpdateObjectCBs();
 	private:
 		entt::registry m_Registry;
 		physx::PxScene* m_PhysicsScene = NULL;

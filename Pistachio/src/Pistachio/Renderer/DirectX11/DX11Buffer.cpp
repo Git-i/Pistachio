@@ -2,18 +2,11 @@
 #include "../Buffer.h"
 #include "../RendererBase.h"
 
-#define BUFFER(ID) ((ID3D11Buffer*)ID)
-#define BUFFER_PP(ID) ((ID3D11Buffer**)&ID)
+#define BUFFER(ID) ((ID3D11Buffer*)ID.Get())
+#define BUFFER_PP(ID) ((ID3D11Buffer**)ID.GetAddressOf())
 namespace Pistachio {
 	VertexBuffer::VertexBuffer()
 	{
-	}
-	void VertexBuffer::ShutDown()
-	{
-		if (ID) {
-			while (BUFFER(ID)->Release()) {};
-			ID = NULL;
-		}
 	}
 	void VertexBuffer::Bind() const
 	{
@@ -38,7 +31,7 @@ namespace Pistachio {
 		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		bd.MiscFlags = 0;
 		bd.ByteWidth = size;
-		RendererBase::Getd3dDevice()->CreateBuffer(&bd, nullptr, ((ID3D11Buffer**)&ID));
+		RendererBase::Getd3dDevice()->CreateBuffer(&bd, nullptr, BUFFER_PP(ID));
 	}
 	void VertexBuffer::SetData(const void* data, unsigned int size)
 	{
@@ -67,20 +60,11 @@ namespace Pistachio {
 		bd.ByteWidth = size;
 		D3D11_SUBRESOURCE_DATA sd = {};
 		sd.pSysMem = vertices;
-		RendererBase::Getd3dDevice()->CreateBuffer(&bd, &sd, BUFFER_PP(ID));
+		RendererBase::Getd3dDevice()->CreateBuffer(&bd, &sd, (ID3D11Buffer**)(ID.ReleaseAndGetAddressOf()));
 	}
 
 	IndexBuffer::IndexBuffer()
 	{
-	}
-	void IndexBuffer::ShutDown()
-	{
-		PT_PROFILE_FUNCTION()
-		if (ID) {
-			UnBind();
-			while (BUFFER(ID)->Release()) {};
-			ID = NULL;
-		}
 	}
 	void IndexBuffer::Bind() const
 	{
@@ -101,7 +85,7 @@ namespace Pistachio {
 		bd.ByteWidth = size;
 		D3D11_SUBRESOURCE_DATA sd = {};
 		sd.pSysMem = indices;
-		RendererBase::Getd3dDevice()->CreateBuffer(&bd, &sd, BUFFER_PP(ID));
+		RendererBase::Getd3dDevice()->CreateBuffer(&bd, &sd, (ID3D11Buffer**)(ID.ReleaseAndGetAddressOf()));
 	}
 	IndexBuffer* IndexBuffer::Create(const void* indices, unsigned int size, unsigned int stride)
 	{
@@ -110,5 +94,3 @@ namespace Pistachio {
 		return result;
 	}
 }
-#undef BUFFER(ID)
-#undef BUFFER_PP(ID)

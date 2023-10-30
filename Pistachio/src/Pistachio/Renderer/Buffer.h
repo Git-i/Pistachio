@@ -5,7 +5,6 @@ namespace Pistachio {
 	{
 	public:
 		VertexBuffer();
-		void ShutDown();
 		void Bind() const;
 		void UnBind();
 		static VertexBuffer* Create(unsigned int size, unsigned int stride);
@@ -16,13 +15,12 @@ namespace Pistachio {
 		
 	private:
 		unsigned int stride = 0;
-		RendererID_t ID = NULL;
+		PlatformRendererID_t ID;
 	};
 	class IndexBuffer
 	{
 	public:
 		IndexBuffer();
-		void ShutDown();
 		void Bind() const;
 		void UnBind();
 		static IndexBuffer* Create(const void* indices, unsigned int size, unsigned int stride);
@@ -30,7 +28,7 @@ namespace Pistachio {
 		inline unsigned int GetCount() const{ return count; }
 	private:
 		unsigned int count;
-		RendererID_t ID = NULL;
+		PlatformRendererID_t ID;
 	};
 	struct Buffer
 	{

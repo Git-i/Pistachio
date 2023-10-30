@@ -7,14 +7,14 @@ namespace Pistachio {
 	{
 		struct {
 			float x, y, z;
-		} position;
+		} position = {0,0,0};
 		struct {
 			float x, y, z;
-		} normal;
+		} normal = {0,0,0};
 		struct
 		{
 			float u, v;
-		} TexCoord;
+		} TexCoord = {0,0};
 		Vertex(float px, float py, float pz, float nx, float ny, float nz, float u, float v)
 			: position{ px, py, pz },normal{nx, ny, nz}, TexCoord{u, v}
 		{
@@ -35,8 +35,6 @@ namespace Pistachio {
 		inline static int GetLayoutSize() { return 3; }
 		inline const VertexBuffer& GetVertexBuffer() const { return m_VertexBuffer; }
 		inline const IndexBuffer& GetIndexBuffer() const { return m_IndexBuffer; }
-		inline void DestroyMesh() { m_VertexBuffer.ShutDown(); m_IndexBuffer.ShutDown(); m_vertices.clear(); m_indices.clear();};
-		~Mesh() { DestroyMesh(); };
 	private:
 		static BufferLayout layout[];
 		std::vector<Vertex> m_vertices;

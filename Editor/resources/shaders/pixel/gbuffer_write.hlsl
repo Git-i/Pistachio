@@ -20,9 +20,11 @@ struct PSINTPUT
     float3 Normal : FRAGMENT_NORMAL;
     float2 uv : UV;
     float3 camPos : V_POSITION;
-    float depthViewspace : SM_LAYER;
+    float depthViewSpace : SM_LAYER;
     int numlights : NUM_LIGHTS;
+    float shadowMapSize : SM_SIZE;
     float4 lightSpacePositions[16] : LS_POS;
+    float4x4 view : VIEW;
 };
 
 struct PSOUTPUT
@@ -33,11 +35,11 @@ struct PSOUTPUT
     float4 shadow_info : SV_Target3;
     int id : SV_Target4;
 };
-float Shadow(float3 projCoords, int layer, int index)
+float Shadow(float3 projCoords, int layer, int index, float shadowMapSize)
 {
     projCoords.x = (projCoords.x + 1) * 0.25;
     projCoords.y = (1 - projCoords.y) * 0.25;
-    
+    const float SMAP_DX = 1.f / shadowMapSize;
     projCoords.z = 0 + projCoords.z * (1);
     float currentDepth = projCoords.z;
     if (currentDepth > 1.0)
@@ -46,10 +48,17 @@ float Shadow(float3 projCoords, int layer, int index)
     }
     float x[4] = { 0, 0.5, 0, 0.5 };
     float y[4] = { 0, 0, 0.5, 0.5 };
-    float closestDepth = shadowMap[index].Sample(ShadowSampler, float2(projCoords.x + x[layer], projCoords.y + y[layer])).r;
+    float closestDepth1 = shadowMap[index].Sample(ShadowSampler, float2(projCoords.x + x[layer], projCoords.y + y[layer])).r;
+    float closestDepth2 = shadowMap[index].Sample(ShadowSampler, float2(projCoords.x + x[layer] + SMAP_DX, projCoords.y + y[layer])).r;
+    float closestDepth3 = shadowMap[index].Sample(ShadowSampler, float2(projCoords.x + x[layer], projCoords.y + y[layer] + +SMAP_DX)).r;
+    float closestDepth4 = shadowMap[index].Sample(ShadowSampler, float2(projCoords.x + x[layer] + SMAP_DX, projCoords.y + y[layer] + +SMAP_DX)).r;
+
     
-    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
-    return shadow;
+    float shadow = currentDepth > closestDepth1 ? 1.0 : 0.0;
+    float shadow1 = currentDepth > closestDepth2 ? 1.0 : 0.0;
+    float shadow2 = currentDepth > closestDepth3 ? 1.0 : 0.0;
+    float shadow3 = currentDepth > closestDepth4 ? 1.0 : 0.0;
+    return (shadow + shadow1 + shadow2 + shadow3)/4.f;
 }
 PSOUTPUT main(PSINTPUT input)
 {
@@ -58,34 +67,38 @@ PSOUTPUT main(PSINTPUT input)
     pso.id = entityID;
     pso.normal_rougness = float4(input.Normal, roughnessMultiplier * roughnessTexture.Sample(my_sampler, input.uv).x);
     pso.position_metallic = float4(input.WorldPos, metallicMultiplier * metallicTexture.Sample(my_sampler, input.uv).x);
+    
+    float4 colors[4] = { float4(1.f, 0.3f, 0.3f, 1.f), float4(1.f, 1.f, 0.33f, 1.f), float4(0.3f, 0.2f, 1.f, 1.f), float4(0.f, 0.7f, 0.23f, 1.f) };
     int shadowMaplayer = 3;
-    float cascadePlaneDistances[4] = { 10.f, 50.f, 70.f, 100.f };
-    if (input.depthViewspace < cascadePlaneDistances[3])
+    float cascadePlaneDistances[4] = { 30.f, 100.f, 500.f, 1000.f };
+    if (input.depthViewSpace <= cascadePlaneDistances[3])
     {
         shadowMaplayer = 3;
     }
-    if (input.depthViewspace < cascadePlaneDistances[2])
+    if (input.depthViewSpace <= cascadePlaneDistances[2])
     {
         shadowMaplayer = 2;
     }
-    if (input.depthViewspace < cascadePlaneDistances[1])
+    if (input.depthViewSpace <= cascadePlaneDistances[1])
     {
         shadowMaplayer = 1;
     }
-    if (input.depthViewspace < cascadePlaneDistances[0])
+    if (input.depthViewSpace <= cascadePlaneDistances[0])
     {
         shadowMaplayer = 0;
     }
+    pso.color = colors[shadowMaplayer];
     float3 lightSpacePos = input.lightSpacePositions[shadowMaplayer].xyz / input.lightSpacePositions[shadowMaplayer].w;
-    pso.shadow_info.x = Shadow(lightSpacePos.xyz, shadowMaplayer, 0);
+    pso.shadow_info.x = Shadow(lightSpacePos.xyz, shadowMaplayer, 0, input.shadowMapSize);
     
-    lightSpacePos = input.lightSpacePositions[4+shadowMaplayer].xyz / input.lightSpacePositions[4+shadowMaplayer].w;
-    pso.shadow_info.y = Shadow(lightSpacePos.xyz, shadowMaplayer,  1);
+    lightSpacePos = input.lightSpacePositions[4 + shadowMaplayer].xyz / input.lightSpacePositions[4 + shadowMaplayer].w;
+    pso.shadow_info.y = Shadow(lightSpacePos.xyz, shadowMaplayer, 1, input.shadowMapSize);
     
-    lightSpacePos = input.lightSpacePositions[8+shadowMaplayer].xyz / input.lightSpacePositions[8+shadowMaplayer].w;
-    pso.shadow_info.z = Shadow(lightSpacePos.xyz, shadowMaplayer, 2);
+    lightSpacePos = input.lightSpacePositions[8 + shadowMaplayer].xyz / input.lightSpacePositions[8 + shadowMaplayer].w;
+    pso.shadow_info.z = Shadow(lightSpacePos.xyz, shadowMaplayer, 2, input.shadowMapSize);
     
-    lightSpacePos = input.lightSpacePositions[12+shadowMaplayer].xyz / input.lightSpacePositions[12+shadowMaplayer].w;
-    pso.shadow_info.a = Shadow(lightSpacePos.xyz, shadowMaplayer, 3);
+    lightSpacePos = input.lightSpacePositions[12 + shadowMaplayer].xyz / input.lightSpacePositions[12 + shadowMaplayer].w;
+    pso.shadow_info.a = Shadow(lightSpacePos.xyz, shadowMaplayer, 3, input.shadowMapSize);
+    //pso.color = float4((input.shadowMapSize / 8192.f).xxx, 1.f);
     return pso;
 }

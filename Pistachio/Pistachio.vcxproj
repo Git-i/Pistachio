@@ -150,6 +150,7 @@
     <ClInclude Include="src\Pistachio\ImGui\ImGuiLayer.h" />
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.h" />
     <ClInclude Include="src\Pistachio\Core\Window.h" />
+    <ClInclude Include="src\Pistachio\Renderer\ShadowMap.h" />
     <ClInclude Include="src\Pistachio\Scene\Components.h" />
     <ClInclude Include="src\Pistachio\Scene\Entity.h" />
     <ClInclude Include="src\Pistachio\Scene\Scene.h" />
@@ -463,6 +464,7 @@
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsPlatformUtils.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11ShadowMap.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Texture.cpp" />
     <ClCompile Include="src\Pistachio\Core\Transform.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Camera.cpp" />
@@ -493,7 +495,6 @@
     </ClCompile>
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RendererBase.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\Texture.cpp" />
     <ClCompile Include="vendor\imguizmo\ImGuizmo.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>

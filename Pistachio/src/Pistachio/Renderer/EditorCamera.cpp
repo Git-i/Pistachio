@@ -25,7 +25,8 @@ namespace Pistachio {
 		m_Position = CalculatePosition();
 		DirectX::XMVECTOR orientation = GetOrientation();
 		//We Apply A Rigid-Body Transform Inverse Instead of a standard XMMatrixInverse 
-		m_ViewMatrix = DirectX::XMMatrixTranslationFromVector(DirectX::XMVectorNegate(m_Position)) * DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationQuaternion(orientation));
+		m_ViewMatrix = DirectX::XMMatrixLookAtLH(m_Position, m_FocalPoint, DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f));
+		//m_ViewMatrix = DirectX::XMMatrixTranslationFromVector(DirectX::XMVectorNegate(m_Position)) * DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationQuaternion(orientation));
 	}
 
 	std::pair<float, float> EditorCamera::PanSpeed() const
@@ -63,7 +64,7 @@ namespace Pistachio {
 			DirectX::XMFLOAT2 delta = { (mouse.x - m_InitialMousePosition.x) * 0.003f , (mouse.y - m_InitialMousePosition.y) * 0.003f  };
 			m_InitialMousePosition = mouse;
 
-			if (Input::IsKeyPressed(PT_KEY_MBUTTON))
+			if (Input::IsKeyPressed(PT_KEY_LCTRL) && Input::IsKeyPressed(PT_KEY_LBUTTON))
 				MouseRotate(delta);
 			else if (Input::IsKeyPressed(PT_KEY_LSHIFT) && Input::IsKeyPressed(PT_KEY_LBUTTON))
 				MousePan(delta);

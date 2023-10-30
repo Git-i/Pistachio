@@ -74,13 +74,6 @@ namespace Pistachio {
 		s_Data.TextureSlots[0] = s_Data.whiteTexture;
 	}
 
-	void Renderer2D::Shutdown()
-	{
-		s_Data.quadVB->ShutDown();
-		s_Data.quadIB->ShutDown();
-		s_Data._2DShader->Shutdown();
-	}
-
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
 	{
 		s_Data._2DShader->Bind(ShaderType::Vertex);

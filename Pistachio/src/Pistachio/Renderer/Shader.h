@@ -6,9 +6,8 @@ namespace Pistachio {
 	public:
 		void Update(void* data, unsigned int size);
 		void Create(void* data, unsigned int size);
-		~ConstantBuffer();
 	private:
-		RendererID_t ID;
+		PlatformRendererID_t ID;
 		friend class Shader;
 	};
 	struct MaterialStruct
@@ -48,7 +47,7 @@ namespace Pistachio {
 
 		BufferLayout(const char* name, BufferLayoutFormat format, unsigned int offset) : Name(name), Format(format), Offset(offset)
 		{}
-		BufferLayout();
+		BufferLayout(){}
 	};
 	static unsigned int BufferLayoutFormatSize(BufferLayoutFormat format)
 	{
@@ -75,39 +74,33 @@ namespace Pistachio {
 	class GeometryShader {
 	public:
 		GeometryShader(const wchar_t* src);
-		GeometryShader();
+		GeometryShader(){}
 		void Bind();
-		void Shutdown();
-		~GeometryShader();
 	private:
-		RendererID_t Blob_ID = NULL;
-		RendererID_t ID = NULL;
+		PlatformRendererID_t Blob_ID;
+		PlatformRendererID_t ID;
 		friend class Shader;
 	};
 
 	class PixelShader {
 	public:
 		PixelShader(const wchar_t* src);
-		PixelShader();
+		PixelShader(){}
 		void Bind();
-		void Shutdown();
-		~PixelShader();
 	private:
-		RendererID_t Blob_ID = NULL;
-		RendererID_t ID = NULL;
+		PlatformRendererID_t Blob_ID;
+		PlatformRendererID_t ID;
 		friend class Shader;
 	};
 
 	class VertexShader {
 	public:
 		VertexShader(const wchar_t* src);
-		VertexShader();
+		VertexShader(){}
 		void Bind();
-		void Shutdown();
-		~VertexShader();
 	private:
-		RendererID_t Blob_ID = NULL;
-		RendererID_t ID = NULL;
+		PlatformRendererID_t Blob_ID = NULL;
+		PlatformRendererID_t ID = NULL;
 		friend class Shader;
 	};
 
@@ -123,13 +116,11 @@ namespace Pistachio {
 		static void SetVSBuffer(const ConstantBuffer& buffer, int startslot = 0);
 		static void SetPSBuffer(const ConstantBuffer& buffer, int startslot = 0);
 		static void SetGSBuffer(const ConstantBuffer& buffer, int startslot = 0);
-		void Shutdown();
-		~Shader();
 	private:
 		PixelShader m_ps;
 		VertexShader m_vs;
 		GeometryShader m_gs;
-		RendererID_t InputLayout_ID;
+		PlatformRendererID_t InputLayout_ID;
 	};
 	class ShaderLibrary
 	{

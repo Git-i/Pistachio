@@ -139,8 +139,9 @@ namespace Pistachio {
 			return index > 2 ? index : 2;
 		return index;
 	}
-	static void DrawVec3Control(const std::string& label, float* value, float reset = 0.f)
+	static bool DrawVec3Control(const std::string& label, float* value, float reset = 0.f)
 	{
+		bool modified = false;
 		static int formatindex[3] = { 0.0,0.0,0.0 };
 		const char* formats[] = { "%.3f", "%.2f", "%.1f", "%.0f" };
 		ImGui::Columns(2, "transformColunm");
@@ -157,33 +158,43 @@ namespace Pistachio {
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.3f, 0.3f, 0.3f, 1.0f });
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
 		if (ImGui::Button("X", buttonSize))
+		{
 			value[0] = reset;
+			modified = true;
+		}
 		ImGui::PopStyleColor();
 		ImGui::SameLine();
-		ImGui::DragFloat("##x", value, 0.1f, 0.f, 0.f, formats[GetFormatIndex(value[0], ImGui::GetCurrentWindow()->GetID("##x"))], ImGuiSliderFlags_NoRoundToFormat);
+		if(ImGui::DragFloat("##x", value, 0.1f, 0.f, 0.f, formats[GetFormatIndex(value[0], ImGui::GetCurrentWindow()->GetID("##x"))], ImGuiSliderFlags_NoRoundToFormat)) modified = true;
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
 
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 0.2f, 0.7f, 0.3f, 1.0f });
 		if (ImGui::Button("Y", buttonSize))
+		{
 			value[1] = reset;
+			modified = true;
+		}
 		ImGui::PopStyleColor();
 		ImGui::SameLine();
-		ImGui::DragFloat("##y", &value[1], 0.1f, 0.f, 0.f, formats[GetFormatIndex(value[1], ImGui::GetCurrentWindow()->GetID("##y"))], ImGuiSliderFlags_NoRoundToFormat);
+		if(ImGui::DragFloat("##y", &value[1], 0.1f, 0.f, 0.f, formats[GetFormatIndex(value[1], ImGui::GetCurrentWindow()->GetID("##y"))], ImGuiSliderFlags_NoRoundToFormat)) modified = true;
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
 
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 0.1f, 0.25f, 0.95f, 1.0f });
 		if (ImGui::Button("Z", buttonSize))
+		{
 			value[2] = reset;
+			modified = true;
+		}
 		ImGui::PopStyleColor();
 		ImGui::SameLine();
-		ImGui::DragFloat("##z", &value[2], 0.1f, 0.f, 0.f, formats[GetFormatIndex(value[2], ImGui::GetCurrentWindow()->GetID("##z"))], ImGuiSliderFlags_NoRoundToFormat);
+		if(ImGui::DragFloat("##z", &value[2], 0.1f, 0.f, 0.f, formats[GetFormatIndex(value[2], ImGui::GetCurrentWindow()->GetID("##z"))], ImGuiSliderFlags_NoRoundToFormat)) modified = true;
 		ImGui::PopItemWidth();
 		ImGui::PopStyleVar();
 		ImGui::PopStyleColor(3);
 		ImGui::Columns(1);
 		ImGui::PopID();
+		return modified;
 	}
 	template<typename T, typename UIFunction>
 	static void DrawComponent(const std::string& name, Entity entity, UIFunction uiFunction)
@@ -333,9 +344,12 @@ namespace Pistachio {
 				auto& tc = entity.GetComponent<TransformComponent>();
 				DirectX::XMFLOAT4 rotationDeg = tc.RotationEulerHint;
 				rotationDeg = { DirectX::XMConvertToDegrees(rotationDeg.x),DirectX::XMConvertToDegrees(rotationDeg.y),DirectX::XMConvertToDegrees(rotationDeg.z), 1.f };
-				DrawVec3Control("Translation", (float*)&tc.Translation);
-				DrawVec3Control("Rotation", (float*)&rotationDeg);
-				DrawVec3Control("Scale", (float*)&tc.Scale, 1.f);
+				if(DrawVec3Control("Translation", (float*)&tc.Translation) && m_SelectionContext.HasComponent<MeshRendererComponent>())
+					m_SelectionContext.GetComponent<MeshRendererComponent>().bDirty = true;
+				if(DrawVec3Control("Rotation", (float*)&rotationDeg) && m_SelectionContext.HasComponent<MeshRendererComponent>()) 
+					m_SelectionContext.GetComponent<MeshRendererComponent>().bDirty = true;
+				if(DrawVec3Control("Scale", (float*)&tc.Scale, 1.f) && m_SelectionContext.HasComponent<MeshRendererComponent>())
+					m_SelectionContext.GetComponent<MeshRendererComponent>().bDirty = true;
 				tc.RotationEulerHint = { DirectX::XMConvertToRadians(rotationDeg.x), DirectX::XMConvertToRadians(rotationDeg.y), DirectX::XMConvertToRadians(rotationDeg.z), 1.f };
 				tc.RecalculateRotation();
 				ImGui::TreePop();
@@ -385,7 +399,6 @@ namespace Pistachio {
 					const wchar_t* data = (const wchar_t*)payload->Data;
 					auto path = std::filesystem::path("assets") / data;
 					if (component.Mesh) {
-						component.Mesh->DestroyMesh();
 						component.Mesh->CreateStack(path.string().c_str());
 					}
 					else {
@@ -416,10 +429,35 @@ namespace Pistachio {
 			}
 			ImGui::ColorEdit3("Light Color", (float*)&component.color);
 			ImGui::DragFloat("Intensity", &component.Intensity, 1.f, 0.f, 100.f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-			ImGui::Checkbox("Cast Shadow", &component.CastShadow);
+			if (component.CastShadow)
+			{
+				if (ImGui::BeginCombo("Shadow Map Size", std::to_string(component.shadowMap.GetSize()).c_str()))
+				{
+					for (int i = 0; i < 4; i++)
+					{
+						bool isSelected = component.shadowMap.GetSize() == 1024 * std::pow(2, i);
+						if (ImGui::Selectable(std::to_string((int)(1024 * std::pow(2, i))).c_str(), isSelected))
+						{
+							component.shadowMap.UpdateSize(1024 * std::pow(2, i));
+						}
+					}
+					ImGui::EndCombo();
+				}
+			}
+			if (ImGui::Checkbox("Cast Shadow", &component.CastShadow))
+			{ 
+				if (!component.CastShadow)
+				{
+					component.shadowMap.~ShadowMap();
+				}
+				else
+				{
+					component.shadowMap.Create(1024);
+				}
+			}
 			if (component.Type == 1)
 			{
-				ImGui::DragFloat("Max. Distance", &component.exData.z);
+				ImGui::DragFloat("Max. Distance", &component.exData.z, 1, 0, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 			}
 			if (component.Type == 2)
 			{
@@ -427,7 +465,7 @@ namespace Pistachio {
 				float innercone = DirectX::XMScalarACos(component.exData.y);
 				ImGui::SliderAngle("Outer Cone", (float*)&outercone, DirectX::XMConvertToDegrees(innercone), 90.f);
 				ImGui::SliderAngle("Inner Cone", (float*)&innercone, 0, DirectX::XMConvertToDegrees(outercone));
-				ImGui::DragFloat("Max. Distance", &component.exData.z);
+				ImGui::DragFloat("Max. Distance", &component.exData.z, 1, 0, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 				component.exData.x = DirectX::XMScalarCos(outercone);
 				component.exData.y = DirectX::XMScalarCos(innercone);
 			}
