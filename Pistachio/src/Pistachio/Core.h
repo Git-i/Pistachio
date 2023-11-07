@@ -47,7 +47,7 @@ namespace Pistachio {
 	using Ref = std::shared_ptr<T>;
 }
 #ifdef _DEBUG
-#define PT_CORE_ASSERT(x) assert("Error: " && x)
+#define PT_CORE_ASSERT(x) if(x){}else{__debugbreak();}
 #else
 #define PT_CORE_ASSERT(x) x
 #endif // _DEBUG

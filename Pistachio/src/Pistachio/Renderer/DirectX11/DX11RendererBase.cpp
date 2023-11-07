@@ -6,6 +6,7 @@ namespace Pistachio {
 
 	Error DX11RendererBase::CreateDevice(HWND hWnd, IDXGISwapChain** pSwapChain, ID3D11Device** pd3dDevice, ID3D11DeviceContext** pd3dDeviceContext, ID3D11DepthStencilView** pDSV, ID3D11RenderTargetView** pMainRTV)
 	{
+		PT_PROFILE_FUNCTION()
 		IDXGIAdapter* pAdapter;
 		IDXGIFactory* pFactory;
 		CreateDXGIFactory(IID_PPV_ARGS(&pFactory));

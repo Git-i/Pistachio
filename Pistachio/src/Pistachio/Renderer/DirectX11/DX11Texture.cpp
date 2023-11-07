@@ -7,6 +7,7 @@
 namespace Pistachio {
     void Texture2D::CreateTexture(void* data,TextureFlags flags)
     {
+        PT_PROFILE_FUNCTION();
         HRESULT Hr;
         D3D11_TEXTURE2D_DESC ImageTextureDesc = {};
         m_MipLevels = 1;
@@ -50,11 +51,13 @@ namespace Pistachio {
     }
     unsigned int Texture2D::GetHeight() const
     {
+        PT_PROFILE_FUNCTION();
         return m_Height;
     }
 
     unsigned int Texture2D::GetWidth() const
     {
+        PT_PROFILE_FUNCTION();
         return m_Width;
     }
 
@@ -79,11 +82,15 @@ namespace Pistachio {
         void* data;
         if (format == TextureFormat::RGBA16F || format == TextureFormat::RGBA32F)
         {
+            PT_PROFILE_SCOPE("stbi_loadf");
             data = stbi_loadf(path, &Width, &Height, &nChannels, 4);
+            PT_CORE_ASSERT(data);
         }
         else
         {
+            PT_PROFILE_SCOPE("stbi_load");
             data = stbi_load(path, &Width, &Height, &nChannels, 4);
+            PT_CORE_ASSERT(data);
         }
         m_Width = Width;
         m_Height = Height;
@@ -93,6 +100,7 @@ namespace Pistachio {
     }
     void Texture2D::CreateStack(int width, int height, TextureFormat format, void* data, TextureFlags flags)
     {
+        PT_PROFILE_FUNCTION();
         m_Width = width;
         m_Height = height;
         m_format = format;
@@ -100,6 +108,7 @@ namespace Pistachio {
     }
     void Texture2D::CopyIntoRegion(Texture2D& source, unsigned int location_x, unsigned int location_y, unsigned int src_left, unsigned int src_right, unsigned int src_up, unsigned int src_down, unsigned int mipSlice, unsigned int arraySlice)
     {
+        PT_PROFILE_FUNCTION();
         ID3D11Resource* pDstResource;
         ID3D11Resource* pSrcResource;
         if (m_bHasView)
@@ -121,6 +130,7 @@ namespace Pistachio {
     }
     void Texture2D::CopyInto(Texture2D& source)
     {
+        PT_PROFILE_FUNCTION();
         ID3D11Resource* pDstResource;
         ID3D11Resource* pSrcResource;
         if (m_bHasView)
@@ -144,12 +154,14 @@ namespace Pistachio {
     }
     RendererID_t Texture2D::GetID() const
     {
+        PT_PROFILE_FUNCTION();
         RendererID_t ID;
         ID.ptr = m_ID.Get();
         return ID;
     }
     bool Texture2D::operator==(const Texture2D& texture) const
     {
+        PT_PROFILE_FUNCTION();
         return (m_ID.Get() == texture.m_ID.Get());
     }
 }

@@ -6,6 +6,7 @@
 Microsoft::WRL::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateNoCull = NULL;
 Microsoft::WRL::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCWCull = NULL;
 Microsoft::WRL::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCCWCull = NULL;
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pShadowMapRasterizerState = NULL;
 Microsoft::WRL::ComPtr<ID3D11DepthStencilState> Pistachio::RendererBase::pDSStateLess = NULL;
 Microsoft::WRL::ComPtr<ID3D11DepthStencilState> Pistachio::RendererBase::pDSStateLessEqual = NULL;
 Microsoft::WRL::ComPtr<ID3D11Device> Pistachio::RendererBase::g_pd3dDevice = NULL;
@@ -58,6 +59,10 @@ namespace Pistachio {
 		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateCWCull);
 		desc.CullMode = D3D11_CULL_FRONT;
 		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateCCWCull);
+		desc.DepthBias = 100000;
+		desc.DepthBiasClamp = 0.0f;
+		desc.SlopeScaledDepthBias = 1.0f;
+		g_pd3dDevice->CreateRasterizerState(&desc, &pShadowMapRasterizerState);
 		return 0;
 	#endif 
 	}
@@ -156,6 +161,10 @@ namespace Pistachio {
 		default:
 			break;
 		}
+	}
+	void RendererBase::EnableShadowMapRasetrizerState()
+	{
+		g_pd3dDeviceContext->RSSetState(pShadowMapRasterizerState.Get());
 	}
 	void RendererBase::SetDepthStencilOp(DepthStencilOp op)
 	{

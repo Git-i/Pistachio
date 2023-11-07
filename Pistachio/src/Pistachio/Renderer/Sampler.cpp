@@ -20,7 +20,7 @@ namespace Pistachio {
 			break;
 		}
 	}
-	SamplerState* SamplerState::Create(TextureAddress addressU, TextureAddress addressV, TextureAddress addressW)
+	SamplerState* SamplerState::Create(TextureAddress addressU, TextureAddress addressV, TextureAddress addressW, D3D11_FILTER filter)
 	{
 		SamplerState* result = new SamplerState;
 		D3D11_SAMPLER_DESC sDesc = {};
@@ -31,8 +31,8 @@ namespace Pistachio {
 		sDesc.BorderColor[1] = 1.f;
 		sDesc.BorderColor[2] = 1.f;
 		sDesc.BorderColor[3] = 1.f;
-		sDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
-		sDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+		sDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+		sDesc.Filter = filter;
 		RendererBase::Getd3dDevice()->CreateSamplerState(&sDesc, (ID3D11SamplerState**)(result->ImageSamplerState.ReleaseAndGetAddressOf()));
 		return result;
 	}

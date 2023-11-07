@@ -4,15 +4,18 @@
 namespace Pistachio {
 	void RenderCubeMap::Bind(int slot) const
 	{
+		PT_PROFILE_FUNCTION();
 		auto context = RendererBase::Getd3dDeviceContext();
 		(context)->OMSetRenderTargets(1, (ID3D11RenderTargetView*const*)m_renderTargetView[slot].GetAddressOf(), 0);
 	}
 	void RenderCubeMap::BindResource(int slot) const
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, 1, (ID3D11ShaderResourceView*const*)m_shaderResourceView.GetAddressOf());
 	}
 	void RenderCubeMap::CreateStack(int width, int height, int miplevels)
 	{
+		PT_PROFILE_FUNCTION();
 		m_width = width;
 		m_height = height;
 		m_mipLevels = miplevels;
@@ -55,22 +58,26 @@ namespace Pistachio {
 	}
 	void RenderCubeMap::Clear(float* clearcolor, int slot)
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->ClearRenderTargetView((ID3D11RenderTargetView*)m_renderTargetView[slot].Get(), clearcolor);
 	}
 	RenderCubeMap* RenderCubeMap::Create(int width, int height, int miplevels)
 	{
+		PT_PROFILE_FUNCTION();
 		RenderCubeMap* result = new RenderCubeMap;
 		result->CreateStack(width, height, miplevels);
 		return result;
 	}
 	RendererID_t RenderCubeMap::GetID()
 	{
+		PT_PROFILE_FUNCTION();
 		RendererID_t ID;
 		ID.ptr = m_shaderResourceView.Get();
 		return ID;
 	}
 	Texture2D RenderCubeMap::GetResource()
 	{
+		PT_PROFILE_FUNCTION();
 		Texture2D returnVal;
 		returnVal.m_ID = m_shaderResourceView;
 		returnVal.m_Height = m_height;
@@ -80,12 +87,14 @@ namespace Pistachio {
 	}
 	RendererID_t RenderCubeMap::Get_RTID(int slot)
 	{
+		PT_PROFILE_FUNCTION();
 		RendererID_t ID;
 		ID.ptr = m_renderTargetView[slot].Get();
 		return ID;
 	}
 	void RenderTexture::CreateStack(const RenderTextureDesc& RTdesc)
 	{
+		PT_PROFILE_FUNCTION();
 		static int i = 0;
 		m_width = RTdesc.width;
 		m_height = RTdesc.height;
@@ -143,13 +152,14 @@ namespace Pistachio {
 	}
 	RenderTexture* RenderTexture::Create(const RenderTextureDesc& rtDesc)
 	{
+		PT_PROFILE_FUNCTION();
 		RenderTexture* result = new RenderTexture;
 		result->CreateStack(rtDesc);
 		return result;
 	}
 	void RenderTexture::Bind(int slot, int count) const
 	{
-		
+		PT_PROFILE_FUNCTION();
 		if(m_pDSV)
 			RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(count, (ID3D11RenderTargetView* const*)m_renderTargetView[slot].GetAddressOf(), ((ID3D11DepthStencilView*)m_pDSV.Get()));
 		else
@@ -158,19 +168,23 @@ namespace Pistachio {
 	}
 	void RenderTexture::BindResource(int slot, int count, int index) const
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, count, (ID3D11ShaderResourceView*const*)m_shaderResourceView[index].GetAddressOf());
 	}
 	void RenderTexture::Clear(float* clearcolor, int slot)
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->ClearRenderTargetView((ID3D11RenderTargetView*)m_renderTargetView[slot].Get(), clearcolor);
 	}
 	void RenderTexture::ClearDepth()
 	{
+		PT_PROFILE_FUNCTION();
 		if (m_pDSV)
 			RendererBase::Getd3dDeviceContext()->ClearDepthStencilView((ID3D11DepthStencilView*)m_pDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 	void RenderTexture::ClearAll(float* clearcolor)
 	{
+		PT_PROFILE_FUNCTION();
 		for (auto& e : m_renderTargetView)
 		{
 			RendererBase::Getd3dDeviceContext()->ClearRenderTargetView((ID3D11RenderTargetView*)e.Get(), clearcolor);
@@ -178,9 +192,10 @@ namespace Pistachio {
 		if (m_pDSV)
 			RendererBase::Getd3dDeviceContext()->ClearDepthStencilView((ID3D11DepthStencilView*)m_pDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
-	RendererID_t RenderTexture::GetSRV(int slot) const { RendererID_t ID; ID.ptr = (void*)m_shaderResourceView[slot].Get(); return ID; }
+	RendererID_t RenderTexture::GetSRV(int slot) const { PT_PROFILE_FUNCTION(); RendererID_t ID; ID.ptr = (void*)m_shaderResourceView[slot].Get(); return ID; }
 	Texture2D RenderTexture::GetRenderTexture(int slot) const
 	{
+		PT_PROFILE_FUNCTION();
 		Texture2D returnVal;
 		returnVal.m_Height = m_height;
 		returnVal.m_Width = m_width;
@@ -188,10 +203,11 @@ namespace Pistachio {
 		returnVal.m_MipLevels = 1;
 		return returnVal;
 	}
-	RendererID_t RenderTexture::GetRTV(int slot) { RendererID_t ID; ID.ptr = (void*)m_renderTargetView[slot].Get(); return ID; }
-	RendererID_t RenderTexture::GetDSV() { RendererID_t ID; ID.ptr = m_pDSV.GetAddressOf(); return ID; }
+	RendererID_t RenderTexture::GetRTV(int slot) { PT_PROFILE_FUNCTION(); RendererID_t ID; ID.ptr = (void*)m_renderTargetView[slot].Get(); return ID; }
+	RendererID_t RenderTexture::GetDSV() { PT_PROFILE_FUNCTION(); RendererID_t ID; ID.ptr = m_pDSV.GetAddressOf(); return ID; }
 	Texture2D RenderTexture::GetDepthTexture() const
 	{
+		PT_PROFILE_FUNCTION();
 		Texture2D returnVal;
 		returnVal.m_Height = m_height;
 		returnVal.m_Width = m_width;

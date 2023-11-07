@@ -144,9 +144,11 @@ namespace Pistachio {
     };
 }
 #if PT_PROFILE
+#define _LINE_GLUE(a, b) a ## b
+#define LINE_GLUE(a, b) _LINE_GLUE(a, b)
     #define PT_PROFILE_BEGIN_SESSION(name, filepath) Pistachio::Instrumentor::Get().BeginSession(name, filepath)
     #define PT_PROFILE_END_SESSION() Pistachio::Instrumentor::Get().EndSession()
-    #define PT_PROFILE_SCOPE(name) Pistachio::InstrumentationTimer timer##__LINE__(name);
+    #define PT_PROFILE_SCOPE(name) Pistachio::InstrumentationTimer LINE_GLUE(timer, __LINE__) (name);
     #define PT_PROFILE_FUNCTION() PT_PROFILE_SCOPE(__FUNCTION__)
 #else
     #define PT_PROFILE_BEGIN_SESSION(name, filepath)

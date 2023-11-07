@@ -98,6 +98,7 @@ namespace Pistachio {
 
 	void Renderer2D::BeginScene(const EditorCamera& camera)
 	{
+		PT_PROFILE_FUNCTION()
 		s_Data._2DShader->Bind(ShaderType::Vertex);
 		s_Data._2DShader->Bind(ShaderType::Pixel);
 		auto viewproj = DirectX::XMMatrixTranspose(camera.GetViewProjection());

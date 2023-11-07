@@ -27,6 +27,7 @@ namespace Pistachio {
 		static void SetClearColor(float r, float g, float b, float a);
 		static void DrawIndexed(const Buffer& buffer, unsigned int indexCount=0);
 		static void SetCullMode(CullMode cullmode);
+		static void EnableShadowMapRasetrizerState();
 		static void SetDepthStencilOp(DepthStencilOp op);
 		#ifdef PT_PLATFORM_WINDOWS
 			static bool Init(HWND hwnd);
@@ -46,6 +47,7 @@ namespace Pistachio {
 			static Microsoft::WRL::ComPtr<ID3D11RenderTargetView> g_mainRenderTargetView;
 			static Microsoft::WRL::ComPtr<ID3D11DepthStencilView> pDSV;
 			static Microsoft::WRL::ComPtr<ID3D11RasterizerState> pRasterizerStateNoCull;
+			static Microsoft::WRL::ComPtr<ID3D11RasterizerState> pShadowMapRasterizerState;
 			static Microsoft::WRL::ComPtr<ID3D11RasterizerState> pRasterizerStateCWCull;
 			static Microsoft::WRL::ComPtr<ID3D11RasterizerState> pRasterizerStateCCWCull;
 			static Microsoft::WRL::ComPtr<ID3D11DepthStencilState> pDSStateLess;

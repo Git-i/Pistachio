@@ -5,7 +5,7 @@ Texture2D normalTexture : register(t6);
 Texture2D shadowMap[4] : register(t9);
 
 SamplerState my_sampler : register(s0);
-SamplerState ShadowSampler : register(s2);
+SamplerComparisonState ShadowSampler : register(s2);
 cbuffer MaterialData : register(b1)
 {
     float4 albedoMultiplier;
@@ -24,7 +24,7 @@ struct PSINTPUT
     int numlights : NUM_LIGHTS;
     float shadowMapSize : SM_SIZE;
     float4 lightSpacePositions[16] : LS_POS;
-    float4x4 view : VIEW;
+    float4 pos : SV_Position;
 };
 
 struct PSOUTPUT
@@ -48,17 +48,9 @@ float Shadow(float3 projCoords, int layer, int index, float shadowMapSize)
     }
     float x[4] = { 0, 0.5, 0, 0.5 };
     float y[4] = { 0, 0, 0.5, 0.5 };
-    float closestDepth1 = shadowMap[index].Sample(ShadowSampler, float2(projCoords.x + x[layer], projCoords.y + y[layer])).r;
-    float closestDepth2 = shadowMap[index].Sample(ShadowSampler, float2(projCoords.x + x[layer] + SMAP_DX, projCoords.y + y[layer])).r;
-    float closestDepth3 = shadowMap[index].Sample(ShadowSampler, float2(projCoords.x + x[layer], projCoords.y + y[layer] + +SMAP_DX)).r;
-    float closestDepth4 = shadowMap[index].Sample(ShadowSampler, float2(projCoords.x + x[layer] + SMAP_DX, projCoords.y + y[layer] + +SMAP_DX)).r;
-
+    float closestDepth1 = shadowMap[index].SampleCmpLevelZero(ShadowSampler, float2(projCoords.x + x[layer], projCoords.y + y[layer]), currentDepth).r;
     
-    float shadow = currentDepth > closestDepth1 ? 1.0 : 0.0;
-    float shadow1 = currentDepth > closestDepth2 ? 1.0 : 0.0;
-    float shadow2 = currentDepth > closestDepth3 ? 1.0 : 0.0;
-    float shadow3 = currentDepth > closestDepth4 ? 1.0 : 0.0;
-    return (shadow + shadow1 + shadow2 + shadow3)/4.f;
+    return 1.f-closestDepth1;
 }
 PSOUTPUT main(PSINTPUT input)
 {
@@ -99,6 +91,5 @@ PSOUTPUT main(PSINTPUT input)
     
     lightSpacePos = input.lightSpacePositions[12 + shadowMaplayer].xyz / input.lightSpacePositions[12 + shadowMaplayer].w;
     pso.shadow_info.a = Shadow(lightSpacePos.xyz, shadowMaplayer, 3, input.shadowMapSize);
-    //pso.color = float4((input.shadowMapSize / 8192.f).xxx, 1.f);
     return pso;
 }

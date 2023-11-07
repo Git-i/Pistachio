@@ -13,6 +13,7 @@
 static Pistachio::Mesh* ScreenSpaceQuad;
 static void getFrustumCornersWorldSpace(const DirectX::XMMATRIX& proj, const DirectX::XMMATRIX& view, DirectX::XMVECTOR* corners)
 {
+	PT_PROFILE_FUNCTION();
 	const auto inv = DirectX::XMMatrixInverse(nullptr, view * proj);
 	int index = 0;
 	for (unsigned int x = 0; x < 2; ++x)
@@ -30,6 +31,7 @@ static void getFrustumCornersWorldSpace(const DirectX::XMMATRIX& proj, const Dir
 }
 static DirectX::XMMATRIX GetLightMatrixFromCamera(const DirectX::XMMATRIX& camView, const DirectX::XMMATRIX& camProj, const Pistachio::Light& light, float zMult)
 {
+	PT_PROFILE_FUNCTION();
 	DirectX::XMVECTOR corners[8];
 	getFrustumCornersWorldSpace(camProj, camView, corners);
 	DirectX::XMVECTOR center = DirectX::XMVectorZero();
@@ -92,6 +94,7 @@ static void ChangeVP(std::uint32_t size)
 namespace Pistachio {
 	Scene::Scene(SceneDesc desc)
 	{
+		PT_PROFILE_FUNCTION();
 		CreateEntity("Root").GetComponent<ParentComponent>().parentID = -1;
 		vp[0].TopLeftX = 0;
 		vp[0].TopLeftY = 0;
@@ -237,6 +240,7 @@ namespace Pistachio {
 	}
 	Entity Scene::GetPrimaryCameraEntity()
 	{
+		PT_PROFILE_FUNCTION();
 		auto view = m_Registry.view<CameraComponent>();
 		for (auto entity : view)
 		{
@@ -249,6 +253,7 @@ namespace Pistachio {
 	
 	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
 	{
+		PT_PROFILE_FUNCTION()
 		UpdateObjectCBs();
 		float color[4] = { 0,0,0,0 };
 		float color1[4] = { -1,-1,-1,-1 };
@@ -257,6 +262,7 @@ namespace Pistachio {
 		m_finalRender.Clear(color, 0);
 		m_gBuffer.Bind(0, 5);
 		{
+			PT_PROFILE_SCOPE("Shadow Rendereing and Light Formation")
 			Renderer::whiteTexture.Bind(9);
 			Renderer::whiteTexture.Bind(10);
 			Renderer::whiteTexture.Bind(11);
@@ -275,7 +281,7 @@ namespace Pistachio {
 				DirectX::XMMATRIX lightMatrix[4] = { DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity() };
 				if (lightcomponent.CastShadow)
 				{
-					RendererBase::SetCullMode(CullMode::Front);
+					RendererBase::EnableShadowMapRasetrizerState();
 					if(lightcomponent.Type == 0)
 					{
 						lightMatrix[0] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), camera.GetNearClip(), 30.f), light, 1.05f);
@@ -322,6 +328,7 @@ namespace Pistachio {
 			}
 		}
 		{
+			PT_PROFILE_SCOPE("Object Rendering (Gbuffer Write)")
 			Renderer::BeginScene(camera);
 			auto group = m_Registry.view<TransformComponent, MeshRendererComponent>();
 			for (auto& entity : group)
@@ -358,6 +365,7 @@ namespace Pistachio {
 		//2D Rendering
 		Renderer2D::BeginScene(camera);
 		{
+			PT_PROFILE_SCOPE("Drawing 2D Objects")
 			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 			for (auto& entity : group)
 			{
@@ -378,6 +386,7 @@ namespace Pistachio {
 	}
 	void Scene::OnUpdateRuntime(float delta)
 	{
+		PT_PROFILE_FUNCTION();
 		{
 			m_Registry.view<NativeScriptComponent>().each([=](auto entity, auto& nsc) {
 				if (!nsc.Instance) {
@@ -570,6 +579,7 @@ namespace Pistachio {
 	}
 	void Scene::OnViewportResize(unsigned int width, unsigned int height)
 	{
+		PT_PROFILE_FUNCTION();
 		m_viewportWidth = width;
 		m_ViewportHeight = height;
 		auto view = m_Registry.view<CameraComponent>();
@@ -584,6 +594,7 @@ namespace Pistachio {
 	}
 	void Scene::UpdateObjectCBs()
 	{
+		PT_PROFILE_FUNCTION();
 		auto view = m_Registry.view<MeshRendererComponent>();
 		for (auto entity : view)
 		{

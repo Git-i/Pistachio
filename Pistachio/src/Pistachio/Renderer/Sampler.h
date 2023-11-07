@@ -8,7 +8,7 @@ namespace Pistachio {
 	class SamplerState
 	{
 	public:
-		static SamplerState* Create(TextureAddress addressU, TextureAddress addressV, TextureAddress addressW);
+		static SamplerState* Create(TextureAddress addressU, TextureAddress addressV, TextureAddress addressW, D3D11_FILTER filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
 		void Bind(int slot = 0);
 		void ShutDown();
 		~SamplerState() { ShutDown(); }
