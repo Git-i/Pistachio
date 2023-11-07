@@ -6,10 +6,12 @@ namespace Pistachio
 {
 	ShadowMap::ShadowMap(const ShadowMap& other)
 	{
+		PT_PROFILE_FUNCTION();
 		Create(other.m_size);
 	}
 	void ShadowMap::Create(std::uint32_t size)
 	{
+		PT_PROFILE_FUNCTION();
 		m_size = size;
 		ID3D11Texture2D* pShadowMap;
 		D3D11_TEXTURE2D_DESC texDesc = {};
@@ -43,6 +45,7 @@ namespace Pistachio
 	}
 	void ShadowMap::UpdateSize(std::uint32_t size)
 	{
+		PT_PROFILE_FUNCTION();
 		m_size = size;
 		m_DSV = nullptr;
 		m_SRV = nullptr;
@@ -50,14 +53,17 @@ namespace Pistachio
 	}
 	void ShadowMap::Clear()
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->ClearDepthStencilView((ID3D11DepthStencilView*)m_DSV.Get(), D3D11_CLEAR_DEPTH, 1.f, 0);
 	}
 	void ShadowMap::Bind(int slot)
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(slot, nullptr, (ID3D11DepthStencilView*)m_DSV.Get());
 	}
 	void ShadowMap::BindResource(int slot)
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, 1, (ID3D11ShaderResourceView* const*)m_SRV.GetAddressOf());
 	}
 }

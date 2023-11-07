@@ -79,17 +79,20 @@ namespace Pistachio {
 
 	void ShaderLibrary::Add(const std::string& name, const Ref<Shader>& Shader)
 	{
+		PT_PROFILE_FUNCTION();
 		PT_CORE_ASSERT(m_Shaders.find(name) == m_Shaders.end());
 		m_Shaders[name] = Shader;
 	}
 	Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::string& vertex, const std::string& fragment)
 	{
+		PT_PROFILE_FUNCTION();
 		auto shader = std::make_shared<Shader>((wchar_t*)(vertex.c_str()), (wchar_t*)(fragment.c_str()));
 		Add(name, shader);
 		return shader;
 	}
 	Ref<Shader> ShaderLibrary::Get(const std::string& name)
 	{
+		PT_PROFILE_FUNCTION();
 		PT_CORE_ASSERT(m_Shaders.find(name) != m_Shaders.end());
 		return m_Shaders[name];
 	}
@@ -97,6 +100,7 @@ namespace Pistachio {
 
 	void ConstantBuffer::Update(void* data, unsigned int size)
 	{
+		PT_PROFILE_FUNCTION();
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 		RendererBase::Getd3dDeviceContext()->Map(BUFFER(ID), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
@@ -104,6 +108,7 @@ namespace Pistachio {
 		RendererBase::Getd3dDeviceContext()->Unmap(BUFFER(ID), 0);
 	}
 	void ConstantBuffer::Create(void* data, unsigned int size) {
+		PT_PROFILE_FUNCTION();
 		D3D11_BUFFER_DESC cbd = {};
 		cbd.ByteWidth = size;
 		cbd.Usage = D3D11_USAGE_DYNAMIC;
@@ -138,33 +143,39 @@ namespace Pistachio {
 
 	GeometryShader::GeometryShader(const wchar_t* src)
 	{
+		PT_PROFILE_FUNCTION();
 		PT_CORE_ASSERT(D3DReadFileToBlob(src, BLOB_PP(Blob_ID)) == S_OK);
 		Pistachio::RendererBase::Getd3dDevice()->CreateGeometryShader(BLOB(Blob_ID)->GetBufferPointer(), BLOB(Blob_ID)->GetBufferSize(), nullptr, GEOMETRY_SHADER_PP(ID));
 	}
 	void GeometryShader::Bind()
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->GSSetShader(GEOMETRY_SHADER(ID), nullptr, 0);
 	}
 
 
 	PixelShader::PixelShader(const wchar_t* src)
 	{
+		PT_PROFILE_FUNCTION();
 		PT_CORE_ASSERT(D3DReadFileToBlob(src, BLOB_PP(Blob_ID)) == S_OK);
 		Pistachio::RendererBase::Getd3dDevice()->CreatePixelShader(BLOB(Blob_ID)->GetBufferPointer(), BLOB(Blob_ID)->GetBufferSize(), nullptr, PIXEL_SHADER_PP(ID));
 	}
 	void PixelShader::Bind()
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->PSSetShader(PIXEL_SHADER(ID), nullptr, 0);
 	}
 
 
 	VertexShader::VertexShader(const wchar_t* src)
 	{
+		PT_PROFILE_FUNCTION();
 		PT_CORE_ASSERT(D3DReadFileToBlob(src, BLOB_PP(Blob_ID)) == S_OK);
 		Pistachio::RendererBase::Getd3dDevice()->CreateVertexShader(BLOB(Blob_ID)->GetBufferPointer(), BLOB(Blob_ID)->GetBufferSize(), nullptr, VERTEX_SHADER_PP(ID));
 	}
 	void VertexShader::Bind()
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->VSSetShader(VERTEX_SHADER(ID), nullptr, 0);
 	}
 }

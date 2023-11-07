@@ -10,6 +10,7 @@ namespace Pistachio {
 	}
 	void VertexBuffer::Bind() const
 	{
+		PT_PROFILE_FUNCTION();
 		UINT offset = 0;
 		RendererBase::Getd3dDeviceContext()->IASetVertexBuffers(0, 1, BUFFER_PP(ID), &stride, &offset);
 	}
@@ -18,12 +19,14 @@ namespace Pistachio {
 	}
 	VertexBuffer* VertexBuffer::Create(unsigned int size, unsigned int stride)
 	{
+		PT_PROFILE_FUNCTION();
 		VertexBuffer* result = new VertexBuffer();
 		result->CreateStack(size, stride);
 		return result;
 	}
 	void VertexBuffer::CreateStack(unsigned int size, unsigned int Stride)
 	{
+		PT_PROFILE_FUNCTION();
 		stride = Stride;
 		D3D11_BUFFER_DESC bd = {};
 		bd.Usage = D3D11_USAGE_DYNAMIC;
@@ -35,6 +38,7 @@ namespace Pistachio {
 	}
 	void VertexBuffer::SetData(const void* data, unsigned int size)
 	{
+		PT_PROFILE_FUNCTION();
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 		RendererBase::Getd3dDeviceContext()->Map(BUFFER(ID), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
@@ -68,6 +72,7 @@ namespace Pistachio {
 	}
 	void IndexBuffer::Bind() const
 	{
+		PT_PROFILE_FUNCTION();
 		RendererBase::Getd3dDeviceContext()->IASetIndexBuffer(BUFFER(ID), DXGI_FORMAT_R32_UINT, 0);
 	}
 	void IndexBuffer::UnBind()
@@ -89,6 +94,7 @@ namespace Pistachio {
 	}
 	IndexBuffer* IndexBuffer::Create(const void* indices, unsigned int size, unsigned int stride)
 	{
+		PT_PROFILE_FUNCTION();
 		IndexBuffer* result = new IndexBuffer;
 		result->CreateStack(indices, size, stride);
 		return result;

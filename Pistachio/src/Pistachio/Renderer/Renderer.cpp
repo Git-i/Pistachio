@@ -25,6 +25,7 @@ static Pistachio::SamplerState* shadowSampler;
 namespace Pistachio {
 	void Renderer::CreateConstantBuffers()
 	{
+		PT_PROFILE_FUNCTION();
 		MaterialStruct cb;
 		MaterialCB.Create(nullptr, sizeof(MaterialStruct));
 		LightCB.Create(&LightData, sizeof(LightData));
@@ -48,7 +49,7 @@ namespace Pistachio {
 		ConstantBuffer CameraCB;
 		CameraCB.Create(&camerabufferData, sizeof(camerabufferData));
 		brdfSampler = SamplerState::Create(TextureAddress::Clamp, TextureAddress::Clamp, TextureAddress::Clamp);
-		shadowSampler = SamplerState::Create(TextureAddress::Border, TextureAddress::Border, TextureAddress::Border);
+		shadowSampler = SamplerState::Create(TextureAddress::Border, TextureAddress::Border, TextureAddress::Border, D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT);
 		brdfSampler->Bind(1);
 		shadowSampler->Bind(2);
 
@@ -224,11 +225,13 @@ namespace Pistachio {
 	}
 	void Renderer::AddLight(const Light& light)
 	{
+		PT_PROFILE_FUNCTION();
 		*lightIndexPtr = light;
 		lightIndexPtr++;
 		passConstants.numlights.x++;
 	}
 	void Renderer::BeginScene(PerspectiveCamera* cam) {
+		PT_PROFILE_FUNCTION();
 		viewproj = cam->GetViewProjectionMatrix();
 		auto campos = cam->GetPosition();
 		ID3D11ShaderResourceView* pBrdfSRV = (ID3D11ShaderResourceView*)BrdfTex.GetSRV().ptr;
@@ -245,6 +248,7 @@ namespace Pistachio {
 		whiteTexture.Bind(5);
 	}
 	void Renderer::BeginScene(RuntimeCamera* cam, const DirectX::XMMATRIX& transform) {
+		PT_PROFILE_FUNCTION();
 		DirectX::XMFLOAT4 campos;
 		DirectX::XMStoreFloat4(&campos, transform.r[3]);
 		DirectX::XMMATRIX view = DirectX::XMMatrixInverse(nullptr, transform);
@@ -264,6 +268,7 @@ namespace Pistachio {
 	}
 	void Renderer::BeginScene(EditorCamera& cam)
 	{
+		PT_PROFILE_FUNCTION();
 		DirectX::XMFLOAT4 campos;
 		DirectX::XMStoreFloat4(&campos, cam.GetPosition());
 		viewproj = DirectX::XMMatrixTranspose(cam.GetViewProjection());
@@ -312,6 +317,7 @@ namespace Pistachio {
 	}
 	void Renderer::UpdatePassConstants()
 	{
+		PT_PROFILE_FUNCTION();
 		passConstants.EyePosW.x = CameraData.viewPos.x;
 		passConstants.EyePosW.y = CameraData.viewPos.y; 
 		passConstants.EyePosW.z = CameraData.viewPos.z;
