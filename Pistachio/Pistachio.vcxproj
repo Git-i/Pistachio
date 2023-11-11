@@ -277,8 +277,6 @@
     <ClInclude Include="vendor\gainput\include\gainput\recorder\GainputInputPlayer.h" />
     <ClInclude Include="vendor\gainput\include\gainput\recorder\GainputInputRecorder.h" />
     <ClInclude Include="vendor\gainput\include\gainput\recorder\GainputInputRecording.h" />
-    <ClInclude Include="vendor\glfw\include\GLFW\glfw3.h" />
-    <ClInclude Include="vendor\glfw\include\GLFW\glfw3native.h" />
     <ClInclude Include="vendor\imguizmo\ImGuizmo.h" />
     <ClInclude Include="vendor\imgui\imconfig.h" />
     <ClInclude Include="vendor\imgui\imgui.h" />

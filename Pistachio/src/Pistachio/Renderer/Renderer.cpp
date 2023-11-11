@@ -52,6 +52,7 @@ namespace Pistachio {
 		SamplerStateDesc sDesc = SamplerStateDesc::Default;
 		sDesc.AddressU = sDesc.AddressV = sDesc.AddressW = TextureAddress::Border;
 		sDesc.ComparisonEnable = true;
+		sDesc.func = ComparisonFunc::LessOrEqual;
 		shadowSampler = SamplerState::Create(sDesc);
 		brdfSampler->Bind(1);
 		shadowSampler->Bind(2);
