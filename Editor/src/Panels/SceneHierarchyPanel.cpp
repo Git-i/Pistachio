@@ -342,14 +342,14 @@ namespace Pistachio {
 			
 			if (open) {
 				auto& tc = entity.GetComponent<TransformComponent>();
-				DirectX::XMFLOAT4 rotationDeg = tc.RotationEulerHint;
-				rotationDeg = { DirectX::XMConvertToDegrees(rotationDeg.x),DirectX::XMConvertToDegrees(rotationDeg.y),DirectX::XMConvertToDegrees(rotationDeg.z), 1.f };
-				if(DrawVec3Control("Translation", (float*)&tc.Translation) && m_SelectionContext.HasComponent<MeshRendererComponent>())
-					m_SelectionContext.GetComponent<MeshRendererComponent>().bDirty = true;
-				if(DrawVec3Control("Rotation", (float*)&rotationDeg) && m_SelectionContext.HasComponent<MeshRendererComponent>()) 
-					m_SelectionContext.GetComponent<MeshRendererComponent>().bDirty = true;
-				if(DrawVec3Control("Scale", (float*)&tc.Scale, 1.f) && m_SelectionContext.HasComponent<MeshRendererComponent>())
-					m_SelectionContext.GetComponent<MeshRendererComponent>().bDirty = true;
+				Vector3 rotationDeg = tc.RotationEulerHint;
+				rotationDeg = { DirectX::XMConvertToDegrees(rotationDeg.x),DirectX::XMConvertToDegrees(rotationDeg.y),DirectX::XMConvertToDegrees(rotationDeg.z)};
+				if(DrawVec3Control("Translation", (float*)&tc.Translation))
+					m_SelectionContext.GetComponent<TransformComponent>().bDirty = true;
+				if(DrawVec3Control("Rotation", (float*)&rotationDeg)) 
+					m_SelectionContext.GetComponent<TransformComponent>().bDirty = true;
+				if(DrawVec3Control("Scale", (float*)&tc.Scale, 1.f))
+					m_SelectionContext.GetComponent<TransformComponent>().bDirty = true;
 				tc.RotationEulerHint = { DirectX::XMConvertToRadians(rotationDeg.x), DirectX::XMConvertToRadians(rotationDeg.y), DirectX::XMConvertToRadians(rotationDeg.z), 1.f };
 				tc.RecalculateRotation();
 				ImGui::TreePop();

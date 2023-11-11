@@ -48,14 +48,18 @@ namespace Pistachio {
 		} camerabufferData;
 		ConstantBuffer CameraCB;
 		CameraCB.Create(&camerabufferData, sizeof(camerabufferData));
-		brdfSampler = SamplerState::Create(TextureAddress::Clamp, TextureAddress::Clamp, TextureAddress::Clamp);
-		shadowSampler = SamplerState::Create(TextureAddress::Border, TextureAddress::Border, TextureAddress::Border, D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT);
+		brdfSampler = SamplerState::Create(SamplerStateDesc::Default);
+		SamplerStateDesc sDesc = SamplerStateDesc::Default;
+		sDesc.AddressU = sDesc.AddressV = sDesc.AddressW = TextureAddress::Border;
+		sDesc.ComparisonEnable = true;
+		shadowSampler = SamplerState::Create(sDesc);
 		brdfSampler->Bind(1);
 		shadowSampler->Bind(2);
 
-		
 		RendererBase::SetCullMode(CullMode::Front);
-		SamplerState* ss = SamplerState::Create(TextureAddress::Wrap, TextureAddress::Wrap, TextureAddress::Wrap);
+		sDesc.AddressU = sDesc.AddressV = sDesc.AddressW = TextureAddress::Wrap;
+		sDesc.ComparisonEnable = false;
+		SamplerState* ss = SamplerState::Create(sDesc);
 		ss->Bind();
 
 		Texture2D tex;
@@ -182,7 +186,7 @@ namespace Pistachio {
 			}
 		}
 		Pistachio::RenderTextureDesc descBRDF;
-		descBRDF.Attachments = { TextureFormat::RGBA32F };
+		descBRDF.Attachments = { TextureFormat::RGBA16F };
 		descBRDF.height = 512;
 		descBRDF.width = 512;
 		BrdfTex.CreateStack(descBRDF);
@@ -190,8 +194,8 @@ namespace Pistachio {
 		brdfShader.Bind(ShaderType::Pixel);
 		Pistachio::RendererBase::SetCullMode(CullMode::Front);
 		BrdfTex.Bind();
-		
 		RendererBase::DrawIndexed(planebuffer);
+
 		Ref<Shader> pbrShader = std::make_shared<Shader>(L"resources/shaders/vertex/VertexShader.cso", L"resources/shaders/pixel/PixelShader.cso");
 		pbrShader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
 		Ref<Shader> shadowShader = std::make_shared<Shader>(L"resources/shaders/vertex/shadow_vs.cso", L"resources/shaders/pixel/Shadow_ps.cso", L"resources/shaders/geometry/shadow_gs.cso");
@@ -234,8 +238,7 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION();
 		viewproj = cam->GetViewProjectionMatrix();
 		auto campos = cam->GetPosition();
-		ID3D11ShaderResourceView* pBrdfSRV = (ID3D11ShaderResourceView*)BrdfTex.GetSRV().ptr;
-		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(0, 1, &pBrdfSRV);
+		BrdfTex.BindResource(0, 1, 0);
 		ifbo.BindResource(1);
 		prefilter.BindResource(2);
 		CameraData.viewProjection = viewproj;

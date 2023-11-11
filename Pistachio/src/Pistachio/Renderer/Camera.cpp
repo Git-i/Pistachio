@@ -23,7 +23,7 @@ namespace Pistachio {
 	}
 	void OrthographicCamera::RecalculateViewMatrix()
 	{
-		m_ViewMatrix = DirectX::XMMatrixInverse(nullptr, (DirectX::XMMatrixRotationZ(m_Rotation) * DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&m_Position))));
+		m_ViewMatrix = DirectX::XMMatrixInverse(nullptr, (DirectX::XMMatrixRotationZ(m_Rotation) * DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(reinterpret_cast<DirectX::XMFLOAT3*>(&m_Position)))));
 		m_ViewProjMatrix = DirectX::XMMatrixTranspose(m_ViewMatrix * m_projectionMatrix);
 	}
 	PerspectiveCamera::PerspectiveCamera(float fov, float nearPlane, float farPLane)
@@ -53,21 +53,19 @@ namespace Pistachio {
 		m_perspsize = fov;
 		m_perspnear = nearplane;
 		m_perspfar = farplane;
-		m_projection = DirectX::XMMatrixPerspectiveFovLH(m_perspsize, m_aspectratio, m_perspnear, m_perspfar);
+		m_projection = Matrix4::CreatePerspectiveFieldOfView(m_perspsize, m_aspectratio, m_perspnear, m_perspfar);
 	}
 	void SceneCamera::SetViewportSize(unsigned int width, unsigned int height)
 	{
 		m_aspectratio = (float)width / (float)height;
 		if (m_type == ProjectionType::Orthographic) {
-			float orthoLeft = -m_orthosize * m_aspectratio * 0.5f;
-			float orthoRight = -orthoLeft;
-			float orthoTop = m_orthosize * 0.5f;
-			float orthoBottom = -orthoTop;
-			m_projection = DirectX::XMMatrixOrthographicOffCenterLH(orthoLeft, orthoRight, orthoBottom, orthoTop, m_orthonear, m_orthofar); 
+			float width = m_orthosize * m_aspectratio;
+			float height = m_orthosize;
+			m_projection = Matrix4::CreateOrthographic(width, height, m_orthonear, m_orthofar); 
 		}
 		else
 		{
-			m_projection = DirectX::XMMatrixPerspectiveFovLH(m_perspsize, m_aspectratio, m_perspnear, m_perspfar);
+			m_projection = Matrix4::CreatePerspectiveFieldOfView(m_perspsize, m_aspectratio, m_perspnear, m_perspfar);
 		}
 	}
 	void SceneCamera::SetOrthographic(float size, float nearplane, float farplane)
@@ -76,11 +74,9 @@ namespace Pistachio {
 		m_orthosize = size;
 		m_orthonear = nearplane;
 		m_orthofar = farplane;
-		float orthoLeft = -m_orthosize * m_aspectratio * 0.5f;
-		float orthoRight = -orthoLeft;
-		float orthoTop = m_orthosize * 0.5f;
-		float orthoBottom = -orthoTop;
-		m_projection = DirectX::XMMatrixOrthographicOffCenterLH(orthoLeft, orthoRight, orthoBottom, orthoTop, m_orthonear, m_orthofar);
+		float width = m_orthosize * m_aspectratio;
+		float height = m_orthosize;
+		m_projection = Matrix4::CreateOrthographic(width, height, m_orthonear, m_orthofar);
 	}
 	void SceneCamera::SetProjectionType(ProjectionType type)
 	{

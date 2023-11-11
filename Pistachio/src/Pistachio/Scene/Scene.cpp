@@ -595,19 +595,19 @@ namespace Pistachio {
 	void Scene::UpdateObjectCBs()
 	{
 		PT_PROFILE_FUNCTION();
-		auto view = m_Registry.view<MeshRendererComponent>();
+		auto view = m_Registry.view<MeshRendererComponent, TransformComponent>();
 		for (auto entity : view)
 		{
-			auto& transform = m_Registry.get<TransformComponent>(entity);
+			auto& transform = view.get<TransformComponent>(entity);
 			auto& mesh = view.get<MeshRendererComponent>(entity);
-			if (mesh.bDirty)
+			if (transform.bDirty)
 			{
 				TransformData td;
 				auto transformMat = transform.GetTransform({ (entt::entity)m_Registry.get<ParentComponent>(entity).parentID, this });
 				td.transform = DirectX::XMMatrixTranspose(transformMat);
 				td.normal = DirectX::XMMatrixInverse(nullptr, transformMat);
 				Renderer::TransformationBuffer[mesh.cbIndex].Update(&td, sizeof(TransformData));
-				mesh.bDirty = false;
+				transform.bDirty = false;
 			}
 		}
 	}
