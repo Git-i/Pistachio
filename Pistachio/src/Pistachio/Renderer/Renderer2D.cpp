@@ -89,7 +89,7 @@ namespace Pistachio {
 	{
 		s_Data._2DShader->Bind(ShaderType::Vertex);
 		s_Data._2DShader->Bind(ShaderType::Pixel);
-		auto viewproj = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, transform) * camera.GetProjection());
+		auto viewproj = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, transform) * DirectX::XMMATRIX(camera.GetProjection()));
 		
 		s_Data.QuadVerticesPtr = s_Data.QuadVerticesBase;
 		s_Data.QuadIndexCount = 0;

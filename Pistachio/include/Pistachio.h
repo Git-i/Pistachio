@@ -11,6 +11,7 @@
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/ImGui/ImGuiLayer.h"
 #include "Pistachio/Core/Input.h"
+#include "Pistachio/Core/Math.h"
 #include "Pistachio/Core/KeyCodes.h"
 #include "Pistachio/Renderer/Renderer.h"
 #include "Pistachio/Renderer/Mesh.h"

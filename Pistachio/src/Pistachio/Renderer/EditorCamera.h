@@ -23,14 +23,14 @@ namespace Pistachio {
 
 		inline void SetViewportSize(float width, float height) { m_ViewportWidth = width; m_ViewportHeight = height; UpdateProjection(); }
 
-		const DirectX::XMMATRIX& GetViewMatrix() const { return m_ViewMatrix; }
-		DirectX::XMMATRIX GetViewProjection() const { return m_ViewMatrix * m_projection; }
+		const Matrix4& GetViewMatrix() const { return m_ViewMatrix; }
+		Matrix4 GetViewProjection() const { return m_ViewMatrix * m_projection; }
 
-		DirectX::XMVECTOR GetUpDirection() const;
-		DirectX::XMVECTOR GetRightDirection() const;
-		DirectX::XMVECTOR GetForwardDirection() const;
-		const DirectX::XMVECTOR& GetPosition() const { return m_Position; }
-		DirectX::XMVECTOR GetOrientation() const;
+		Vector3 GetUpDirection() const;
+		Vector3 GetRightDirection() const;
+		Vector3 GetForwardDirection() const;
+		const Vector3& GetPosition() const { return m_Position; }
+		Quaternion GetOrientation() const;
 
 		float GetPitch() const { return m_Pitch; }
 		float GetYaw() const { return m_Yaw; }
@@ -44,11 +44,11 @@ namespace Pistachio {
 
 		bool OnMouseScroll(MouseScrolledEvent& e);
 		bool FirstMouse = true;
-		void MousePan(const DirectX::XMFLOAT2& delta);
-		void MouseRotate(const DirectX::XMFLOAT2& delta);
+		void MousePan(const Vector2& delta);
+		void MouseRotate(const Vector2& delta);
 		void MouseZoom(float delta);
 
-		DirectX::XMVECTOR CalculatePosition() const;
+		Vector3 CalculatePosition() const;
 
 		std::pair<float, float> PanSpeed() const;
 		float RotationSpeed() const;
@@ -56,11 +56,11 @@ namespace Pistachio {
 	private:
 		float m_FOV = 45.0f, m_AspectRatio = 1.778f, m_NearClip = 0.1f, m_FarClip = 1000.0f;
 
-		DirectX::XMMATRIX m_ViewMatrix;
-		DirectX::XMVECTOR m_Position = { 0.0f, 0.0f, 0.0f, 1.f };
-		DirectX::XMVECTOR m_FocalPoint = { 0.0f, 0.0f, 0.0f, 1.f };
+		Matrix4 m_ViewMatrix;
+		Vector3 m_Position = { 0.0f, 0.0f, 0.0f };
+		Vector3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
 
-		DirectX::XMFLOAT2 m_InitialMousePosition = { 0.0f, 0.0f };
+		Vector2 m_InitialMousePosition = { 0.0f, 0.0f };
 
 		float m_Distance = 10.0f;
 		float m_Pitch = 0.0f, m_Yaw = 0.0f;

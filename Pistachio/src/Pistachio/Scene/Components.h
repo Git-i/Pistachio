@@ -27,12 +27,13 @@ namespace Pistachio{
 
 	};
 	struct TransformComponent {
-		DirectX::XMVECTOR Translation = DirectX::XMVectorZero();
-		DirectX::XMVECTOR Rotation = DirectX::XMQuaternionIdentity();
+		Vector3 Translation = Vector3::Zero;
+		Quaternion Rotation = Quaternion::Identity;
 		//Editor Only
-		DirectX::XMFLOAT4 RotationEulerHint = {0.f,0.f,0.f,0.f};
-		DirectX::XMVECTOR Scale = {1.f,1.f,1.f,1.f};
+		Vector3 RotationEulerHint;
+		Vector3 Scale = {1.f,1.f,1.f};
 		mutable int NumNegativeScaleComps = 0;
+		bool bDirty = true;
 		
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
@@ -40,7 +41,7 @@ namespace Pistachio{
 		//Editor Only
 		void RecalculateRotation()
 		{
-			Rotation = DirectX::XMQuaternionRotationRollPitchYawFromVector(DirectX::XMLoadFloat4(&RotationEulerHint));
+			Rotation = Quaternion::CreateFromYawPitchRoll(RotationEulerHint);
 		}
 		DirectX::XMMATRIX GetTransform(Entity parent) const
 		{
@@ -69,7 +70,6 @@ namespace Pistachio{
 		float roughness = 0.5f;
 		float metallic = 0.f;
 		std::size_t cbIndex = 0;
-		bool bDirty = true;
 		MeshRendererComponent() :Mesh(nullptr){ };
 		MeshRendererComponent(const MeshRendererComponent&) = default;
 		MeshRendererComponent(const char* path) { Mesh.reset(Pistachio::Mesh::Create(path)); }

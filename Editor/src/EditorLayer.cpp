@@ -34,7 +34,7 @@ namespace Pistachio {
 		}
 		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Front);
 		DirectX::XMFLOAT3X3 view;
-		DirectX::XMStoreFloat3x3(&view, m_EditorCamera.GetViewMatrix());
+		DirectX::XMStoreFloat3x3(&view, DirectX::XMLoadFloat4x4(reinterpret_cast<const DirectX::XMFLOAT4X4*>(&m_EditorCamera.GetViewMatrix())));
 		Renderer::BeginScene(&m_EditorCamera, DirectX::XMMatrixInverse(nullptr,DirectX::XMLoadFloat3x3(&view)));
 		Pistachio::Renderer::Submit(&cube, &envshader, &delta, 0, 0, 1, DirectX::XMMatrixIdentity());
 		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Back);
@@ -152,26 +152,16 @@ namespace Pistachio {
 				auto& tc = selectedEntity.GetComponent<TransformComponent>();
 				ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
 				ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, wndwith, wndheight);
-				float tr[3];
-				DirectX::XMVectorGetByIndexPtr(tr, tc.Translation, 0);
-				DirectX::XMVectorGetByIndexPtr(&tr[1], tc.Translation, 1);
-				DirectX::XMVectorGetByIndexPtr(&tr[2], tc.Translation, 2);
-				float rt[3] = {
-				DirectX::XMConvertToDegrees(tc.RotationEulerHint.x),
-				DirectX::XMConvertToDegrees(tc.RotationEulerHint.y),
-				DirectX::XMConvertToDegrees(tc.RotationEulerHint.z),
-				};
-				float sc[3];
-				DirectX::XMVectorGetByIndexPtr(sc, tc.Scale, 0);
-				DirectX::XMVectorGetByIndexPtr(&sc[1], tc.Scale, 1);
-				DirectX::XMVectorGetByIndexPtr(&sc[2], tc.Scale, 2);
+				float tr[3] = { tc.Translation.x, tc.Translation.y, tc.Translation.z };
+				float rt[3] = { tc.Rotation.x, tc.RotationEulerHint.y, tc.RotationEulerHint.z };
+				float sc[3] = { tc.Scale.x, tc.Scale.y, tc.Scale.z };
 
-				DirectX::XMFLOAT4X4 view;
-				DirectX::XMFLOAT4X4 projection;
-				DirectX::XMFLOAT4X4 transform;
-				ImGuizmo::RecomposeMatrixFromComponents(tr, rt, sc, (float*)&transform);
-				DirectX::XMStoreFloat4x4(&view, m_EditorCamera.GetViewMatrix());
-				DirectX::XMStoreFloat4x4(&projection, m_EditorCamera.GetProjection());
+				Pistachio::Matrix4 view;
+				Pistachio::Matrix4 projection;
+				Pistachio::Matrix4 transform;
+				ImGuizmo::RecomposeMatrixFromComponents(tr, rt, sc, &transform.m[0][0]);
+				view = m_EditorCamera.GetViewMatrix();
+				projection = m_EditorCamera.GetProjection();
 
 				bool snap = Input::IsKeyPressed(PT_KEY_LCONTROL);
 				float snapvalue = m_GizmoType == ImGuizmo::OPERATION::ROTATE ? 45.f : 0.5f;
@@ -182,13 +172,11 @@ namespace Pistachio {
 					ImGuizmo::Manipulate((float*)&view, (float*)&projection, (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::WORLD, (float*)&transform, nullptr, snap ? snapvalues : nullptr);
 				if (ImGuizmo::IsUsing())
 				{
-					DirectX::XMVECTOR eulerRotation = DirectX::XMLoadFloat4(&tc.RotationEulerHint);
 					ImGuizmo::DecomposeMatrixToComponents((float*)&transform, tr, rt, sc);
-					DirectX::XMMatrixDecompose(&tc.Scale, &tc.Rotation, &tc.Translation, DirectX::XMLoadFloat4x4(&transform));
-					DirectX::XMVECTOR deltaRotation = DirectX::XMVectorSubtract(DirectX::XMVectorSet(DirectX::XMConvertToRadians(rt[0]), DirectX::XMConvertToRadians(rt[1]), DirectX::XMConvertToRadians(rt[2]), 1.f), eulerRotation);
-					DirectX::XMStoreFloat4(&tc.RotationEulerHint, DirectX::XMVectorAdd(deltaRotation, eulerRotation));
-					//tc.RecalculateRotation();
-					//tc.Scale = DirectX::XMVectorSet(sc[0], sc[1], sc[2],1.f);
+					transform.Decompose(tc.Scale, tc.Rotation, tc.Translation);
+					Vector3 deltaRotation = Vector3(DirectX::XMConvertToRadians(rt[0]), DirectX::XMConvertToRadians(rt[1]), DirectX::XMConvertToRadians(rt[2])) - tc.RotationEulerHint;
+					tc.RotationEulerHint = deltaRotation + tc.RotationEulerHint;
+					tc.bDirty = true;
 				}
 
 			}

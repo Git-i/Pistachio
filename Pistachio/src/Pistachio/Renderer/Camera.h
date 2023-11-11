@@ -1,13 +1,13 @@
 #pragma once
-
+#include "../Core/Math.h"
 namespace Pistachio {
 	class OrthographicCamera {
 	public:
 		OrthographicCamera(float left, float right, float top, float bottom, float aspectratio);
-		inline DirectX::XMFLOAT3 GetPosition() { return m_Position; }
+		inline Vector3 GetPosition() { return m_Position; }
 		inline float GetRotation() { return m_Rotation; }
 		inline void SetPosition(float x, float y, float z) { m_Position.x = x; m_Position.y = y; m_Position.z = z; RecalculateViewMatrix(); }
-		inline void SetPosition(DirectX::XMFLOAT3 pos) { m_Position = pos; RecalculateViewMatrix(); }
+		inline void SetPosition(Vector3 pos) { m_Position = pos; RecalculateViewMatrix(); }
 		inline void SetRotation(float Rotation) { m_Rotation = DirectX::XMConvertToRadians(Rotation); RecalculateViewMatrix(); }
 		inline DirectX::XMMATRIX GetProjectionMatrix() const { return m_projectionMatrix; }
 		inline DirectX::XMMATRIX GetViewMatrix() const { return m_ViewMatrix; }
@@ -20,7 +20,7 @@ namespace Pistachio {
 		DirectX::XMMATRIX m_projectionMatrix;
 		DirectX::XMMATRIX m_ViewMatrix;
 		DirectX::XMMATRIX m_ViewProjMatrix;
-		DirectX::XMFLOAT3 m_Position;
+		Vector3 m_Position;
 		float m_Rotation = 0.0f;
 	};
 	class PerspectiveCamera {
@@ -53,12 +53,12 @@ namespace Pistachio {
 
 	class RuntimeCamera {
 	public:
-		RuntimeCamera() : m_projection(DirectX::XMMatrixIdentity()){}
-		RuntimeCamera(const DirectX::XMMATRIX& projection) : m_projection(projection) {}
-		const DirectX::XMMATRIX& GetProjection() const { return m_projection; }
-		const DirectX::XMMATRIX& GetProjection() { return m_projection; }
+		RuntimeCamera() : m_projection(Matrix4::Identity){}
+		RuntimeCamera(const Matrix4& projection) : m_projection(projection) {}
+		const Matrix4& GetProjection() const { return m_projection; }
+		const Matrix4& GetProjection() { return m_projection; }
 	protected:
-		DirectX::XMMATRIX m_projection;
+		Matrix4 m_projection;
 	};
 	class SceneCamera : public RuntimeCamera {
 	public:
@@ -70,12 +70,12 @@ namespace Pistachio {
 		void SetOrthographic(float size, float nearplane, float farplane);
 		void SetProjectionType(ProjectionType type);
 		inline ProjectionType GetProjectionType() const { return m_type; }
-		inline float GetOrthoNear() {return m_orthonear ;}
-		inline float GetOrthoFar()  {return m_orthofar  ;}
-		inline float GetOrthoSize() {return m_orthosize ;}
-		inline float GetPerspNear() {return m_perspnear ;}
-		inline float GetPerspFar()  {return m_perspfar  ;}
-		inline float GetPerspSize() {return m_perspsize ;}
+		inline float GetOrthoNear() const {return m_orthonear ;}
+		inline float GetOrthoFar()  const {return m_orthofar  ;}
+		inline float GetOrthoSize() const {return m_orthosize ;}
+		inline float GetPerspNear() const {return m_perspnear ;}
+		inline float GetPerspFar()  const {return m_perspfar  ;}
+		inline float GetPerspSize() const {return m_perspsize ;}
 	private:
 		float m_orthonear = 0.1f;
 		float m_orthofar = 100.0f;

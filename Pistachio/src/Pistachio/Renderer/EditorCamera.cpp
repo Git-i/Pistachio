@@ -8,7 +8,7 @@
 namespace Pistachio {
 
 	EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
-		: m_FOV(fov), m_AspectRatio(aspectRatio), m_NearClip(nearClip), m_FarClip(farClip), RuntimeCamera(DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(fov), aspectRatio, nearClip, farClip))
+		: m_FOV(fov), m_AspectRatio(aspectRatio), m_NearClip(nearClip), m_FarClip(farClip), RuntimeCamera(Matrix4::CreatePerspectiveFieldOfView(DirectX::XMConvertToRadians(fov), aspectRatio, nearClip, farClip))
 	{
 		UpdateView();
 	}
@@ -16,16 +16,16 @@ namespace Pistachio {
 	void EditorCamera::UpdateProjection()
 	{
 		m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
-		m_projection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(m_FOV), m_AspectRatio, m_NearClip, m_FarClip);
+		m_projection = Matrix4::CreatePerspectiveFieldOfView(Math::ToRadians(m_FOV), m_AspectRatio, m_NearClip, m_FarClip);
 	}
 
 	void EditorCamera::UpdateView()
 	{
 		// m_Yaw = m_Pitch = 0.0f; // Lock the camera's rotation
 		m_Position = CalculatePosition();
-		DirectX::XMVECTOR orientation = GetOrientation();
+		m_ViewMatrix = Matrix4::CreateLookAt(m_Position, m_FocalPoint, GetUpDirection());
+		//Quaternion orientation = GetOrientation();
 		//We Apply A Rigid-Body Transform Inverse Instead of a standard XMMatrixInverse 
-		m_ViewMatrix = DirectX::XMMatrixLookAtLH(m_Position, m_FocalPoint, DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f));
 		//m_ViewMatrix = DirectX::XMMatrixTranslationFromVector(DirectX::XMVectorNegate(m_Position)) * DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationQuaternion(orientation));
 	}
 
@@ -56,12 +56,12 @@ namespace Pistachio {
 
 	void EditorCamera::OnUpdate(float timestep)
 	{
-			const DirectX::XMFLOAT2& mouse{ (float)Input::GetMouseX(), (float)Input::GetMouseY() };
+			Vector2 mouse = { (float)Input::GetMouseX(), (float)Input::GetMouseY() };
 			if (FirstMouse) {
 				m_InitialMousePosition = mouse;
 				FirstMouse = false;
 			}
-			DirectX::XMFLOAT2 delta = { (mouse.x - m_InitialMousePosition.x) * 0.003f , (mouse.y - m_InitialMousePosition.y) * 0.003f  };
+			Vector2 delta = { (mouse.x - m_InitialMousePosition.x) * 0.003f , (mouse.y - m_InitialMousePosition.y) * 0.003f  };
 			m_InitialMousePosition = mouse;
 
 			if (Input::IsKeyPressed(PT_KEY_LCTRL) && Input::IsKeyPressed(PT_KEY_LBUTTON))
@@ -88,16 +88,16 @@ namespace Pistachio {
 		return false;
 	}
 
-	void EditorCamera::MousePan(const DirectX::XMFLOAT2& delta)
+	void EditorCamera::MousePan(const Vector2& delta)
 	{
 		auto [xSpeed, ySpeed] = PanSpeed();
-		m_FocalPoint = DirectX::XMVectorAdd(DirectX::XMVectorScale(DirectX::XMVectorNegate(GetRightDirection()), delta.x * xSpeed * m_Distance), m_FocalPoint);
-		m_FocalPoint = DirectX::XMVectorAdd(DirectX::XMVectorScale(GetUpDirection(), delta.y * ySpeed * m_Distance), m_FocalPoint);
+		m_FocalPoint = m_FocalPoint - (GetRightDirection() * (delta.x * xSpeed * m_Distance));
+		m_FocalPoint = (GetUpDirection() * (delta.y * ySpeed * m_Distance)) + m_FocalPoint;
 	}
 
-	void EditorCamera::MouseRotate(const DirectX::XMFLOAT2& delta)
+	void EditorCamera::MouseRotate(const Vector2& delta)
 	{
-		float yawSign = DirectX::XMVectorGetY(GetUpDirection()) < 0 ? -1.0f : 1.0f;
+		float yawSign = GetUpDirection().y < 0 ? -1.0f : 1.0f;
 		m_Yaw += yawSign * delta.x * RotationSpeed();
 		m_Pitch += delta.y * RotationSpeed();
 	}
@@ -113,29 +113,29 @@ namespace Pistachio {
 		}
 	}
 
-	DirectX::XMVECTOR EditorCamera::GetUpDirection() const
+	Vector3 EditorCamera::GetUpDirection() const
 	{
-		return DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f), GetOrientation());
+		return DirectX::XMVector3Rotate(Vector3::Up, GetOrientation());
 	}
 
-	DirectX::XMVECTOR EditorCamera::GetRightDirection() const
+	Vector3 EditorCamera::GetRightDirection() const
 	{
-		return DirectX::XMVector3Rotate(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), GetOrientation());
+		return DirectX::XMVector3Rotate(Vector3::Forward, GetOrientation());
 	}
 
-	DirectX::XMVECTOR EditorCamera::GetForwardDirection() const
+	Vector3 EditorCamera::GetForwardDirection() const
 	{
-		return DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 1.0f), GetOrientation());
+		return DirectX::XMVector3Rotate(Vector3(0.0f, 0.0f, -1.0f), GetOrientation());
 	}
 
-	DirectX::XMVECTOR EditorCamera::CalculatePosition() const
+	Vector3 EditorCamera::CalculatePosition() const
 	{
-		return DirectX::XMVectorSubtract(m_FocalPoint ,DirectX::XMVectorScale(GetForwardDirection(), -m_Distance));
+		return m_FocalPoint - (GetForwardDirection() * -m_Distance);
 	}
 
-	DirectX::XMVECTOR EditorCamera::GetOrientation() const
+	Quaternion EditorCamera::GetOrientation() const
 	{
-		return DirectX::XMQuaternionRotationRollPitchYaw(- m_Pitch, -m_Yaw, 0.0f);
+		return Quaternion::CreateFromYawPitchRoll(-m_Yaw, -m_Pitch, 0.0f);
 	}
 
 }
