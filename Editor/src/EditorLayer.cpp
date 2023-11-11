@@ -44,13 +44,22 @@ namespace Pistachio {
 	{
 		m_ActiveScene = std::make_shared<Scene>();
 		m_EditorCamera = EditorCamera(30.f, 1.6, 0.1f, 1000.f);
-		auto e = m_ActiveScene->CreateEntity("Mesh");
-		e.AddComponent<MeshRendererComponent>("plane.obj");
-		e.GetComponent<TransformComponent>().RotationEulerHint.x = DirectX::XMVectorGetX(DirectX::g_XMHalfPi);
-		e.GetComponent<TransformComponent>().Translation = DirectX::XMVectorSet(0.0, -1.0, 0.0, 1.0);
-		e.GetComponent<TransformComponent>().RecalculateRotation();
-		auto e2 = m_ActiveScene->CreateEntity("Mesh 2");
-		e2.AddComponent<MeshRendererComponent>("circle.obj");
+		for (int row = 0; row < 2; ++row)
+		{
+			float metallic = row / 2.f;
+			for (int col = 0; col < 2; ++col)
+			{
+				// we clamp the roughness to 0.05 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
+				// on direct lighting.
+				float roughness = std::clamp((float)col / 2.f, 0.05f, 1.0f);
+				Entity e = m_ActiveScene->CreateEntity("sphere" + std::to_string(row) + "r" + std::to_string(col));
+				auto& mr = e.AddComponent<MeshRendererComponent>("circle.obj");
+				mr.metallic = metallic;
+				mr.roughness = roughness;
+				auto& tc = e.GetComponent<TransformComponent>();
+				tc.Translation = Vector3((col - (2 / 2)) * 2.5, (row - (2 / 2)) * 2.5f, 0.0f);
+			}
+		}
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 	}
 	void EditorLayer::OnImGuiRender()

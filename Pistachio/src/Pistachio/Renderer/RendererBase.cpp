@@ -143,6 +143,7 @@ namespace Pistachio {
 
 	void RendererBase::DrawIndexed(const Buffer& buffer, unsigned int indexCount)
 	{
+		PT_PROFILE_FUNCTION()
 		unsigned int count = indexCount ? indexCount : buffer.ib->GetCount();
 		buffer.Bind();
 		g_pd3dDeviceContext->DrawIndexed(count, 0, 0);

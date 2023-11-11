@@ -90,6 +90,7 @@ PSOUTPUT main(PSINTPUT input)
     pso.shadow_info.z = Shadow(lightSpacePos.xyz, shadowMaplayer, 2, input.shadowMapSize);
     
     lightSpacePos = input.lightSpacePositions[12 + shadowMaplayer].xyz / input.lightSpacePositions[12 + shadowMaplayer].w;
-    pso.shadow_info.a = Shadow(lightSpacePos.xyz, shadowMaplayer, 3, input.shadowMapSize);
+    pso.shadow_info.a = 1;
+    //Shadow(lightSpacePos.xyz, shadowMaplayer, 3, input.shadowMapSize);
     return pso;
 }

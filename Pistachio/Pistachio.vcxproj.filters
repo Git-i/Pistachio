@@ -617,12 +617,6 @@
     <ClInclude Include="vendor\gainput\include\gainput\GainputMapFilters.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="vendor\glfw\include\GLFW\glfw3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\glfw\include\GLFW\glfw3native.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="vendor\spdlog\include\spdlog\cfg\argv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
