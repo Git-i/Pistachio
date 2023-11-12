@@ -12,16 +12,7 @@ namespace Pistachio {
 	}
 	UUID::UUID(uint64_t uuid)
 	{
+		m_UUID = uuid;
 	}
 
-}
-namespace std {
-	template<>
-	struct hash<Pistachio::UUID>
-	{
-		std::size_t operator()(const Pistachio::UUID& uuid) const
-		{
-			return hash<uint64_t>()((uint64_t)uuid);
-		}
-	};
 }

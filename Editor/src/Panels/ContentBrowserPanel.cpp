@@ -72,6 +72,28 @@ namespace Pistachio {
 							ImGui::EndDragDropSource();
 						}
 					}
+					else if(relativePath.extension().string() == ".png")
+					{
+						ImGui::ImageButton(m_objIcon->GetID().ptr, ImVec2(200, 200));
+						if (ImGui::BeginDragDropSource())
+						{
+							const wchar_t* data = relativePath.c_str();
+							ImGui::SetDragDropPayload("TEXTURE", data, (wcslen(data) + 1) * sizeof(wchar_t), ImGuiCond_Once);
+							ImGui::SetTooltip(relativePathStr.c_str());
+							ImGui::EndDragDropSource();
+						}
+					}
+					else if (relativePath.extension().string() == ".tga")
+					{
+						ImGui::ImageButton(m_objIcon->GetID().ptr, ImVec2(200, 200));
+						if (ImGui::BeginDragDropSource())
+						{
+							const wchar_t* data = relativePath.c_str();
+							ImGui::SetDragDropPayload("TEXTURE", data, (wcslen(data) + 1) * sizeof(wchar_t), ImGuiCond_Once);
+							ImGui::SetTooltip(relativePathStr.c_str());
+							ImGui::EndDragDropSource();
+						}
+					}
 					else if (relativePath.extension().string() == ".cpp")
 					{
 						ImGui::ImageButton(m_cppIcon->GetID().ptr, ImVec2(200, 200));
