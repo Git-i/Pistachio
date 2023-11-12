@@ -408,6 +408,7 @@ namespace Pistachio {
 				}
 				ImGui::EndDragDropTarget();
 			}
+			
 			ImGui::Button("Diffuse");
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -416,10 +417,13 @@ namespace Pistachio {
 				{
 					const wchar_t* data = (const wchar_t*)payload->Data;
 					auto path = std::filesystem::path("assets") / data;
+					mat->diffuseTexName = path.filename().string();
 					mat->diffuseTex = GetAssetManager()->CreateTexture2DAsset(path.string().c_str());
 				}
 				ImGui::EndDragDropTarget();
 			}
+			ImGui::SameLine();
+			ImGui::TextUnformatted(mat->diffuseTexName.c_str());
 			ImGui::Button("Metallic");
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -428,10 +432,13 @@ namespace Pistachio {
 				{
 					const wchar_t* data = (const wchar_t*)payload->Data;
 					auto path = std::filesystem::path("assets") / data;
+					mat->metallicTexName = path.filename().string();
 					mat->metallicTex = GetAssetManager()->CreateTexture2DAsset(path.string().c_str());
 				}
 				ImGui::EndDragDropTarget();
 			}
+			ImGui::SameLine();
+			ImGui::TextUnformatted(mat->metallicTexName.c_str());
 			ImGui::Button("Roughness");
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -440,10 +447,13 @@ namespace Pistachio {
 				{
 					const wchar_t* data = (const wchar_t*)payload->Data;
 					auto path = std::filesystem::path("assets") / data;
+					mat->roughnessTexName = path.filename().string();
 					mat->roughnessTex = GetAssetManager()->CreateTexture2DAsset(path.string().c_str());
 				}
 				ImGui::EndDragDropTarget();
 			}
+			ImGui::SameLine();
+			ImGui::TextUnformatted(mat->roughnessTexName.c_str());
 			ImGui::Button("Normal");
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -452,10 +462,13 @@ namespace Pistachio {
 				{
 					const wchar_t* data = (const wchar_t*)payload->Data;
 					auto path = std::filesystem::path("assets") / data;
+					mat->normalTexName = path.filename().string();
 					mat->normalTex = GetAssetManager()->CreateTexture2DAsset(path.string().c_str());
 				}
 				ImGui::EndDragDropTarget();
 			}
+			ImGui::SameLine();
+			ImGui::TextUnformatted(mat->normalTexName.c_str());
 			ImGui::ColorEdit3("Color", (float*)&mat->diffuseColor);
 			ImGui::SliderFloat("Metallic Fac", &mat->metallic, 0.0, 1.0);
 			ImGui::SliderFloat("Rougness Fac", &mat->roughness, 0.0, 1.0);

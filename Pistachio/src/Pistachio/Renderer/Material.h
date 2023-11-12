@@ -14,5 +14,10 @@ namespace Pistachio
 		Asset normalTex;
 		Asset metallicTex;
 		Asset roughnessTex;
+		//editor specific
+		std::string diffuseTexName = "None";
+		std::string normalTexName = "None";
+		std::string metallicTexName = "None";
+		std::string roughnessTexName = "None";
 	};
 }

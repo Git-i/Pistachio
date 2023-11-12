@@ -21,9 +21,16 @@ namespace Pistachio
 	{
 		PT_CORE_INFO("Assignment Called");
 		auto assetMan = GetAssetManager();
-		if (m_uuid)
-		{
-			assetMan->assetResourceMap[m_uuid]->release();
+		auto res = assetMan->assetResourceMap[m_uuid];
+		if (m_uuid) {
+			if (res->release() == 0)
+			{
+				if (m_type == ResourceType::Material) {PT_CORE_WARN("RC Material Deleted");delete ((Material*)res);}
+				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res); PT_CORE_WARN("RC Texture Deleted"); }
+				assetMan->assetResourceMap.erase(m_uuid);
+				auto it = std::find_if(assetMan->pathUUIDMap.begin(), assetMan->pathUUIDMap.end(), [this](auto&& p) { return p.second == m_uuid; });
+				assetMan->pathUUIDMap.erase(it->first);
+			}
 		}
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
@@ -34,6 +41,17 @@ namespace Pistachio
 	{
 		PT_CORE_INFO("Move Assignment Called");
 		auto assetMan = GetAssetManager();
+		auto res = assetMan->assetResourceMap[m_uuid];
+		if (m_uuid) {
+			if (res->release() == 0)
+			{
+				if (m_type == ResourceType::Material) { PT_CORE_WARN("RC Material Deleted"); delete ((Material*)res); }
+				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res); PT_CORE_WARN("RC Texture Deleted"); }
+				assetMan->assetResourceMap.erase(m_uuid);
+				auto it = std::find_if(assetMan->pathUUIDMap.begin(), assetMan->pathUUIDMap.end(), [this](auto&& p) { return p.second == m_uuid; });
+				assetMan->pathUUIDMap.erase(it->first);
+			}
+		}
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
 		PT_CORE_ERROR("Move Assignment Over");
@@ -64,6 +82,8 @@ namespace Pistachio
 				}
 				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res); PT_CORE_WARN("RC Texture Deleted"); }
 				assetMan->assetResourceMap.erase(m_uuid);
+				auto it = std::find_if(assetMan->pathUUIDMap.begin(), assetMan->pathUUIDMap.end(), [this](auto&& p) { return p.second == m_uuid; });
+				assetMan->pathUUIDMap.erase(it->first);
 			}
 		}
 		m_uuid = 0;
