@@ -114,6 +114,9 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Pistachio\Asset\Asset.h" />
+    <ClInclude Include="src\Pistachio\Asset\AssetManager.h" />
+    <ClInclude Include="src\Pistachio\Asset\RefCountedObject.h" />
     <ClInclude Include="src\Pistachio\Core\Error.h" />
     <ClInclude Include="src\Pistachio\Core\Math.h" />
     <ClInclude Include="src\Pistachio\Core\UUID.h" />
@@ -126,6 +129,7 @@
     <ClInclude Include="src\Pistachio\Renderer\Camera.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.h" />
     <ClInclude Include="src\Pistachio\Renderer\EditorCamera.h" />
+    <ClInclude Include="src\Pistachio\Renderer\Material.h" />
     <ClInclude Include="src\Pistachio\Renderer\MeshFactory.h" />
     <ClInclude Include="src\Pistachio\Renderer\Model.h" />
     <ClInclude Include="src\Pistachio\Renderer\Renderer2D.h" />
@@ -459,6 +463,7 @@
     <ClInclude Include="vendor\text-editor\TextEditor.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Pistachio\Asset\AssetManager.cpp" />
     <ClCompile Include="src\Pistachio\Core\UUID.cpp" />
     <ClCompile Include="src\Pistachio\Physics\Physics.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsPlatformUtils.cpp" />

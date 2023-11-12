@@ -2,8 +2,9 @@
 #include "../Core.h"
 #include "RendererID_t.h"
 #include "../Utils/RendererUtils.h"
+#include "../Asset/RefCountedObject.h"
 namespace Pistachio {
-	class Texture
+	class Texture : public RefCountedObject
 	{
 	public:
 		virtual unsigned int GetHeight() const = 0;

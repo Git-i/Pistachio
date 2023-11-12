@@ -390,6 +390,7 @@ namespace Pistachio {
 			ImGui::ColorEdit4("Color", (float*)&component.Color);
 		});
 		DrawComponent<MeshRendererComponent>("Mesh Renderer", entity, [](auto& component) {
+			auto mat = GetAssetManager()->GetMaterialResource(component.material);
 			ImGui::Button("Mesh");
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -407,9 +408,57 @@ namespace Pistachio {
 				}
 				ImGui::EndDragDropTarget();
 			}
-			ImGui::ColorEdit3("Color", (float*)&component.color);
-			ImGui::SliderFloat("Metallic", &component.metallic, 0.0, 1.0);
-			ImGui::SliderFloat("Rougness", &component.roughness, 0.0, 1.0);
+			ImGui::Button("Diffuse");
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE");
+				if (payload)
+				{
+					const wchar_t* data = (const wchar_t*)payload->Data;
+					auto path = std::filesystem::path("assets") / data;
+					mat->diffuseTex = GetAssetManager()->CreateTexture2DAsset(path.string().c_str());
+				}
+				ImGui::EndDragDropTarget();
+			}
+			ImGui::Button("Metallic");
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE");
+				if (payload)
+				{
+					const wchar_t* data = (const wchar_t*)payload->Data;
+					auto path = std::filesystem::path("assets") / data;
+					mat->metallicTex = GetAssetManager()->CreateTexture2DAsset(path.string().c_str());
+				}
+				ImGui::EndDragDropTarget();
+			}
+			ImGui::Button("Roughness");
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE");
+				if (payload)
+				{
+					const wchar_t* data = (const wchar_t*)payload->Data;
+					auto path = std::filesystem::path("assets") / data;
+					mat->roughnessTex = GetAssetManager()->CreateTexture2DAsset(path.string().c_str());
+				}
+				ImGui::EndDragDropTarget();
+			}
+			ImGui::Button("Normal");
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE");
+				if (payload)
+				{
+					const wchar_t* data = (const wchar_t*)payload->Data;
+					auto path = std::filesystem::path("assets") / data;
+					mat->normalTex = GetAssetManager()->CreateTexture2DAsset(path.string().c_str());
+				}
+				ImGui::EndDragDropTarget();
+			}
+			ImGui::ColorEdit3("Color", (float*)&mat->diffuseColor);
+			ImGui::SliderFloat("Metallic Fac", &mat->metallic, 0.0, 1.0);
+			ImGui::SliderFloat("Rougness Fac", &mat->roughness, 0.0, 1.0);
 		});
 		DrawComponent<LightComponent>("Light", entity, [](auto& component) {
 			const char* lightTypeStrings[] = { "Directional Light", "Point Light", "Spot Light"};

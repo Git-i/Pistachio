@@ -335,15 +335,24 @@ namespace Pistachio {
 			{	
 				//TO-DO MATERIALS
 				auto [transform, mesh] = group.get<TransformComponent, MeshRendererComponent>(entity);
+				auto mat = GetAssetManager()->GetMaterialResource(mesh.material);
+				auto diff = GetAssetManager()->GetTexture2DResource(mat->diffuseTex);
+				auto rough = GetAssetManager()->GetTexture2DResource(mat->roughnessTex);
+				auto metal = GetAssetManager()->GetTexture2DResource(mat->metallicTex);
+				auto norm = GetAssetManager()->GetTexture2DResource(mat->normalTex);
 				float c[4]{
-						std::pow(mesh.color.x, 2.2),
-						std::pow(mesh.color.y, 2.2),
-						std::pow(mesh.color.z, 2.2),
+						std::pow(mat->diffuseColor.x, 2.2),
+						std::pow(mat->diffuseColor.y, 2.2),
+						std::pow(mat->diffuseColor.z, 2.2),
 						1.0
 				};
 				if (mesh.Mesh) {
 					Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
-					Renderer::Submit(mesh.Mesh.get(), Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), c, mesh.metallic, mesh.roughness, (uint32_t)entity, DirectX::XMMatrixIdentity());
+					if (diff) { diff->Bind(3); } else {Renderer::whiteTexture.Bind(3); }
+					if (rough) { rough->Bind(4); } else {Renderer::whiteTexture.Bind(4); }
+					if (metal) { metal->Bind(5); } else {Renderer::whiteTexture.Bind(5); }
+					if (norm) { norm->Bind(6); } else {Renderer::whiteTexture.Bind(6); }
+					Renderer::Submit(mesh.Mesh.get(), Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), c, mat->metallic, mat->roughness, (uint32_t)entity, DirectX::XMMatrixIdentity());
 				}
 			}
 		}
@@ -528,14 +537,15 @@ namespace Pistachio {
 					//TO-DO MATERIALS
 					auto [transform, mesh] = group.get<TransformComponent, MeshRendererComponent>(entity);
 					const auto& transformMatrix = transform.GetTransform({ (entt::entity)m_Registry.get<ParentComponent>(entity).parentID, this });
+					auto mat = GetAssetManager()->GetMaterialResource(mesh.material);
 					float c[4]{
-							std::pow(mesh.color.x, 2.2),
-							std::pow(mesh.color.y, 2.2),
-							std::pow(mesh.color.z, 2.2),
+							std::pow(mat->diffuseColor.x, 2.2),
+							std::pow(mat->diffuseColor.y, 2.2),
+							std::pow(mat->diffuseColor.z, 2.2),
 							1.0
 					};
 					if (mesh.Mesh)
-						Renderer::Submit(mesh.Mesh.get(), Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), c, mesh.metallic, mesh.roughness, (uint32_t)entity, transformMatrix);
+						Renderer::Submit(mesh.Mesh.get(), Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), c, mat->metallic, mat->roughness, (uint32_t)entity, transformMatrix);
 				}
 			}
 			m_finalRender.Bind(0, 1);
@@ -636,6 +646,7 @@ namespace Pistachio {
 	template<>
 	void Scene::OnComponentAdded<MeshRendererComponent>(Entity entity, MeshRendererComponent& component)
 	{
+		component.material = GetAssetManager()->CreateMaterialAsset("burner");
 		ConstantBuffer cb;
 		cb.Create(nullptr, sizeof(TransformData));
 		Renderer::TransformationBuffer.push_back(cb);

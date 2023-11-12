@@ -79,7 +79,7 @@ PSOUTPUT main(PSINTPUT input)
     {
         shadowMaplayer = 0;
     }
-    pso.color = colors[shadowMaplayer];
+    //pso.color = colors[shadowMaplayer];
     float3 lightSpacePos = input.lightSpacePositions[shadowMaplayer].xyz / input.lightSpacePositions[shadowMaplayer].w;
     pso.shadow_info.x = Shadow(lightSpacePos.xyz, shadowMaplayer, 0, input.shadowMapSize);
     

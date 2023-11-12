@@ -3,7 +3,7 @@
 #include "Pistachio/Renderer/Camera.h"
 #include "Pistachio/Renderer/Mesh.h"
 #include "Pistachio\Renderer\ShadowMap.h"
-#include "Pistachio/Core/UUID.h"
+#include "Pistachio\Asset\AssetManager.h"
 #include "Entity.h"
 namespace Pistachio{
 	// Generic ----------------------------------------------------------------------------------
@@ -66,10 +66,9 @@ namespace Pistachio{
 	// 3D -------------------------------------------------------------------------------------------------------------------
 	struct MeshRendererComponent {
 		Ref<Pistachio::Mesh> Mesh = nullptr;
-		DirectX::XMFLOAT3 color = { 1,1,1 };
-		float roughness = 0.5f;
-		float metallic = 0.f;
+		Asset material;
 		std::size_t cbIndex = 0;
+		~MeshRendererComponent() {};
 		MeshRendererComponent() :Mesh(nullptr){ };
 		MeshRendererComponent(const MeshRendererComponent&) = default;
 		MeshRendererComponent(const char* path) { Mesh.reset(Pistachio::Mesh::Create(path)); }
