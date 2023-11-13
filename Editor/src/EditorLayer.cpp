@@ -44,6 +44,16 @@ namespace Pistachio {
 	{
 		m_ActiveScene = std::make_shared<Scene>();
 		m_EditorCamera = EditorCamera(30.f, 1.6, 0.1f, 1000.f);
+		Material m;
+		m.diffuseColor = { 1.f, 0.33f, 0.4f };
+		m.diffuseTexName = "lmao";
+		m.metallicTexName = "lmao_m";
+		m.roughnessTexName = "lmao_r";
+		m.normalTexName = "lmao_n";
+		m.metallic = 0.33f;
+		m.roughness = 0.23f;
+		MaterialSerializer ms;
+		ms.Serialize("Material.mat", m);
 		Entity e = m_ActiveScene->CreateEntity("sphere");
 		auto& mr = e.AddComponent<MeshRendererComponent>("circle.obj");
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);

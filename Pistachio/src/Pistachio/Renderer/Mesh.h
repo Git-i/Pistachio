@@ -28,8 +28,8 @@ namespace Pistachio {
 	class Mesh {
 	public:
 		Mesh(){}
-		static Mesh* Create(const char* filepath);
-		Error CreateStack(const char* filepath);
+		static Mesh* Create(const char* filepath, std::uint32_t index = 0);
+		Error CreateStack(const char* filepath, std::uint32_t index = 0);
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 		static BufferLayout* GetLayout();
 		inline static int GetLayoutSize() { return 3; }

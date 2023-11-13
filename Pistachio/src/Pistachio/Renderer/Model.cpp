@@ -5,6 +5,10 @@
 #include "assimp/DefaultLogger.hpp"
 #include "../Core/Error.h"
 namespace Pistachio {
+    Model* Model::Create(const char* path)
+    {
+        return new Model(path);
+    }
     Error Model::loadModel(const char* path)
     {
         PT_PROFILE_FUNCTION()
