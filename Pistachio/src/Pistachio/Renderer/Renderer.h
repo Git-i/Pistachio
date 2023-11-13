@@ -8,7 +8,7 @@
 #include "Sampler.h"
 #include "Pistachio/Event/Event.h"
 #include "Pistachio/Event/ApplicationEvent.h"
-
+#include "Pistachio\Asset\AssetManager.h"
 #include "Pistachio/Renderer/EditorCamera.h"
 namespace Pistachio {
 	struct Light {
@@ -49,13 +49,14 @@ namespace Pistachio {
 		static void BeginScene(EditorCamera& cam);
 		static void Init(const char* skybox);
 		static void EndScene();
-		static void Submit(Mesh* mesh, Shader* shader,  float* c, float m, float r, int ID, const DirectX::XMMATRIX& transform = DirectX::XMMatrixIdentity(), const DirectX::XMMATRIX& viewProjection = viewproj);
+		static void Submit(Mesh* mesh, Shader* shader,  Material* mat, int ID);
 		static void AddLight(const Light& light);
 		inline static ShaderLibrary& GetShaderLibrary() { return shaderlib; }
 		inline static ID3D11ShaderResourceView* GetFrambufferSRV() { return (ID3D11ShaderResourceView*)fbo.GetID().ptr; };
 		inline static ID3D11ShaderResourceView* GetIrradianceFrambufferSRV() { return (ID3D11ShaderResourceView*)ifbo.GetID().ptr; };
 		inline static ID3D11ShaderResourceView* GetPrefilterFrambufferSRV(int level) { return (ID3D11ShaderResourceView*)prefilter.GetID().ptr; };
 		inline static ID3D11ShaderResourceView* GetBrdfSRV() { return (ID3D11ShaderResourceView*)BrdfTex.GetSRV().ptr; };
+		static Material DefaultMaterial;
 		static void OnEvent(Event& e) {
 			if (e.GetEventType() == EventType::WindowResize)
 				OnWindowResize((WindowResizeEvent&)e);

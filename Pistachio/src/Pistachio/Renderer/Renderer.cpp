@@ -19,6 +19,7 @@ Pistachio::Renderer::LD  Pistachio::Renderer::LightData = {};
 Pistachio::Light* Pistachio::Renderer::lightIndexPtr = nullptr;
 Pistachio::Renderer::CamerData Pistachio::Renderer::CameraData = {};
 Pistachio::Texture2D Pistachio::Renderer::whiteTexture = Pistachio::Texture2D();
+Pistachio::Material Pistachio::Renderer::DefaultMaterial = Pistachio::Material();
 
 static Pistachio::SamplerState* brdfSampler ;
 static Pistachio::SamplerState* shadowSampler;
@@ -306,14 +307,22 @@ namespace Pistachio {
 		delete shadowSampler;
 		RendererBase::Shutdown();
 	}
-	void Renderer::Submit(Mesh* mesh, Shader* shader, float* c, float m, float r, int ID, const DirectX::XMMATRIX& transform, const DirectX::XMMATRIX& viewProjection)
+	void Renderer::Submit(Mesh* mesh, Shader* shader, Material* mat, int ID)
 	{
 		PT_PROFILE_FUNCTION();
 		auto& VB = mesh->GetVertexBuffer(); 
 		auto& IB = mesh->GetIndexBuffer();
 		Buffer buffer = { &VB,&IB };
 		MaterialStruct cb;
-		cb = { {c[0], c[1], c[2], c[3]},m,r,ID};
+		auto diff = GetAssetManager()->GetTexture2DResource(mat->diffuseTex);
+		auto rough = GetAssetManager()->GetTexture2DResource(mat->roughnessTex);
+		auto metal = GetAssetManager()->GetTexture2DResource(mat->metallicTex);
+		auto norm = GetAssetManager()->GetTexture2DResource(mat->normalTex);
+		if (diff) { diff->Bind(3); }else { Renderer::whiteTexture.Bind(3); }
+		if (rough) { rough->Bind(4); }else { Renderer::whiteTexture.Bind(4); }
+		if (metal) { metal->Bind(5); }else { Renderer::whiteTexture.Bind(5); }
+		if (norm) { norm->Bind(6); }else { Renderer::whiteTexture.Bind(6); }
+		cb = { {mat->diffuseColor.x, mat->diffuseColor.y, mat->diffuseColor.z, 1.f},mat->metallic,mat->roughness,ID};
 		MaterialCB.Update(&cb, sizeof(MaterialStruct));
 		shader->Bind(ShaderType::Vertex);
 		shader->Bind(ShaderType::Pixel);

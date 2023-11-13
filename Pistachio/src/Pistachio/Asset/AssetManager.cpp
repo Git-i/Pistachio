@@ -10,24 +10,23 @@ namespace Pistachio
 	}
 	Asset::Asset(const Asset& other)
 	{
-		PT_CORE_INFO(" Copy Constructor Called");
+		if (other.m_uuid == 0) return;
 		auto assetMan = GetAssetManager();
 		assetMan->assetResourceMap[other.m_uuid]->hold();
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
-		PT_CORE_ERROR(" Copy Constructor Over");
 	}
 	void Asset::operator=(const Asset& other)
 	{
-		PT_CORE_INFO("Assignment Called");
+		if (other.m_uuid == 0) return;
 		auto assetMan = GetAssetManager();
 		auto res = assetMan->assetResourceMap[m_uuid];
 		if (m_uuid) {
 			if (res->release() == 0)
 			{
-				if (m_type == ResourceType::Material) {PT_CORE_WARN("RC Material Deleted");delete ((Material*)res);}
-				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res); PT_CORE_WARN("RC Texture Deleted"); }
-				if (m_type == ResourceType::Model) { delete ((Model*)res); PT_CORE_WARN("RC Model Deleted"); }
+				if (m_type == ResourceType::Material) {delete ((Material*)res);}
+				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res); }
+				if (m_type == ResourceType::Model) { delete ((Model*)res);  }
 				assetMan->assetResourceMap.erase(m_uuid);
 				auto it = std::find_if(assetMan->pathUUIDMap.begin(), assetMan->pathUUIDMap.end(), [this](auto&& p) { return p.second == m_uuid; });
 				assetMan->pathUUIDMap.erase(it->first);
@@ -36,19 +35,18 @@ namespace Pistachio
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
 		assetMan->assetResourceMap[m_uuid]->hold();
-		PT_CORE_ERROR("Assignment Over");
 	}
 	void Asset::operator=(Asset&& other)
 	{
-		PT_CORE_INFO("Move Assignment Called");
+		if (other.m_uuid == 0) return;
 		auto assetMan = GetAssetManager();
 		auto res = assetMan->assetResourceMap[m_uuid];
 		if (m_uuid) {
 			if (res->release() == 0)
 			{
-				if (m_type == ResourceType::Material) { PT_CORE_WARN("RC Material Deleted"); delete ((Material*)res); }
-				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res); PT_CORE_WARN("RC Texture Deleted"); }
-				if (m_type == ResourceType::Model) { delete ((Model*)res); PT_CORE_WARN("RC Model Deleted"); }
+				if (m_type == ResourceType::Material) {  delete ((Material*)res); }
+				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res);  }
+				if (m_type == ResourceType::Model) { delete ((Model*)res);  }
 				assetMan->assetResourceMap.erase(m_uuid);
 				auto it = std::find_if(assetMan->pathUUIDMap.begin(), assetMan->pathUUIDMap.end(), [this](auto&& p) { return p.second == m_uuid; });
 				assetMan->pathUUIDMap.erase(it->first);
@@ -56,15 +54,12 @@ namespace Pistachio
 		}
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
-		PT_CORE_ERROR("Move Assignment Over");
 	}
 	Asset::Asset(UUID uuid, ResourceType type)
 	{
-		PT_CORE_INFO("Constructor Called");
 		GetAssetManager()->assetResourceMap[uuid]->hold();
 		m_uuid = uuid;
 		m_type = type;
-		PT_CORE_ERROR("Constructor Over");
 	}
 	int Asset::ViewRefCount()
 	{
@@ -72,18 +67,17 @@ namespace Pistachio
 	}
 	Asset::~Asset()
 	{
-		PT_CORE_INFO("Destructor Called");
+		if (m_uuid == 0) return;
 		auto assetMan = GetAssetManager();
 		auto res = assetMan->assetResourceMap[m_uuid];
 		if (m_uuid) {
 			if (res->release() == 0)
 			{
 				if (m_type == ResourceType::Material) {
-					PT_CORE_WARN("RC Material Deleted");
 					delete ((Material*)res);
 				}
-				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res); PT_CORE_WARN("RC Texture Deleted"); }
-				if (m_type == ResourceType::Model) { delete ((Model*)res); PT_CORE_WARN("RC Model Deleted"); }
+				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res);}
+				if (m_type == ResourceType::Model) { delete ((Model*)res);}
 				assetMan->assetResourceMap.erase(m_uuid);
 				auto it = std::find_if(assetMan->pathUUIDMap.begin(), assetMan->pathUUIDMap.end(), [this](auto&& p) { return p.second == m_uuid; });
 				assetMan->pathUUIDMap.erase(it->first);
@@ -91,7 +85,6 @@ namespace Pistachio
 		}
 		m_uuid = 0;
 		m_type = ResourceType::Invalid;
-		PT_CORE_ERROR("Destructor Over");
 	}
 	inline int Pistachio::RefCountedObject::hold() const
 	{

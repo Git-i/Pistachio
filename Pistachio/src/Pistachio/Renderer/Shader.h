@@ -12,10 +12,11 @@ namespace Pistachio {
 	};
 	struct MaterialStruct
 	{
-		DirectX::XMVECTOR albedo = {0,0,0};
+		DirectX::XMFLOAT4 albedo = {0,0,0,0};
 		float metallic= 0;
 		float roughness=0;
 		int ID = 0;
+		int _pad = 0;
 	};
 	enum class ShaderType
 	{
