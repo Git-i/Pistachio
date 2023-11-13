@@ -36,7 +36,7 @@ namespace Pistachio {
 		DirectX::XMFLOAT3X3 view;
 		DirectX::XMStoreFloat3x3(&view, DirectX::XMLoadFloat4x4(reinterpret_cast<const DirectX::XMFLOAT4X4*>(&m_EditorCamera.GetViewMatrix())));
 		Renderer::BeginScene(&m_EditorCamera, DirectX::XMMatrixInverse(nullptr,DirectX::XMLoadFloat3x3(&view)));
-		Pistachio::Renderer::Submit(&cube, &envshader, &delta, 0, 0, 1, DirectX::XMMatrixIdentity());
+		Pistachio::Renderer::Submit(&cube, &envshader, &Renderer::DefaultMaterial, -1);
 		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Back);
 	}
 	ImVec2 wndPos;

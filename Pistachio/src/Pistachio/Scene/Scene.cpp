@@ -338,35 +338,13 @@ namespace Pistachio {
 				auto [transform, mesh] = group.get<TransformComponent, MeshRendererComponent>(entity);
 				auto mat = GetAssetManager()->GetMaterialResource(mesh.material);
 				auto model = GetAssetManager()->GetModelResource(mesh.Model);
-				float c[4] = { 1.f, 1.f, 1.f, 1.f };
-				float m = 0.5f;
-				float r = 0.5f;
 				if (model) {
-					if (mat)
-					{
-						auto diff = GetAssetManager()->GetTexture2DResource(mat->diffuseTex);
-						auto rough = GetAssetManager()->GetTexture2DResource(mat->roughnessTex);
-						auto metal = GetAssetManager()->GetTexture2DResource(mat->metallicTex);
-						auto norm = GetAssetManager()->GetTexture2DResource(mat->normalTex);
-						if (diff) { diff->Bind(3); } else   {Renderer::whiteTexture.Bind(3); }
-						if (rough) { rough->Bind(4); } else {Renderer::whiteTexture.Bind(4); }
-						if (metal) { metal->Bind(5); } else {Renderer::whiteTexture.Bind(5); }
-						if (norm) { norm->Bind(6); } else   {Renderer::whiteTexture.Bind(6); }
-						c[0] = mat->diffuseColor.x;
-						c[1] = mat->diffuseColor.y;
-						c[2] = mat->diffuseColor.z;
-						m = mat->metallic;
-						r = mat->roughness;
-					}
-					else
-					{
-						Renderer::whiteTexture.Bind(3);
-						Renderer::whiteTexture.Bind(4);
-						Renderer::whiteTexture.Bind(5);
-						Renderer::whiteTexture.Bind(6);
-					}
+					
 					Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
-					Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), c, m, r, (uint32_t)entity, DirectX::XMMatrixIdentity());
+					if(!mat)
+						Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), &Renderer::DefaultMaterial, (uint32_t)entity);
+					else
+						Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), mat, (uint32_t)entity);
 				}
 			}
 		}
@@ -561,7 +539,7 @@ namespace Pistachio {
 							1.0
 					};
 					if (model)
-						Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), c, mat->metallic, mat->roughness, (uint32_t)entity, transformMatrix);
+						Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), mat,(uint32_t)entity);
 				}
 			}
 			m_finalRender.Bind(0, 1);
