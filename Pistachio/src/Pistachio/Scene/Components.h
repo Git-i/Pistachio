@@ -65,13 +65,14 @@ namespace Pistachio{
 
 	// 3D -------------------------------------------------------------------------------------------------------------------
 	struct MeshRendererComponent {
-		Ref<Pistachio::Mesh> Mesh = nullptr;
+		Asset Model;
 		Asset material;
 		std::size_t cbIndex = 0;
+		std::uint32_t modelIndex = 0;
 		~MeshRendererComponent() {};
-		MeshRendererComponent() :Mesh(nullptr){ };
+		MeshRendererComponent(){ };
 		MeshRendererComponent(const MeshRendererComponent&) = default;
-		MeshRendererComponent(const char* path) { Mesh.reset(Pistachio::Mesh::Create(path)); }
+		MeshRendererComponent(const char* path) { Model = GetAssetManager()->CreateModelAsset(path); }
 	};
 	// ----------------------------------------------------------------------------------------------------------------------
 	struct SpriteRendererComponent {

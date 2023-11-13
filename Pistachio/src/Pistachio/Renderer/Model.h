@@ -5,9 +5,9 @@
 #include <assimp/postprocess.h>
 
 #include "Mesh.h"
-
+#include "../Asset/RefCountedObject.h"
 namespace Pistachio {
-    class Model
+    class Model : public RefCountedObject
     {
     public:
         // model data 
@@ -17,6 +17,8 @@ namespace Pistachio {
         {
             loadModel(path);
         }
+
+        static Model* Create(const char* path);
     private:
         // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
         Error loadModel(const char* path);

@@ -22,14 +22,14 @@ void ProcessIndices(const aiMesh* pMesh, std::vector<unsigned int>& indices)
 	}
 }
 namespace Pistachio {
-	Mesh* Mesh::Create(const char* filepath)
+	Mesh* Mesh::Create(const char* filepath, std::uint32_t index)
 	{
 		PT_PROFILE_FUNCTION()
 		Mesh* result = new Mesh;
-		result->CreateStack(filepath);
+		result->CreateStack(filepath, index);
 		return result;
 	}
-	Error Mesh::CreateStack(const char* filepath)
+	Error Mesh::CreateStack(const char* filepath, std::uint32_t index)
 	{
 		PT_PROFILE_FUNCTION()
 		m_vertices.clear();
@@ -42,7 +42,7 @@ namespace Pistachio {
 		const aiScene* pScene = imp.ReadFile(filepath, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded);
 		
 		Assimp::DefaultLogger::kill();
-		const aiMesh* pmeshes = pScene->mMeshes[0];
+		const aiMesh* pmeshes = pScene->mMeshes[index];
 		m_vertices.reserve(pmeshes->mNumVertices);
 		m_indices.reserve(pmeshes->mNumFaces * 3);	
 		std::thread worker(ProcessIndices, (pmeshes), std::ref(m_indices));

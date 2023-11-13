@@ -19,5 +19,13 @@ namespace Pistachio
 		std::string normalTexName = "None";
 		std::string metallicTexName = "None";
 		std::string roughnessTexName = "None";
+	public:
+		static Material* Create(const char* filepath);
+	};
+
+	class MaterialSerializer
+	{
+	public:
+		void Serialize(const std::string& filepath, const Material& mat);
 	};
 }

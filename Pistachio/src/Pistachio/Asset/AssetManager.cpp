@@ -27,6 +27,7 @@ namespace Pistachio
 			{
 				if (m_type == ResourceType::Material) {PT_CORE_WARN("RC Material Deleted");delete ((Material*)res);}
 				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res); PT_CORE_WARN("RC Texture Deleted"); }
+				if (m_type == ResourceType::Model) { delete ((Model*)res); PT_CORE_WARN("RC Model Deleted"); }
 				assetMan->assetResourceMap.erase(m_uuid);
 				auto it = std::find_if(assetMan->pathUUIDMap.begin(), assetMan->pathUUIDMap.end(), [this](auto&& p) { return p.second == m_uuid; });
 				assetMan->pathUUIDMap.erase(it->first);
@@ -47,6 +48,7 @@ namespace Pistachio
 			{
 				if (m_type == ResourceType::Material) { PT_CORE_WARN("RC Material Deleted"); delete ((Material*)res); }
 				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res); PT_CORE_WARN("RC Texture Deleted"); }
+				if (m_type == ResourceType::Model) { delete ((Model*)res); PT_CORE_WARN("RC Model Deleted"); }
 				assetMan->assetResourceMap.erase(m_uuid);
 				auto it = std::find_if(assetMan->pathUUIDMap.begin(), assetMan->pathUUIDMap.end(), [this](auto&& p) { return p.second == m_uuid; });
 				assetMan->pathUUIDMap.erase(it->first);
@@ -81,6 +83,7 @@ namespace Pistachio
 					delete ((Material*)res);
 				}
 				if (m_type == ResourceType::Texture) { delete ((Texture2D*)res); PT_CORE_WARN("RC Texture Deleted"); }
+				if (m_type == ResourceType::Model) { delete ((Model*)res); PT_CORE_WARN("RC Model Deleted"); }
 				assetMan->assetResourceMap.erase(m_uuid);
 				auto it = std::find_if(assetMan->pathUUIDMap.begin(), assetMan->pathUUIDMap.end(), [this](auto&& p) { return p.second == m_uuid; });
 				assetMan->pathUUIDMap.erase(it->first);
@@ -109,41 +112,15 @@ namespace Pistachio
 	}
 	Asset AssetManager::CreateMaterialAsset(const std::string& filename)
 	{
-		auto it = pathUUIDMap.find(filename);
-		if (it != pathUUIDMap.end())
-		{
-			assetResourceMap[it->second]->hold();
-			return Asset(it->second, ResourceType::Material);
-		}
-		else
-		{
-			UUID uuid = UUID();
-			auto obj = new Material;
-			assetResourceMap[uuid] = obj;
-			obj->hold();
-			Asset asset = Asset(uuid, ResourceType::Material);
-			pathUUIDMap[filename] = asset.m_uuid;
-			return asset;
-		}
+		return CreateAsset(filename, ResourceType::Material);
 	}
 	Asset AssetManager::CreateTexture2DAsset(const std::string& filename)
 	{
-		auto it = pathUUIDMap.find(filename);
-		if (it != pathUUIDMap.end())
-		{
-			assetResourceMap[it->second]->hold();
-			return Asset(it->second, ResourceType::Texture);
-		}
-		else
-		{
-			UUID uuid = UUID();
-			auto obj = Texture2D::Create(filename.c_str());
-			assetResourceMap[uuid] = obj;
-			obj->hold();
-			Asset asset = Asset(uuid, ResourceType::Texture);
-			pathUUIDMap[filename] = asset.m_uuid;
-			return asset;
-		}
+		return CreateAsset(filename, ResourceType::Texture);
+	}
+	Asset AssetManager::CreateModelAsset(const std::string& filename)
+	{
+		return CreateAsset(filename, ResourceType::Model);
 	}
 	void AssetManager::ReportLiveObjects()
 	{
@@ -169,5 +146,37 @@ namespace Pistachio
 			return (Texture2D*)(assetResourceMap[a.m_uuid]);
 		}
 		return nullptr;
+	}
+	Model* AssetManager::GetModelResource(Asset& a)
+	{
+		auto it = assetResourceMap.find(a.m_uuid);
+		if (it != assetResourceMap.end())
+		{
+			return (Model*)(assetResourceMap[a.m_uuid]);
+		}
+		return nullptr;
+	}
+	Asset AssetManager::CreateAsset(const std::string& filename, ResourceType type)
+	{
+		auto it = pathUUIDMap.find(filename);
+		if (it != pathUUIDMap.end())
+		{
+			assetResourceMap[it->second]->hold();
+			return Asset(it->second, type);
+		}
+		else
+		{
+			UUID uuid = UUID();
+			RefCountedObject* obj;
+			if (type == ResourceType::Texture) obj = Texture2D::Create(filename.c_str());
+			else if (type == ResourceType::Material) obj = Material::Create(filename.c_str());
+			else if (type == ResourceType::Model) obj = Model::Create(filename.c_str());
+			else obj = new RefCountedObject;
+			assetResourceMap[uuid] = obj;
+			obj->hold();
+			Asset asset = Asset(uuid, type);
+			pathUUIDMap[filename] = asset.m_uuid;
+			return asset;
+		}
 	}
 }
