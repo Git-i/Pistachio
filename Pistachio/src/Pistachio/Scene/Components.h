@@ -69,9 +69,10 @@ namespace Pistachio{
 		Asset material;
 		std::size_t cbIndex = 0;
 		std::uint32_t modelIndex = 0;
-		~MeshRendererComponent() {};
-		MeshRendererComponent(){ };
-		MeshRendererComponent(const MeshRendererComponent&) = default;
+		bool bMaterialDirty = true;
+		~MeshRendererComponent() = default;
+		MeshRendererComponent() = default;
+		MeshRendererComponent(const MeshRendererComponent& other) = default;
 		MeshRendererComponent(const char* path) { Model = GetAssetManager()->CreateModelAsset(path); }
 	};
 	// ----------------------------------------------------------------------------------------------------------------------

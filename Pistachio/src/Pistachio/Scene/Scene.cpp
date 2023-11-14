@@ -83,7 +83,7 @@ static DirectX::XMMATRIX GetLightMatrixFromCamera(const DirectX::XMMATRIX& camVi
 	return DirectX::XMMatrixMultiplyTranspose(lightView, lightProjection);
 }
 static D3D11_VIEWPORT vp[4];
-static void ChangeVP(std::uint32_t size)
+static void ChangeVP(float size)
 {
 	vp[0].Width = vp[0].Height = size;
 	vp[1] = vp[2] = vp[3] = vp[0];
@@ -253,7 +253,9 @@ namespace Pistachio {
 	
 	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
+		SortMeshComponents();
+		auto transfromMesh = m_Registry.view<TransformComponent, MeshRendererComponent>();
 		UpdateObjectCBs();
 		float color[4] = { 0,0,0,0 };
 		float color1[4] = { -1,-1,-1,-1 };
@@ -271,7 +273,7 @@ namespace Pistachio {
 			for (auto& entity : group)
 			{
 				Light light;
-				auto [tc, lightcomponent] = group.get<TransformComponent, LightComponent>(entity);
+				auto [tc, lightcomponent] = group.get(entity);
 				DirectX::XMStoreFloat4(&light.positionxtype, tc.Translation);
 				light.positionxtype.w = (float)lightcomponent.Type;
 				DirectX::XMVECTOR lightTransform = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.f, 0.f, -1.f, 1.f), tc.Rotation);
@@ -295,7 +297,6 @@ namespace Pistachio {
 					}
 					lightcomponent.shadowMap.Clear();
 					lightcomponent.shadowMap.Bind();
-					auto group = m_Registry.view<TransformComponent, MeshRendererComponent>();
 					RendererBase::Getd3dDeviceContext()->PSSetShader(nullptr, nullptr, 0);
 					Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Vertex);
 					Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Geometry);
@@ -307,10 +308,10 @@ namespace Pistachio {
 					ChangeVP(lightcomponent.shadowMap.GetSize()/2);
 					RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
 					Renderer::UpdatePassConstants();
-					for (auto& entity : group)
+					for (auto& entity : transfromMesh)
 					{
 						//TO-DO MATERIALS
-						auto [transform, mesh] = group.get<TransformComponent, MeshRendererComponent>(entity);
+						auto [transform, mesh] = transfromMesh.get(entity);
 						auto model = GetAssetManager()->GetModelResource(mesh.Model);
 						if (model) {
 							Buffer buffer = { &model->meshes[mesh.modelIndex].GetVertexBuffer(),&model->meshes[mesh.modelIndex].GetIndexBuffer()};
@@ -331,13 +332,13 @@ namespace Pistachio {
 		{
 			PT_PROFILE_SCOPE("Object Rendering (Gbuffer Write)")
 			Renderer::BeginScene(camera);
-			auto group = m_Registry.view<TransformComponent, MeshRendererComponent>();
-			for (auto& entity : group)
+			PT_CORE_INFO("Render Order: ");
+			for (auto& entity : transfromMesh)
 			{	
-				//TO-DO MATERIALS
-				auto [transform, mesh] = group.get<TransformComponent, MeshRendererComponent>(entity);
+				auto [transform, mesh] = transfromMesh.get(entity);
 				auto mat = GetAssetManager()->GetMaterialResource(mesh.material);
 				auto model = GetAssetManager()->GetModelResource(mesh.Model);
+				PT_CORE_INFO("Material Id {0}", mesh.material.m_uuid);
 				if (model) {
 					
 					Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
@@ -367,10 +368,10 @@ namespace Pistachio {
 		Renderer2D::BeginScene(camera);
 		{
 			PT_PROFILE_SCOPE("Drawing 2D Objects")
-			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-			for (auto& entity : group)
+			auto transformSprite = m_Registry.view<TransformComponent, SpriteRendererComponent>();
+			for (auto& entity : transformSprite)
 			{
-				auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+				auto [transform, sprite] = transformSprite.get(entity);
 				const auto& transformMatrix = transform.GetTransform({ (entt::entity)m_Registry.get<ParentComponent>(entity).parentID, this });
 				if ((transform.NumNegativeScaleComps % 2))
 				{
@@ -388,6 +389,7 @@ namespace Pistachio {
 	void Scene::OnUpdateRuntime(float delta)
 	{
 		PT_PROFILE_FUNCTION();
+		SortMeshComponents();
 		{
 			m_Registry.view<NativeScriptComponent>().each([=](auto entity, auto& nsc) {
 				if (!nsc.Instance) {
@@ -527,19 +529,18 @@ namespace Pistachio {
 				auto group = m_Registry.view<TransformComponent, MeshRendererComponent>();
 				for (auto& entity : group)
 				{
-					//TO-DO MATERIALS
-					auto [transform, mesh] = group.get<TransformComponent, MeshRendererComponent>(entity);
-					const auto& transformMatrix = transform.GetTransform({ (entt::entity)m_Registry.get<ParentComponent>(entity).parentID, this });
+					auto [transform, mesh] = group.get(entity);
 					auto mat = GetAssetManager()->GetMaterialResource(mesh.material);
-					auto model= GetAssetManager()->GetModelResource(mesh.Model);
-					float c[4]{
-							std::pow(mat->diffuseColor.x, 2.2),
-							std::pow(mat->diffuseColor.y, 2.2),
-							std::pow(mat->diffuseColor.z, 2.2),
-							1.0
-					};
-					if (model)
-						Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), mat,(uint32_t)entity);
+					auto model = GetAssetManager()->GetModelResource(mesh.Model);
+					PT_CORE_INFO("Material Id {0}", mesh.material.m_uuid);
+					if (model) {
+
+						Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
+						if (!mat)
+							Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), &Renderer::DefaultMaterial, (uint32_t)entity);
+						else
+							Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), mat, (uint32_t)entity);
+					}
 				}
 			}
 			m_finalRender.Bind(0, 1);
@@ -613,6 +614,25 @@ namespace Pistachio {
 				Renderer::TransformationBuffer[mesh.cbIndex].Update(&td, sizeof(TransformData));
 				transform.bDirty = false;
 			}
+		}
+	}
+	void Scene::SortMeshComponents()
+	{
+		bool dirtyMats = false;
+		auto view = m_Registry.view<MeshRendererComponent>();
+		for (auto entity : view)
+		{
+			auto& mesh = view.get<MeshRendererComponent>(entity);
+			if (mesh.bMaterialDirty)
+			{
+				mesh.bMaterialDirty = false;
+				dirtyMats = true;
+			}
+		}
+		if (dirtyMats)
+		{
+			PT_CORE_WARN("Actually sorted");
+			m_Registry.sort<MeshRendererComponent>([](const MeshRendererComponent& lhs, const MeshRendererComponent& rhs) {return lhs.material.m_uuid < rhs.material.m_uuid; });
 		}
 	}
 	template<typename T>

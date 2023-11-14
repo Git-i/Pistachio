@@ -32,6 +32,7 @@ namespace Pistachio {
 	private:
 		template<typename T> void OnComponentAdded(Entity entity, T& component);
 		void UpdateObjectCBs();
+		void SortMeshComponents();
 	private:
 		entt::registry m_Registry;
 		physx::PxScene* m_PhysicsScene = NULL;

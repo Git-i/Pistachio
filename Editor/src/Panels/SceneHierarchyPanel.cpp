@@ -389,7 +389,7 @@ namespace Pistachio {
 		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [](auto& component) {
 			ImGui::ColorEdit4("Color", (float*)&component.Color);
 		});
-		DrawComponent<MeshRendererComponent>("Mesh Renderer", entity, [](auto& component) {
+		DrawComponent<MeshRendererComponent>("Mesh Renderer", entity, [](MeshRendererComponent& component) {
 			ImGui::Button("Mesh");
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -413,6 +413,7 @@ namespace Pistachio {
 					std::wstring str(data);
 					auto path = std::filesystem::path("assets") / data;
 					component.material = GetAssetManager()->CreateMaterialAsset(path.string().c_str());
+					component.bMaterialDirty = true;
 				}
 				ImGui::EndDragDropTarget();
 			}

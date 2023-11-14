@@ -15,6 +15,7 @@ namespace Pistachio
 	{
 	public:
 		friend class AssetManager;
+		friend class Scene;
 		~Asset();
 		Asset() = default;
 		Asset(const Asset&);

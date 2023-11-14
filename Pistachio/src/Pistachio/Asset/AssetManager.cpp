@@ -10,18 +10,17 @@ namespace Pistachio
 	}
 	Asset::Asset(const Asset& other)
 	{
-		if (other.m_uuid == 0) return;
 		auto assetMan = GetAssetManager();
-		assetMan->assetResourceMap[other.m_uuid]->hold();
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
+		if (m_uuid != 0)
+			assetMan->assetResourceMap[m_uuid]->hold();
 	}
 	void Asset::operator=(const Asset& other)
 	{
-		if (other.m_uuid == 0) return;
 		auto assetMan = GetAssetManager();
-		auto res = assetMan->assetResourceMap[m_uuid];
 		if (m_uuid) {
+			auto res = assetMan->assetResourceMap[m_uuid];
 			if (res->release() == 0)
 			{
 				if (m_type == ResourceType::Material) {delete ((Material*)res);}
@@ -34,14 +33,14 @@ namespace Pistachio
 		}
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
-		assetMan->assetResourceMap[m_uuid]->hold();
+		if (m_uuid != 0)
+			assetMan->assetResourceMap[m_uuid]->hold();
 	}
 	void Asset::operator=(Asset&& other)
 	{
-		if (other.m_uuid == 0) return;
 		auto assetMan = GetAssetManager();
-		auto res = assetMan->assetResourceMap[m_uuid];
 		if (m_uuid) {
+			auto res = assetMan->assetResourceMap[m_uuid];
 			if (res->release() == 0)
 			{
 				if (m_type == ResourceType::Material) {  delete ((Material*)res); }
