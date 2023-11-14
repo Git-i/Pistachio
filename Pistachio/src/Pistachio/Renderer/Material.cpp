@@ -111,10 +111,10 @@ namespace Pistachio
 		YAML::Node normalTex = data["NormalTex"];
 		auto assetMan = GetAssetManager();
 		mat->diffuseColor = diffuseColor.as<DirectX::XMFLOAT3>();
-		mat->diffuseTex = assetMan->CreateTexture2DAsset(std::string("assets/") + diffuseTex.as<std::string>());
-		mat->metallicTex = assetMan->CreateTexture2DAsset(std::string("assets/") + metallicTex.as<std::string>());
-		mat->roughnessTex = assetMan->CreateTexture2DAsset(std::string("assets/") + roughnessTex.as<std::string>());
-		mat->normalTex = assetMan->CreateTexture2DAsset(std::string("assets/") + normalTex.as<std::string>());
+		if(diffuseTex.as<std::string>() != "None")mat->diffuseTex = assetMan->CreateTexture2DAsset(std::string("assets/") + diffuseTex.as<std::string>());
+		if(metallicTex.as<std::string>() != "None")mat->metallicTex = assetMan->CreateTexture2DAsset(std::string("assets/") + metallicTex.as<std::string>());
+		if(roughnessTex.as<std::string>() != "None")mat->roughnessTex = assetMan->CreateTexture2DAsset(std::string("assets/") + roughnessTex.as<std::string>());
+		if(normalTex.as<std::string>() != "None")mat->normalTex = assetMan->CreateTexture2DAsset(std::string("assets/") + normalTex.as<std::string>());
 		mat->metallic = metallic.as<float>();
 		mat->roughness = roughness.as<float>();
 		return mat;
