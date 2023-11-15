@@ -10,7 +10,6 @@
 #include "ScriptableComponent.h"
 #include "Pistachio/Physics/Physics.h"
 #include "Pistachio/Renderer/MeshFactory.h"
-static Pistachio::Mesh* ScreenSpaceQuad;
 static void getFrustumCornersWorldSpace(const DirectX::XMMATRIX& proj, const DirectX::XMMATRIX& view, DirectX::XMVECTOR* corners)
 {
 	PT_PROFILE_FUNCTION();
@@ -147,7 +146,7 @@ namespace Pistachio {
 	{
 		Entity entity = { m_Registry.create(), this };
 		entity.AddComponent<IDComponent>(ID);
-		entity.AddComponent<ParentComponent>();
+		entity.AddComponent<ParentComponent>(0);
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		char id[100] = {'E','n','t','i','t', 'y', '0', '0', '0', '\0'};
@@ -236,7 +235,19 @@ namespace Pistachio {
 	}
 	void Scene::DestroyEntity(Entity entity)
 	{
+		
 		m_Registry.destroy(entity);
+	}
+	Entity Scene::GetRootEntity()
+	{
+		
+		auto view = m_Registry.view<ParentComponent>();
+		for (auto entity : view)
+		{
+			if (view.get<ParentComponent>(entity).parentID == -1)
+				return Entity(entity, this);
+		}
+		return Entity();
 	}
 	Entity Scene::GetPrimaryCameraEntity()
 	{

@@ -16,6 +16,7 @@ typedef int KeyCode;
 	#error Pistachio Engine Only Supports Windows
 #endif // PT_PLATFROM_WINDOWS
 #if defined _WIN64
+//2411 lmao
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #else
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")

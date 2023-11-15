@@ -16,7 +16,7 @@ namespace Pistachio{
 		{}
 	};
 	struct ParentComponent {
-		int parentID = 0;
+		std::int64_t parentID = 0;
 	};
 	struct TagComponent {
 		std::string Tag;
@@ -49,7 +49,7 @@ namespace Pistachio{
 			for (int i = 0; i < 3; i++)
 				if (((float*)&Scale)[i] < 0) NumNegativeScaleComps++;
 			int PID = parent.GetComponent<ParentComponent>().parentID;
-			DirectX::XMMATRIX parentTransform = PID >=0 ? (parent.GetComponent<TransformComponent>().GetTransform({ (entt::entity)PID, parent.m_Scene})) : parent.GetComponent<TransformComponent>().GetLocalTransform();
+			DirectX::XMMATRIX parentTransform = PID >= 0 ? (parent.GetComponent<TransformComponent>().GetTransform({ (entt::entity)PID, parent.m_Scene})) : parent.GetComponent<TransformComponent>().GetLocalTransform();
 			return (DirectX::XMMatrixScalingFromVector(Scale) * DirectX::XMMatrixRotationQuaternion(Rotation) * DirectX::XMMatrixTranslationFromVector(Translation)) * parentTransform;
 		}
 	private:

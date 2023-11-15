@@ -117,6 +117,8 @@ namespace Pistachio
 	std::string AssetManager::GetAssetFileName(Asset& asset)
 	{
 		auto it = std::find_if(pathUUIDMap.begin(), pathUUIDMap.end(), [asset](auto&& p) { return p.second == asset.m_uuid; });
+		if (it == pathUUIDMap.end())
+			return "None";
 		return it->first;
 	}
 	void AssetManager::ReportLiveObjects()
