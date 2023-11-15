@@ -21,9 +21,9 @@ namespace Pistachio {
 	void SceneHierarchyPanel::OnImGuiRender()
 	{
 		ImGui::Begin("Scene Hierarchy");
-		Entity root = { (entt::entity)0, m_Context.get() };
+		Entity root = m_Context->GetRootEntity();
 		ImGuiTreeNodeFlags flags = ((m_SelectionContext == root) ? ImGuiTreeNodeFlags_Selected : 0) |ImGuiTreeNodeFlags_DefaultOpen| ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(unsigned int)root, flags, "Scene Root");
+		bool opened = ImGui::TreeNodeEx((void*)(unsigned int)root, flags, "Scene Root");
 		if (ImGui::IsItemClicked())
 		{
 			m_SelectionContext = root;
@@ -36,7 +36,7 @@ namespace Pistachio {
 				uint32_t* data = (uint32_t*)payload->Data;
 				Entity other = { (entt::entity)*data, m_Context.get() };
 				auto& pc = other.GetComponent<ParentComponent>();
-				pc.parentID = (uint32_t)root;
+				pc.parentID = (std::uint32_t)root;
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -44,7 +44,7 @@ namespace Pistachio {
 		{
 			m_Context->m_Registry.each([&](auto entityID) {
 				Entity child{ entityID, m_Context.get() };
-			if (child.GetComponent<ParentComponent>().parentID == (uint32_t)root)
+			if (child.GetComponent<ParentComponent>().parentID == (std::uint32_t)root)
 				DrawEntityNode(child);
 				});
 			ImGui::TreePop();
@@ -72,7 +72,7 @@ namespace Pistachio {
 	{
 		auto& tag = entity.GetComponent<TagComponent>().Tag;
 		ImGuiTreeNodeFlags flags = ((m_SelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(unsigned int)entity, flags, tag.c_str());
+		bool opened = ImGui::TreeNodeEx((void*)(unsigned int)entity, flags, tag.c_str());
 		if (ImGui::IsItemClicked())
 		{
 			m_SelectionContext = entity;
@@ -91,7 +91,7 @@ namespace Pistachio {
 				uint32_t* data = (uint32_t*)payload->Data;
 				Entity other = { (entt::entity)*data, m_Context.get() };
 				auto& pc = other.GetComponent<ParentComponent>();
-				pc.parentID = (uint32_t)entity;
+				pc.parentID = (std::uint32_t)entity;
 			}
 			ImGui::EndDragDropTarget();
 		}

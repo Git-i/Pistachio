@@ -4,6 +4,7 @@
 #include "Components.h"
 #define YAML_CPP_STATIC_DEFINE
 #include "yaml-cpp/yaml.h"
+#include "../Asset/AssetManager.h"
 
 
 namespace YAML {
@@ -96,7 +97,7 @@ namespace Pistachio {
 		:m_Scene(scene)
 	{
 	}
-	static void SerializeEntity(YAML::Emitter& out, Entity entity)
+	static void SerializeEntity(YAML::Emitter& out, Entity entity, Ref<Scene> scene)
 	{
 		out << YAML::BeginMap;
 		out << YAML::Key << "Entity" << YAML::Value << entity.GetComponent<IDComponent>().uuid;
@@ -106,6 +107,18 @@ namespace Pistachio {
 			out << YAML::BeginMap;
 			auto& tag = entity.GetComponent<TagComponent>().Tag;
 			out << YAML::Key << "Tag" << YAML::Value << tag;
+			out << YAML::EndMap;
+		}
+		if (entity.HasComponent<ParentComponent>())
+		{
+			out << YAML::Key << "ParentComponent";
+			out << YAML::BeginMap;
+			auto pid = entity.GetComponent<ParentComponent>().parentID;
+			auto parent = Entity((entt::entity)entity.GetComponent<ParentComponent>().parentID, scene.get());
+			if(pid >= 0)
+				out << YAML::Key << "ParentID" << YAML::Value << parent.GetComponent<IDComponent>().uuid;
+			else
+				out << YAML::Key << "ParentID" << YAML::Value << 0;
 			out << YAML::EndMap;
 		}
 		if (entity.HasComponent<TransformComponent>())
@@ -118,6 +131,17 @@ namespace Pistachio {
 			out << YAML::Key << "RotationEulerHint" << YAML::Value << tc.RotationEulerHint;
 			out << YAML::Key << "Scale" << YAML::Value << tc.Scale;
 			out << YAML::EndMap;
+		}
+		if (entity.HasComponent<MeshRendererComponent>())
+		{
+			out << YAML::Key << "MeshRendererComponent";
+			out << YAML::BeginMap;
+			auto& mr = entity.GetComponent<MeshRendererComponent>();
+			out << YAML::Key << "Model" << GetAssetManager()->GetAssetFileName(mr.Model);
+			out << YAML::Key << "Material" << GetAssetManager()->GetAssetFileName(mr.material);
+			out << YAML::Key << "Model Index" << mr.modelIndex;
+			out << YAML::EndMap;
+
 		}
 		if (entity.HasComponent<SpriteRendererComponent>())
 		{
@@ -178,6 +202,7 @@ namespace Pistachio {
 			out << YAML::Key << "Offset" << YAML::Value << bc.offset;
 			out << YAML::EndMap;
 		}
+
 		out << YAML::EndMap;
 	}
 	void SceneSerializer::Serialize(const std::string& filepath)
@@ -192,7 +217,7 @@ namespace Pistachio {
 			Entity entity = { entityID, m_Scene.get() };
 			if (!entity)
 				return;
-			SerializeEntity(out,entity);
+			SerializeEntity(out,entity, m_Scene);
 		
 		});
 		out << YAML::EndSeq;
@@ -214,10 +239,12 @@ namespace Pistachio {
 			PT_CORE_ERROR("The file {0} is not a valid Pistachio Scene", filepath);
 			return;
 		}
+		m_Scene->m_Registry.clear();
 		std::string sceneName = data["Scene"].as<std::string>();
 		YAML::Node Entities = data["Entities"];
 		if (Entities)
 		{
+			std::vector<Entity> entities;
 			for (auto entity : Entities)
 			{
 				uint64_t uuid = entity["Entity"].as<uint64_t>();
@@ -226,15 +253,15 @@ namespace Pistachio {
 				auto tagComponent = entity["TagComponent"];
 				if (tagComponent)
 					name = tagComponent["Tag"].as<std::string>();
-				Entity DeserializedEntity = m_Scene->CreateEntityWithUUID(uuid,name);
-
+				entities.push_back(m_Scene->CreateEntityWithUUID(uuid,name));
+				Entity DeserializedEntity = entities[entities.size() - 1];
 				auto transformComponent = entity["TransformComponent"];
 				if (transformComponent)
 				{
 					auto& tc = DeserializedEntity.GetComponent<TransformComponent>();
-					tc.Translation = transformComponent["Translation"].as<DirectX::XMVECTOR>();
-					tc.Rotation = transformComponent["Rotation"].as<DirectX::XMVECTOR>();
-					tc.Scale = transformComponent["Scale"].as<DirectX::XMVECTOR>();
+					tc.Translation = transformComponent["Translation"].as<DirectX::XMFLOAT3>();
+					tc.Rotation = transformComponent["Rotation"].as<DirectX::XMFLOAT4>();
+					tc.Scale = transformComponent["Scale"].as<DirectX::XMFLOAT3>();
 				}
 
 				auto cameraComponent = entity["CameraComponent"];
@@ -289,6 +316,35 @@ namespace Pistachio {
 					bc.size = boxcollidercomponent["Size"].as<DirectX::XMFLOAT3>();
 					bc.offset = boxcollidercomponent["Offset"].as<DirectX::XMFLOAT3>();
 				}
+				auto meshrenderercomponent = entity["MeshRendererComponent"];
+				if (meshrenderercomponent)
+				{
+					auto& mr = DeserializedEntity.AddComponent<MeshRendererComponent>();
+					auto mat = meshrenderercomponent["Material"].as<std::string>();
+					auto model = meshrenderercomponent["Model"].as<std::string>();
+					if (mat != "None")
+						mr.material = GetAssetManager()->CreateMaterialAsset(mat);
+					if (model != "None")
+						mr.Model = GetAssetManager()->CreateModelAsset(model);
+				}
+			}
+			int i = 0;
+			for (auto entity : Entities)
+			{
+				auto parentComponent = entity["ParentComponent"];
+				auto pida = parentComponent["ParentID"];
+				auto pid = pida.as<std::uint64_t>();
+				auto view = m_Scene->m_Registry.view<IDComponent>();
+				entities[i].GetComponent<ParentComponent>().parentID = -1;
+				for (auto entt : view)
+				{
+					auto id = view.get<IDComponent>(entt);
+					if (pid == id.uuid)
+					{
+						entities[i].GetComponent<ParentComponent>().parentID = (std::uint32_t)entt;
+					}
+				}
+				i++;
 			}
 		}
 	}

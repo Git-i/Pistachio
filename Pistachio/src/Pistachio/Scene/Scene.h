@@ -3,6 +3,7 @@
 #include "Pistachio/Renderer/RenderTexture.h"
 #include "Pistachio/Renderer/EditorCamera.h"
 #include "Pistachio/Core/UUID.h"
+#include "Pistachio\Renderer\Mesh.h"
 namespace physx {
 	class PxScene;
 }
@@ -26,6 +27,7 @@ namespace Pistachio {
 		void OnUpdateRuntime(float delta);
 		void OnViewportResize(unsigned int width, unsigned int height);
 		void DestroyEntity(Entity entity);
+		Entity GetRootEntity();
 		Entity GetPrimaryCameraEntity();
 		const RenderTexture& GetGBuffer() { return m_gBuffer; };
 		const RenderTexture& GetRenderedScene() { return m_finalRender; };
@@ -33,7 +35,9 @@ namespace Pistachio {
 		template<typename T> void OnComponentAdded(Entity entity, T& component);
 		void UpdateObjectCBs();
 		void SortMeshComponents();
+		DirectX::XMMATRIX GetTransfrom(Entity e);
 	private:
+		Pistachio::Mesh* ScreenSpaceQuad;
 		entt::registry m_Registry;
 		physx::PxScene* m_PhysicsScene = NULL;
 		friend class Entity;
