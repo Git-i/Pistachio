@@ -87,6 +87,9 @@ namespace Pistachio {
 		static PassConstants passConstants;
 		static LD LightData;
 		static Light* lightIndexPtr;
+		static Material* currentMat;
+		static Shader* currentShader;
 		friend class Scene;
+		friend class Material;
 	};
 }

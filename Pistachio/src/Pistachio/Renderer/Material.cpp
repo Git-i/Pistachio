@@ -2,6 +2,7 @@
 #include "Material.h"
 #include "yaml-cpp\yaml.h"
 #include "../Asset/AssetManager.h"
+#include "../Renderer/Renderer.h"
 namespace YAML {
 	template<>
 	struct convert<DirectX::XMVECTOR>
@@ -77,7 +78,7 @@ namespace Pistachio
 		out << YAML::BeginMap;
 		out << YAML::Comment("Pistachio Material File");
 		out << YAML::Key << "Material" << YAML::Value << "Unnamed Materail";
-		out << YAML::Key << "DiffuseColor" << YAML::Value << (DirectX::XMFLOAT3)mat.diffuseColor;
+		out << YAML::Key << "DiffuseColor" << YAML::Value << (DirectX::XMFLOAT4)mat.diffuseColor;
 		out << YAML::Key << "Metallic" << YAML::Value << mat.metallic;
 		out << YAML::Key << "Roughness" << YAML::Value << mat.roughness;
 		out << YAML::Key << "DiffuseTex" << YAML::Value << mat.diffuseTexName;
@@ -89,6 +90,35 @@ namespace Pistachio
 		std::ofstream fout(filepath, std::ios::binary | std::ios::out);
 		fout.write(out.c_str(), out.size());
 		fout.close();
+	}
+	void Material::Initialize()
+	{
+		data.Create(nullptr, sizeof(MaterialStruct));
+	}
+	void Material::Bind()
+	{
+		Shader::SetPSBuffer(data, 1);
+		auto diff = GetAssetManager()->GetTexture2DResource(diffuseTex);
+		auto rough = GetAssetManager()->GetTexture2DResource(roughnessTex);
+		auto metal = GetAssetManager()->GetTexture2DResource(metallicTex);
+		auto norm = GetAssetManager()->GetTexture2DResource(normalTex);
+		if (diff) { diff->Bind(3); }
+		else { Renderer::whiteTexture.Bind(3); }
+		if (rough) { rough->Bind(4); }
+		else { Renderer::whiteTexture.Bind(4); }
+		if (metal) { metal->Bind(5); }
+		else { Renderer::whiteTexture.Bind(5); }
+		if (norm) { norm->Bind(6); }
+		else { Renderer::whiteTexture.Bind(6); }
+	}
+	void Material::Update()
+	{
+		MaterialStruct Mstruct;
+		Mstruct.albedo = diffuseColor;
+		Mstruct.metallic = metallic;
+		Mstruct.roughness = roughness;
+		Mstruct.ID = -1;
+		data.Update(&Mstruct, sizeof(MaterialStruct));
 	}
 	Material* Material::Create(const char* filepath)
 	{
@@ -110,13 +140,19 @@ namespace Pistachio
 		YAML::Node roughnessTex = data["RoughnessTex"];
 		YAML::Node normalTex = data["NormalTex"];
 		auto assetMan = GetAssetManager();
-		mat->diffuseColor = diffuseColor.as<DirectX::XMFLOAT3>();
+		mat->diffuseColor = diffuseColor.as<DirectX::XMFLOAT4>();
+		mat->diffuseTexName = diffuseTex.as<std::string>();
+		mat->metallicTexName = metallicTex.as<std::string>();
+		mat->roughnessTexName = roughnessTex.as<std::string>();
+		mat->normalTexName = normalTex.as<std::string>();
 		if(diffuseTex.as<std::string>() != "None")mat->diffuseTex = assetMan->CreateTexture2DAsset(std::string("assets/") + diffuseTex.as<std::string>());
 		if(metallicTex.as<std::string>() != "None")mat->metallicTex = assetMan->CreateTexture2DAsset(std::string("assets/") + metallicTex.as<std::string>());
 		if(roughnessTex.as<std::string>() != "None")mat->roughnessTex = assetMan->CreateTexture2DAsset(std::string("assets/") + roughnessTex.as<std::string>());
 		if(normalTex.as<std::string>() != "None")mat->normalTex = assetMan->CreateTexture2DAsset(std::string("assets/") + normalTex.as<std::string>());
 		mat->metallic = metallic.as<float>();
 		mat->roughness = roughness.as<float>();
+		mat->Initialize();
+		mat->Update();
 		return mat;
 	}
 }

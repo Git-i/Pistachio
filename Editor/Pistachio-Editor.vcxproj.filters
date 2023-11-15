@@ -33,6 +33,9 @@
     <ClCompile Include="vendor\imgui-console\src\imgui_console.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Panels\MaterialEditorPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\EditorLayer.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Panels\ConsolePanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\MaterialEditorPanel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

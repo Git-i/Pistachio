@@ -44,16 +44,6 @@ namespace Pistachio {
 	{
 		m_ActiveScene = std::make_shared<Scene>();
 		m_EditorCamera = EditorCamera(30.f, 1.6, 0.1f, 1000.f);
-		Material m;
-		m.diffuseColor = { 1.f, 0.33f, 0.4f };
-		m.diffuseTexName = "lmao";
-		m.metallicTexName = "lmao_m";
-		m.roughnessTexName = "lmao_r";
-		m.normalTexName = "lmao_n";
-		m.metallic = 0.33f;
-		m.roughness = 0.23f;
-		MaterialSerializer ms;
-		ms.Serialize("Material.mat", m);
 		Entity e = m_ActiveScene->CreateEntity("sphere");
 		auto& mr = e.AddComponent<MeshRendererComponent>("circle.obj");
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
@@ -94,6 +84,7 @@ namespace Pistachio {
 		m_SceneHierarchyPanel.OnImGuiRender();
 		m_ContentBrowserPanel.OnImGuiRender();
 		m_ConsolePanel.OnImGuiRender();
+		m_MaterialEditorPanel.OnImGuiRender();
 		if(gbuffervisualize)
 		{
 			ImGui::Begin("Debug-GBuffer-Visualizer", &gbuffervisualize);
@@ -130,25 +121,6 @@ namespace Pistachio {
 			wndPos = { ImGui::GetWindowPos().x + offset.x, ImGui::GetWindowPos().y + offset.y };
 			DirectX::XMFLOAT2 MouseScreenPos = { ImGui::GetMousePos().x - ImGui::GetWindowPos().x + offset.x, ImGui::GetMousePos().y - ImGui::GetWindowPos().y - offset.y };
 			m_ViewportHovered = ImGui::IsWindowHovered();
-			if (m_ViewportHovered)
-				if (MouseScreenPos.x >= 0 && MouseScreenPos.y >= 0 && MouseScreenPos.x <= wndwith - 1 && MouseScreenPos.y <= wndheight - 1)
-				{
-					Texture2D src = m_ActiveScene->GetGBuffer().GetRenderTexture(4);
-					D3D11_BOX sourceRegion;
-					sourceRegion.left = MouseScreenPos.x * 1920 / wndwith;
-					sourceRegion.right = sourceRegion.left + 1;
-					sourceRegion.top = MouseScreenPos.y * 1080 / wndheight;
-					sourceRegion.bottom = sourceRegion.top + 1;
-					sourceRegion.front = 0;
-					sourceRegion.back = 1;
-					m_EntityTexture->CopyIntoRegion(src, 0, 0, sourceRegion.left, sourceRegion.right, sourceRegion.top, sourceRegion.bottom);
-					ID3D11Resource* pSelectedEntityTexture = (ID3D11Resource*)m_EntityTexture->GetID().ptr;
-					//RendererBase::Getd3dDeviceContext()->CopySubresourceRegion(pSelectedEntityTexture, 0, 0, 0, 0, ((ID3D11Resource*)pSrcResource), 0, &sourceRegion);
-					D3D11_MAPPED_SUBRESOURCE mappedResource;
-					RendererBase::Getd3dDeviceContext()->Map(pSelectedEntityTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
-					m_HoveredEntity = *(int*)mappedResource.pData == -1 ? Entity() : Entity(*(entt::entity*)mappedResource.pData, m_ActiveScene.get());
-					RendererBase::Getd3dDeviceContext()->Unmap(pSelectedEntityTexture, 0);
-				}
 
 			// Gizmos
 			Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();

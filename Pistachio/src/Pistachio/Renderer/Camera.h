@@ -56,7 +56,7 @@ namespace Pistachio {
 		RuntimeCamera() : m_projection(Matrix4::Identity){}
 		RuntimeCamera(const Matrix4& projection) : m_projection(projection) {}
 		const Matrix4& GetProjection() const { return m_projection; }
-		const Matrix4& GetProjection() { return m_projection; }
+		Matrix4& GetProjection() { return m_projection; }
 	protected:
 		Matrix4 m_projection;
 	};

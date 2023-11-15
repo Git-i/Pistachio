@@ -20,6 +20,8 @@ Pistachio::Light* Pistachio::Renderer::lightIndexPtr = nullptr;
 Pistachio::Renderer::CamerData Pistachio::Renderer::CameraData = {};
 Pistachio::Texture2D Pistachio::Renderer::whiteTexture = Pistachio::Texture2D();
 Pistachio::Material Pistachio::Renderer::DefaultMaterial = Pistachio::Material();
+Pistachio::Material* Pistachio::Renderer::currentMat = nullptr;
+Pistachio::Shader* Pistachio::Renderer::currentShader = nullptr;
 
 static Pistachio::SamplerState* brdfSampler ;
 static Pistachio::SamplerState* shadowSampler;
@@ -227,6 +229,8 @@ namespace Pistachio {
 		fbo.BindResource(8);
 		ZeroMemory(&LightData, sizeof(LightData));
 		lightIndexPtr = LightData.lights;
+		DefaultMaterial.Initialize();
+		DefaultMaterial.Update();
 
 	}
 	void Renderer::AddLight(const Light& light)
@@ -270,6 +274,7 @@ namespace Pistachio {
 		whiteTexture.Bind(3);
 		whiteTexture.Bind(4);
 		whiteTexture.Bind(5);
+		currentMat = nullptr;
 	}
 	void Renderer::BeginScene(EditorCamera& cam)
 	{
@@ -289,6 +294,7 @@ namespace Pistachio {
 		whiteTexture.Bind(3);
 		whiteTexture.Bind(4);
 		whiteTexture.Bind(5);
+		currentMat = nullptr;
 	}
 	void Renderer::EndScene()
 	{
@@ -313,19 +319,19 @@ namespace Pistachio {
 		auto& VB = mesh->GetVertexBuffer(); 
 		auto& IB = mesh->GetIndexBuffer();
 		Buffer buffer = { &VB,&IB };
-		MaterialStruct cb;
-		auto diff = GetAssetManager()->GetTexture2DResource(mat->diffuseTex);
-		auto rough = GetAssetManager()->GetTexture2DResource(mat->roughnessTex);
-		auto metal = GetAssetManager()->GetTexture2DResource(mat->metallicTex);
-		auto norm = GetAssetManager()->GetTexture2DResource(mat->normalTex);
-		if (diff) { diff->Bind(3); }else { Renderer::whiteTexture.Bind(3); }
-		if (rough) { rough->Bind(4); }else { Renderer::whiteTexture.Bind(4); }
-		if (metal) { metal->Bind(5); }else { Renderer::whiteTexture.Bind(5); }
-		if (norm) { norm->Bind(6); }else { Renderer::whiteTexture.Bind(6); }
-		cb = { {mat->diffuseColor.x, mat->diffuseColor.y, mat->diffuseColor.z, 1.f},mat->metallic,mat->roughness,ID};
-		MaterialCB.Update(&cb, sizeof(MaterialStruct));
-		shader->Bind(ShaderType::Vertex);
-		shader->Bind(ShaderType::Pixel);
+		if ((mat == currentMat));
+		else
+		{
+			mat->Bind();
+			currentMat = mat;
+		}
+		if (shader == currentShader);
+		else
+		{
+			shader->Bind(ShaderType::Vertex);
+			shader->Bind(ShaderType::Pixel);
+			currentShader = shader;
+		}
 		RendererBase::DrawIndexed(buffer);
 	}
 	void Renderer::UpdatePassConstants()

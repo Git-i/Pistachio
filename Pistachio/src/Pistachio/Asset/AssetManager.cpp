@@ -114,6 +114,11 @@ namespace Pistachio
 	{
 		return CreateAsset(filename, ResourceType::Model);
 	}
+	std::string AssetManager::GetAssetFileName(Asset& asset)
+	{
+		auto it = std::find_if(pathUUIDMap.begin(), pathUUIDMap.end(), [asset](auto&& p) { return p.second == asset.m_uuid; });
+		return it->first;
+	}
 	void AssetManager::ReportLiveObjects()
 	{
 		for (auto [uuid, res] : assetResourceMap)
