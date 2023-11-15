@@ -21,6 +21,34 @@ namespace Pistachio {
 	void SceneHierarchyPanel::OnImGuiRender()
 	{
 		ImGui::Begin("Scene Hierarchy");
+		ImRect bb;
+		bb.Min = ImGui::GetWindowPos();
+		bb.Max = ImVec2(bb.Min.x + ImGui::GetWindowWidth(), bb.Min.y + ImGui::GetWindowHeight());
+		if (ImGui::BeginDragDropTargetCustom(bb, 20))
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("3D_MODEL");
+			if (payload)
+			{
+				const wchar_t* data = (const wchar_t*)payload->Data;
+				auto path = std::filesystem::path("assets") / data;
+				Asset modelAsset;
+				modelAsset = GetAssetManager()->CreateModelAsset(path.string().c_str());
+				auto model = GetAssetManager()->GetModelResource(modelAsset);
+				if (model)
+				{
+					Entity parent = m_Context->CreateEntity(path.filename().string().c_str());
+					for (int i = 0; i < model->meshes.size(); i++)
+					{
+						Entity e = m_Context->CreateEntity("Mesh-" + std::to_string(i));
+						e.GetComponent<ParentComponent>().parentID = (std::uint32_t)parent;
+						auto& mr = e.AddComponent<MeshRendererComponent>();
+						mr.Model = modelAsset;
+						mr.modelIndex = i;
+					}
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
 		Entity root = m_Context->GetRootEntity();
 		ImGuiTreeNodeFlags flags = ((m_SelectionContext == root) ? ImGuiTreeNodeFlags_Selected : 0) |ImGuiTreeNodeFlags_DefaultOpen| ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 		bool opened = ImGui::TreeNodeEx((void*)(unsigned int)root, flags, "Scene Root");
@@ -391,6 +419,7 @@ namespace Pistachio {
 		});
 		DrawComponent<MeshRendererComponent>("Mesh Renderer", entity, [](MeshRendererComponent& component) {
 			ImGui::Button("Mesh");
+			auto model = GetAssetManager()->GetModelResource(component.Model);
 			if (ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("3D_MODEL");
@@ -416,6 +445,10 @@ namespace Pistachio {
 					component.bMaterialDirty = true;
 				}
 				ImGui::EndDragDropTarget();
+			}
+			if (model)
+			{
+				ImGui::SliderInt("Mesh Index", &component.modelIndex, 0, model->meshes.size()-1);
 			}
 		});
 		DrawComponent<LightComponent>("Light", entity, [](auto& component) {

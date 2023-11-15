@@ -206,6 +206,8 @@ namespace Pistachio {
 		shadowShader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
 		Ref<Shader> gBuffer_Shader = std::make_shared<Shader>(L"resources/shaders/vertex/VertexShader.cso", L"resources/shaders/pixel/gbuffer_write.cso");
 		gBuffer_Shader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
+		Ref<Shader> gBuffer_Shader_shadowMap = std::make_shared<Shader>(L"resources/shaders/vertex/VertexShader.cso", L"resources/shaders/pixel/gbuffer_write_shadowMap.cso");
+		gBuffer_Shader_shadowMap->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
 		Ref<Shader> deffered_Shader = std::make_shared<Shader>(L"resources/shaders/vertex/vertex_shader_no_transform.cso", L"resources/shaders/pixel/DefferedShading_ps.cso");
 		deffered_Shader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
 		Ref<Shader> postprocess_Shader = std::make_shared<Shader>(L"resources/shaders/vertex/vertex_shader_no_transform.cso", L"resources/shaders/pixel/postprocess_ps.cso");
@@ -213,6 +215,7 @@ namespace Pistachio {
 		shaderlib.Add("PBR-Forward-Shader", pbrShader);
 		shaderlib.Add("PBR-Deffered-Shader", deffered_Shader);
 		shaderlib.Add("GBuffer-Shader", gBuffer_Shader);
+		shaderlib.Add("GBuffer-Shader-Shadow-Map", gBuffer_Shader_shadowMap);
 		shaderlib.Add("Shadow-Shader", shadowShader);
 		shaderlib.Add("Post-Shader", postprocess_Shader);
 		BYTE data[4] = { 255,255,255,255 };

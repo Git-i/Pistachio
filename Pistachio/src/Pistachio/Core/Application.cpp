@@ -6,6 +6,7 @@
 #include "Pistachio/Core/Input.h"
 #include "Pistachio/Physics/Physics.h"
 #include "Pistachio/Renderer/Renderer2D.h"
+#include "Tracy.hpp"
 namespace Pistachio {
 	Application* Application::s_Instance = nullptr;
 	Application::Application(const char* name)
@@ -84,6 +85,7 @@ namespace Pistachio {
 			QueryPerformanceCounter(&ticks);
 			double time = (ticks.QuadPart * period) - InitTime;
 			float delta = (float)(time - lastFrameTime);
+			FrameMark;
 			lastFrameTime = time;
 			MSG msg = {};
 			while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))

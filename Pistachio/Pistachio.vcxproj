@@ -57,14 +57,15 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;IMGUI;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;IMGUI;_CRT_SECURE_NO_WARNINGS;TRACY_ENABLE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo;$(SolutionDir)Pistachio\vendor\physx\include;$(SolutionDir)Pistachio\vendor\SimpleMath</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo;$(SolutionDir)Pistachio\vendor\physx\include;$(SolutionDir)Pistachio\vendor\SimpleMath;$(SolutionDir)Pistachio\vendor\tracy\tracy</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
       <PreprocessToFile>false</PreprocessToFile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -461,6 +462,49 @@
     <ClInclude Include="vendor\spdlog\include\spdlog\version.h" />
     <ClInclude Include="vendor\stb_image\stb_image.h" />
     <ClInclude Include="vendor\text-editor\TextEditor.h" />
+    <ClInclude Include="vendor\tracy\client\TracyArmCpuTable.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyCallstack.h" />
+    <ClInclude Include="vendor\tracy\client\TracyCallstack.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyCpuid.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyDebug.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyDxt1.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyFastVector.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyLock.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyProfiler.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyRingBuffer.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyScoped.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyStringHelpers.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracySysPower.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracySysTime.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracySysTrace.hpp" />
+    <ClInclude Include="vendor\tracy\client\TracyThread.hpp" />
+    <ClInclude Include="vendor\tracy\client\tracy_concurrentqueue.h" />
+    <ClInclude Include="vendor\tracy\client\tracy_rpmalloc.hpp" />
+    <ClInclude Include="vendor\tracy\client\tracy_SPSCQueue.h" />
+    <ClInclude Include="vendor\tracy\common\TracyAlign.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracyAlloc.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracyApi.h" />
+    <ClInclude Include="vendor\tracy\common\TracyColor.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracyForceInline.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracyMutex.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracyProtocol.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracyQueue.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracySocket.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracyStackFrames.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracySystem.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracyUwp.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracyVersion.hpp" />
+    <ClInclude Include="vendor\tracy\common\TracyYield.hpp" />
+    <ClInclude Include="vendor\tracy\common\tracy_lz4.hpp" />
+    <ClInclude Include="vendor\tracy\common\tracy_lz4hc.hpp" />
+    <ClInclude Include="vendor\tracy\tracy\Tracy.hpp" />
+    <ClInclude Include="vendor\tracy\tracy\TracyC.h" />
+    <ClInclude Include="vendor\tracy\tracy\TracyD3D11.hpp" />
+    <ClInclude Include="vendor\tracy\tracy\TracyD3D12.hpp" />
+    <ClInclude Include="vendor\tracy\tracy\TracyLua.hpp" />
+    <ClInclude Include="vendor\tracy\tracy\TracyOpenCL.hpp" />
+    <ClInclude Include="vendor\tracy\tracy\TracyOpenGL.hpp" />
+    <ClInclude Include="vendor\tracy\tracy\TracyVulkan.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Pistachio\Asset\AssetManager.cpp" />
@@ -520,6 +564,51 @@
     <ClCompile Include="vendor\text-editor\TextEditor.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\client\TracyAlloc.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\client\TracyCallstack.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\client\TracyDxt1.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\client\TracyOverride.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\client\TracyProfiler.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\client\TracySysPower.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\client\TracySysTime.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\client\TracySysTrace.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\client\tracy_rpmalloc.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\common\TracySocket.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\common\TracyStackFrames.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\common\TracySystem.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\common\tracy_lz4.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\common\tracy_lz4hc.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\tracy\TracyClient.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

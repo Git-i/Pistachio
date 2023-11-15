@@ -6,7 +6,7 @@ struct VS_OUT
     float3 viewPos : V_POSITION;
     float shadowMaplayer : SM_LAYER;
     int numlights : NUM_LIGHTS;
-    float4 lightSpacePositions[16] : LS_POS;
+    float4 lightSpacePositions[4] : LS_POS;
     float shadowMapSize : SM_SIZE;
 	float4 position : SV_POSITION;
 };
@@ -44,13 +44,10 @@ VS_OUT main(float3 pos : POSITION, float3 normal : NORMAL,float2 UV : UV)
     vso.viewPos = EyePosW.xyz;
     vso.position = mul(mul(float4(pos, 1.0f), transform), ViewProj);
     vso.numlights = numlights.x;
-    for (int i = 0; i < 4; i++)
-    {
-        vso.lightSpacePositions[i*4 + 0] = mul(float4(vso.worldpos, 1.f), lightSpaceMatrix[i*4 + 0]);
-        vso.lightSpacePositions[i*4 + 1] = mul(float4(vso.worldpos, 1.f), lightSpaceMatrix[i*4 + 1]);
-        vso.lightSpacePositions[i*4 + 2] = mul(float4(vso.worldpos, 1.f), lightSpaceMatrix[i*4 + 2]);
-        vso.lightSpacePositions[i*4 + 3] = mul(float4(vso.worldpos, 1.f), lightSpaceMatrix[i*4 + 3]);
-    }
+    vso.lightSpacePositions[0] = mul(float4(vso.worldpos, 1.f), lightSpaceMatrix[0]);
+    vso.lightSpacePositions[1] = mul(float4(vso.worldpos, 1.f), lightSpaceMatrix[1]);
+    vso.lightSpacePositions[2] = mul(float4(vso.worldpos, 1.f), lightSpaceMatrix[2]);
+    vso.lightSpacePositions[3] = mul(float4(vso.worldpos, 1.f), lightSpaceMatrix[3]);
     float4 fragPosViewSpace = mul(float4(vso.worldpos, 1.0), View);
     float depthViewspace = abs(fragPosViewSpace.z);
     vso.shadowMaplayer = depthViewspace;

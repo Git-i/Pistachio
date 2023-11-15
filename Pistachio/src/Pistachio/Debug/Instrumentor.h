@@ -150,6 +150,11 @@ namespace Pistachio {
     #define PT_PROFILE_END_SESSION() Pistachio::Instrumentor::Get().EndSession()
     #define PT_PROFILE_SCOPE(name) Pistachio::InstrumentationTimer LINE_GLUE(timer, __LINE__) (name);
     #define PT_PROFILE_FUNCTION() PT_PROFILE_SCOPE(__FUNCTION__)
+#elif TRACY_ENABLE
+    #define PT_PROFILE_BEGIN_SESSION(name, filepath)
+    #define PT_PROFILE_END_SESSION()
+    #define PT_PROFILE_SCOPE(name) ZoneScopedN(name);
+    #define PT_PROFILE_FUNCTION()  PT_PROFILE_SCOPE(__FUNCTION__) 
 #else
     #define PT_PROFILE_BEGIN_SESSION(name, filepath)
     #define PT_PROFILE_END_SESSION()

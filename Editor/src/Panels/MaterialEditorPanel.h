@@ -8,6 +8,7 @@ namespace Pistachio
 	{
 	public:
 		MaterialEditorPanel();
+		~MaterialEditorPanel() { };
 		void OnImGuiRender();
 		bool activated = true;
 		RenderTexture previewRT;

@@ -52,7 +52,6 @@ namespace Pistachio{
 			DirectX::XMMATRIX parentTransform = PID >= 0 ? (parent.GetComponent<TransformComponent>().GetTransform({ (entt::entity)PID, parent.m_Scene})) : parent.GetComponent<TransformComponent>().GetLocalTransform();
 			return (DirectX::XMMatrixScalingFromVector(Scale) * DirectX::XMMatrixRotationQuaternion(Rotation) * DirectX::XMMatrixTranslationFromVector(Translation)) * parentTransform;
 		}
-	private:
 		DirectX::XMMATRIX GetLocalTransform() const
 		{
 			NumNegativeScaleComps = 0;
@@ -68,7 +67,7 @@ namespace Pistachio{
 		Asset Model;
 		Asset material;
 		std::size_t cbIndex = 0;
-		std::uint32_t modelIndex = 0;
+		int modelIndex = 0;
 		bool bMaterialDirty = true;
 		~MeshRendererComponent() = default;
 		MeshRendererComponent() = default;
