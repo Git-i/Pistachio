@@ -235,7 +235,12 @@ namespace Pistachio {
 	}
 	void Scene::DestroyEntity(Entity entity)
 	{
-		
+		auto view = m_Registry.view<ParentComponent>();
+		for (auto child : view)
+		{
+			if (view.get<ParentComponent>(child).parentID == (std::uint32_t)entity)
+				m_Registry.destroy(child);
+		}
 		m_Registry.destroy(entity);
 	}
 	Entity Scene::GetRootEntity()
@@ -267,6 +272,27 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION();
 		SortMeshComponents();
 		auto transfromMesh = m_Registry.view<TransformComponent, MeshRendererComponent>();
+		{
+			auto meshParent = m_Registry.view<ParentComponent, TransformComponent>();
+			for (auto entity : meshParent)
+			{
+				auto [Parent, transform] = meshParent.get(entity);
+				if (transform.bDirty)
+					continue;
+				auto PID = Parent.parentID;
+				while (PID != -1)
+				{
+					auto& parentTransform = m_Registry.get<TransformComponent>((entt::entity)PID);
+					if (parentTransform.bDirty)
+					{
+						transform.bDirty = true;
+						break;
+					}
+					auto& parentComp = m_Registry.get<ParentComponent>((entt::entity)PID);
+					PID = parentComp.parentID;
+				}
+			}
+		}
 		UpdateObjectCBs();
 		float color[4] = { 0,0,0,0 };
 		float color1[4] = { -1,-1,-1,-1 };
@@ -608,18 +634,26 @@ namespace Pistachio {
 	void Scene::UpdateObjectCBs()
 	{
 		PT_PROFILE_FUNCTION();
-		auto view = m_Registry.view<MeshRendererComponent, TransformComponent>();
+		auto view = m_Registry.view<TransformComponent>();
 		for (auto entity : view)
 		{
 			auto& transform = view.get<TransformComponent>(entity);
-			auto& mesh = view.get<MeshRendererComponent>(entity);
 			if (transform.bDirty)
 			{
 				TransformData td;
-				auto transformMat = transform.GetTransform({ (entt::entity)m_Registry.get<ParentComponent>(entity).parentID, this });
+				auto PID = m_Registry.get<ParentComponent>(entity).parentID;
+				DirectX::XMMATRIX transformMat;
+				if(PID >= 0)
+					transformMat = transform.GetTransform({ (entt::entity)PID, this });
+				else
+					transformMat = transform.GetLocalTransform();
 				td.transform = DirectX::XMMatrixTranspose(transformMat);
 				td.normal = DirectX::XMMatrixInverse(nullptr, transformMat);
-				Renderer::TransformationBuffer[mesh.cbIndex].Update(&td, sizeof(TransformData));
+				if (m_Registry.any_of<MeshRendererComponent>(entity))
+				{
+					auto& mesh = m_Registry.get<MeshRendererComponent>(entity);
+					Renderer::TransformationBuffer[mesh.cbIndex].Update(&td, sizeof(TransformData));
+				}
 				transform.bDirty = false;
 			}
 		}

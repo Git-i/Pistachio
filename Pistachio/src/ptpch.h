@@ -24,4 +24,5 @@
 
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Debug/Instrumentor.h"
+#include "Tracy.hpp"
 

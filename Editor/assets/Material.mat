@@ -1,6 +1,6 @@
 # Pistachio Material File
 Material: Unnamed Materail
-DiffuseColor: [1, 1, 1]
+DiffuseColor: [1, 1, 1, 1]
 Metallic: 1
 Roughness: 1
 DiffuseTex: textures/Cerberus_A.tga

@@ -53,6 +53,7 @@ namespace Pistachio
 		}
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
+		other.~Asset();
 	}
 	Asset::Asset(UUID uuid, ResourceType type)
 	{
@@ -173,9 +174,8 @@ namespace Pistachio
 			else obj = new RefCountedObject;
 			assetResourceMap[uuid] = obj;
 			obj->hold();
-			Asset asset = Asset(uuid, type);
-			pathUUIDMap[filename] = asset.m_uuid;
-			return asset;
+			pathUUIDMap[filename] = uuid;
+			return Asset(uuid, type);
 		}
 	}
 }

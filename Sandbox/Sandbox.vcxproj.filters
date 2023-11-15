@@ -45,7 +45,6 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PixelShader.hlsl" />
-    <FxCompile Include="Shaders\VertexShader.hlsl" />
     <FxCompile Include="Shaders\equirectangular_to_cubemap_vs.hlsl" />
     <FxCompile Include="Shaders\equirectangular_to_cubemap_fs.hlsl" />
     <FxCompile Include="Shaders\background.hlsl" />
