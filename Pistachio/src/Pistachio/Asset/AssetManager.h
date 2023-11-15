@@ -12,6 +12,7 @@ namespace Pistachio
 		Asset CreateMaterialAsset(const std::string& filename);
 		Asset CreateTexture2DAsset(const std::string& filename);
 		Asset CreateModelAsset(const std::string& filename);
+		std::string GetAssetFileName(Asset& asset);
 		void ReportLiveObjects();
 		Material* GetMaterialResource(Asset& a);
 		Texture2D* GetTexture2DResource(Asset& a);

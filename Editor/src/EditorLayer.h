@@ -3,6 +3,7 @@
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/ConsolePanel.h"
+#include "Panels/MaterialEditorPanel.h"
 #include "Pistachio/Renderer/EditorCamera.h"
 namespace Pistachio {
 	class EditorLayer : public Pistachio::Layer
@@ -38,6 +39,7 @@ namespace Pistachio {
 		EditorCamera m_EditorCamera;
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
+		MaterialEditorPanel m_MaterialEditorPanel;
 		ConsolePanel m_ConsolePanel;
 		bool m_ViewportHovered;
 

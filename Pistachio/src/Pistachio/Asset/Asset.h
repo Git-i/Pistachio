@@ -23,6 +23,7 @@ namespace Pistachio
 		void operator=(Asset&& other);
 		bool operator==(const Asset& other) const { return m_uuid == other.m_uuid; };
 		int ViewRefCount();
+		ResourceType GetType() const { return m_type; }
 	private:
 		Asset(UUID, ResourceType);
 	private:

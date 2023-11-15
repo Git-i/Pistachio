@@ -332,13 +332,11 @@ namespace Pistachio {
 		{
 			PT_PROFILE_SCOPE("Object Rendering (Gbuffer Write)")
 			Renderer::BeginScene(camera);
-			PT_CORE_INFO("Render Order: ");
 			for (auto& entity : transfromMesh)
 			{	
 				auto [transform, mesh] = transfromMesh.get(entity);
 				auto mat = GetAssetManager()->GetMaterialResource(mesh.material);
 				auto model = GetAssetManager()->GetModelResource(mesh.Model);
-				PT_CORE_INFO("Material Id {0}", mesh.material.m_uuid);
 				if (model) {
 					
 					Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
@@ -532,7 +530,6 @@ namespace Pistachio {
 					auto [transform, mesh] = group.get(entity);
 					auto mat = GetAssetManager()->GetMaterialResource(mesh.material);
 					auto model = GetAssetManager()->GetModelResource(mesh.Model);
-					PT_CORE_INFO("Material Id {0}", mesh.material.m_uuid);
 					if (model) {
 
 						Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);

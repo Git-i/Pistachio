@@ -29,6 +29,7 @@ namespace Pistachio {
 		static void SetCullMode(CullMode cullmode);
 		static void EnableShadowMapRasetrizerState();
 		static void SetDepthStencilOp(DepthStencilOp op);
+		static void BindMainTarget();
 		#ifdef PT_PLATFORM_WINDOWS
 			static bool Init(HWND hwnd);
 		#endif

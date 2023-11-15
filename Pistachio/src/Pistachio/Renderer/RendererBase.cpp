@@ -174,4 +174,8 @@ namespace Pistachio {
 		else if (op == DepthStencilOp::Less_Equal)
 			g_pd3dDeviceContext->OMSetDepthStencilState(pDSStateLessEqual.Get(), 1);
 	}
+	void RendererBase::BindMainTarget()
+	{
+		g_pd3dDeviceContext->OMSetRenderTargets(1, g_mainRenderTargetView.GetAddressOf(), pDSV.Get());
+	}
 }
