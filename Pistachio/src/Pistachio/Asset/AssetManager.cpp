@@ -36,7 +36,7 @@ namespace Pistachio
 		if (m_uuid != 0)
 			assetMan->assetResourceMap[m_uuid]->hold();
 	}
-	void Asset::operator=(Asset&& other)
+	void Asset::operator=(Asset&& other) noexcept
 	{
 		auto assetMan = GetAssetManager();
 		if (m_uuid) {
@@ -53,6 +53,8 @@ namespace Pistachio
 		}
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
+		if (m_uuid != 0)
+			assetMan->assetResourceMap[m_uuid]->hold();
 		other.~Asset();
 	}
 	Asset::Asset(UUID uuid, ResourceType type)
@@ -161,7 +163,7 @@ namespace Pistachio
 		auto it = pathUUIDMap.find(filename);
 		if (it != pathUUIDMap.end())
 		{
-			assetResourceMap[it->second]->hold();
+			//assetResourceMap[it->second]->hold();
 			return Asset(it->second, type);
 		}
 		else
@@ -173,7 +175,7 @@ namespace Pistachio
 			else if (type == ResourceType::Model) obj = Model::Create(filename.c_str());
 			else obj = new RefCountedObject;
 			assetResourceMap[uuid] = obj;
-			obj->hold();
+			//obj->hold();
 			pathUUIDMap[filename] = uuid;
 			return Asset(uuid, type);
 		}

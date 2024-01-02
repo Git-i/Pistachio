@@ -2,6 +2,10 @@
 #include "../Core.h"
 #include "RendererID_t.h"
 namespace Pistachio {
+	enum class LightType
+	{
+		Directional, Point, Spot
+	};
 	class ConstantBuffer {
 	public:
 		void Update(void* data, unsigned int size);

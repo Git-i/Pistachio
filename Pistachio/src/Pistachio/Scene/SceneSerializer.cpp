@@ -178,7 +178,7 @@ namespace Pistachio {
 			out << YAML::BeginMap;
 			out << YAML::Key << "Color" << YAML::Value << lc.color;
 			out << YAML::Key << "Intensity" << YAML::Value << lc.Intensity;
-			out << YAML::Key << "Type" << YAML::Value << lc.Type;
+			out << YAML::Key << "Type" << YAML::Value << (int)lc.Type;
 			out << YAML::EndMap;
 		}
 		if (entity.HasComponent<RigidBodyComponent>())
@@ -297,7 +297,7 @@ namespace Pistachio {
 					auto& lc = DeserializedEntity.AddComponent<LightComponent>();
 					lc.color = lightComponent["Color"].as<DirectX::XMFLOAT3>();
 					lc.Intensity = lightComponent["Intensity"].as<int>();
-					lc.Type = lightComponent["Type"].as<int>();
+					lc.Type = (LightType)lightComponent["Type"].as<int>();
 				}
 				auto rigidbodycomponent = entity["RigidBodyComponent"];
 				if (rigidbodycomponent)

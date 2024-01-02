@@ -10,6 +10,7 @@
 #include "ScriptableComponent.h"
 #include "Pistachio/Physics/Physics.h"
 #include "Pistachio/Renderer/MeshFactory.h"
+
 static void getFrustumCornersWorldSpace(const DirectX::XMMATRIX& proj, const DirectX::XMMATRIX& view, DirectX::XMVECTOR* corners)
 {
 	PT_PROFILE_FUNCTION();
@@ -91,6 +92,7 @@ static void ChangeVP(float size)
 	vp[3].TopLeftX = vp[3].TopLeftY = size;
 }
 namespace Pistachio {
+	
 	Scene::Scene(SceneDesc desc)
 	{
 		PT_PROFILE_FUNCTION();
@@ -109,7 +111,7 @@ namespace Pistachio {
 		rtDesc.width = desc.Resolution.x;
 		rtDesc.height = desc.Resolution.y;
 		rtDesc.miplevels = 1;
-		rtDesc.Attachments = { TextureFormat::RGBA8U,  TextureFormat::RGBA16F,TextureFormat::RGBA8U, TextureFormat::RGBA16F,TextureFormat::INT,TextureFormat::D24S8 };
+		rtDesc.Attachments = { TextureFormat::RGBA8U,  TextureFormat::RGBA16F,TextureFormat::RGBA16F, TextureFormat::RGBA16F, TextureFormat::D24S8 };
 		m_gBuffer.CreateStack(rtDesc);
 		RenderTextureDesc rtDesc2;
 		rtDesc2.width = desc.Resolution.x;
@@ -271,14 +273,33 @@ namespace Pistachio {
 	{
 		PT_PROFILE_FUNCTION();
 		SortMeshComponents();
+		/*
+		  1. Gather a list of lights that affect the frame (culling), if a light doesnt affect a frame make sure its region in the atlas is invalid.
+		  2. for any light that already has a region, we check the cascade from camera to see if it needs to be shrunk or grown, then render all meshes to the atlas if the region was shrunk or grown 
+		  3. if any light in the list doesnt have an atlas region, assign one to it based on distance from camera, and render all meshes it affects into the atlas.
+		  4. for every light that already has a region and didn't change cascade (same atlas region) we check all the meshes it affects if any are "dirty", if so we re render all meshes in that region
+		  5. proceed with clustered forward shading, using our list if culled lights and our shadow atlas
+
+		  After Sorting Mesh Components Of Course
+		*/
+		//todo add a quality setting features
+		static std::vector<ShadowCastingLight> shadowCastingLights;
+		static std::vector<RegularLight> regularLights;
 		auto transfromMesh = m_Registry.view<TransformComponent, MeshRendererComponent>();
+		static std::vector<Entity> dirtyMeshes;
+		//mark dirty transforms
 		{
 			auto meshParent = m_Registry.view<ParentComponent, TransformComponent>();
 			for (auto entity : meshParent)
 			{
 				auto [Parent, transform] = meshParent.get(entity);
 				if (transform.bDirty)
+				{
+					Entity e(entity, this);
+					if(e.HasComponent<MeshRendererComponent>())
+						dirtyMeshes.emplace_back(entity, this);
 					continue;
+				}
 				auto PID = Parent.parentID;
 				while (PID != -1)
 				{
@@ -286,6 +307,9 @@ namespace Pistachio {
 					if (parentTransform.bDirty)
 					{
 						transform.bDirty = true;
+						Entity e(entity, this);
+						if (e.HasComponent<MeshRendererComponent>())
+							dirtyMeshes.emplace_back(entity, this);
 						break;
 					}
 					auto& parentComp = m_Registry.get<ParentComponent>((entt::entity)PID);
@@ -293,79 +317,103 @@ namespace Pistachio {
 				}
 			}
 		}
-		UpdateObjectCBs();
+		UpdateObjectCBs(); //clean dirty transform meshes
+
 		float color[4] = { 0,0,0,0 };
-		float color1[4] = { -1,-1,-1,-1 };
 		m_gBuffer.ClearAll(color);
-		m_gBuffer.Clear(color1, 4);
 		m_finalRender.Clear(color, 0);
-		m_gBuffer.Bind(0, 5);
+		m_gBuffer.Bind(0, 4);
 		{
 			PT_PROFILE_SCOPE("Shadow Rendereing and Light Formation")
 			Renderer::whiteTexture.Bind(9);
-			Renderer::whiteTexture.Bind(10);
-			Renderer::whiteTexture.Bind(11);
-			Renderer::whiteTexture.Bind(12);
 			auto group = m_Registry.view<TransformComponent, LightComponent>();
+			
 			for (auto& entity : group)
 			{
 				Light light;
 				auto [tc, lightcomponent] = group.get(entity);
-				DirectX::XMStoreFloat4(&light.positionxtype, tc.Translation);
-				light.positionxtype.w = (float)lightcomponent.Type;
+				DirectX::XMStoreFloat3(&light.position, tc.Translation);
+				light.type = lightcomponent.Type;
 				DirectX::XMVECTOR lightTransform = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.f, 0.f, -1.f, 1.f), tc.Rotation);
 				DirectX::XMStoreFloat4(&light.rotation, lightTransform);
-				light.exData = { lightcomponent.exData.x , lightcomponent.exData.y, lightcomponent.exData.z, (float)lightcomponent.CastShadow};
-				light.colorxintensity = { lightcomponent.color.x, lightcomponent.color.y, lightcomponent.color.z, lightcomponent.Intensity };
+				light.exData = { lightcomponent.exData.x , lightcomponent.exData.y, lightcomponent.exData.z, (float)lightcomponent.shadow};
+				light.color = { lightcomponent.color.x, lightcomponent.color.y, lightcomponent.color.z };
+				light.intensity = { lightcomponent.Intensity };
 				DirectX::XMMATRIX lightMatrix[4] = { DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity() };
-				if (lightcomponent.CastShadow)
+				if (lightcomponent.shadow)
 				{
-					RendererBase::EnableShadowMapRasetrizerState();
-					if(lightcomponent.Type == 0)
+					int numLightMatrices;
+					if(lightcomponent.Type == LightType::Directional)
 					{
+						numLightMatrices = 4;
 						lightMatrix[0] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), camera.GetNearClip(), 30.f), light, 1.05f);
 						lightMatrix[1] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), 30.f, 100.f), light, 1.2f);
 						lightMatrix[2] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), 100.f, 500.f), light, 1.2f);
 						lightMatrix[3] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), 500.f, camera.GetFarClip()), light, 1.2f);
 					}
-					else if (lightcomponent.Type == 2)
+					else if (lightcomponent.Type == LightType::Spot)
 					{
-						lightMatrix[0] = lightMatrix[1] = lightMatrix[2] = lightMatrix[3] = DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(tc.Translation, DirectX::XMVectorAdd(tc.Translation, DirectX::XMLoadFloat4(&light.rotation)), DirectX::XMVectorSet(0,1,0,0)) * DirectX::XMMatrixPerspectiveFovLH(DirectX::XMScalarACos(lightcomponent.exData.x) * 2, 1, 0.1f, lightcomponent.exData.z));
+						numLightMatrices = 1;
+						lightMatrix[0] = DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(tc.Translation, DirectX::XMVectorAdd(tc.Translation, DirectX::XMLoadFloat4(&light.rotation)), DirectX::XMVectorSet(0,1,0,0)) * DirectX::XMMatrixPerspectiveFovLH(DirectX::XMScalarACos(lightcomponent.exData.x) * 2, 1, 0.1f, lightcomponent.exData.z));
 					}
-					lightcomponent.shadowMap.Clear();
-					lightcomponent.shadowMap.Bind();
-					RendererBase::Getd3dDeviceContext()->PSSetShader(nullptr, nullptr, 0);
-					Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Vertex);
-					Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Geometry);
-					Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x*4)+0] = lightMatrix[0];
-					Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x*4)+1] = lightMatrix[1];
-					Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x*4)+2] = lightMatrix[2];
-					Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x*4)+3] = lightMatrix[3];
-					Renderer::passConstants.EyePosW.w = lightcomponent.shadowMap.GetSize();
-					ChangeVP(lightcomponent.shadowMap.GetSize()/2);
-					RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
-					Renderer::UpdatePassConstants();
-					for (auto& entity : transfromMesh)
+					//todo : Handle point light matrices;
+					Region sm_region;
+					bool dirty = false;
+					if (tc.bDirty)
 					{
-						//TO-DO MATERIALS
-						auto [transform, mesh] = transfromMesh.get(entity);
-						auto model = GetAssetManager()->GetModelResource(mesh.Model);
-						if (model) {
-							Buffer buffer = { &model->meshes[mesh.modelIndex].GetVertexBuffer(),&model->meshes[mesh.modelIndex].GetIndexBuffer()};
-							Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
-
-							RendererBase::DrawIndexed(buffer);
+						dirty = true;
+					}
+					else
+					{
+						if (lightcomponent.shadowMap.size != Vector2::Zero) // if there was a shadow map dont allocate a new one unnecessarily
+						{
+							//todo camera cascades for varying shadow map sizes at different distance levels
+							sm_region = lightcomponent.shadowMap;
+						}
+						else
+						{
+							sm_region = sm_allocator.Allocate(256, 256); // todo render settings to control allocation size
+							dirty = true;
 						}
 					}
-					RendererBase::ChangeViewport(m_gBuffer.GetWidth(), m_gBuffer.GetHeight());
-					m_gBuffer.Bind(0, 5);
-					lightcomponent.shadowMap.BindResource(9 + Renderer::passConstants.numlights.x);
-					RendererBase::SetCullMode(CullMode::Back);
+					;
+					Renderer::AddShadowCastingLight(shadowCastingLights.emplace_back(lightMatrix, sm_region, light, dirty, numLightMatrices));
 				}
-				Renderer::AddLight(light);
-				RendererBase::Getd3dDeviceContext()->GSSetShader(nullptr, nullptr, 0);
+				else
+				{
+					Renderer::AddLight(regularLights.emplace_back(light));
+				}
 			}
 		}
+		//dirty shadow casting lights
+		{
+			for (auto& light : shadowCastingLights)
+			{
+				if (light.shadow_dirty)
+					continue;
+				for (auto& entity : dirtyMeshes)
+				{
+					//frustum cull meshes, and if they are diry mark the light as dirty and break out of this for loop
+				}
+			}
+		}
+		if (!shadowCastingLights.empty())
+		{
+			//prepare for shadow map rendering
+			Renderer::shadowMapAtlas.Bind(/*sm_slot*/);
+			RendererBase::EnableShadowMapRasetrizerState();
+			//bind shaders
+		}
+		//re render shadows for dirty lights
+		{
+			for (auto& light : shadowCastingLights)
+			{
+				//render all meshes after frustum culling them to see if they are in the shadow frustum
+			}
+		}
+		//proceed with normal shading
+		shadowCastingLights.clear();
+		regularLights.clear();
 		{
 			PT_PROFILE_SCOPE("Object Rendering (Gbuffer Write)")
 			Renderer::BeginScene(camera);
@@ -424,7 +472,7 @@ namespace Pistachio {
 	void Scene::OnUpdateRuntime(float delta)
 	{
 		PT_PROFILE_FUNCTION();
-		SortMeshComponents();
+		auto transfromMesh = m_Registry.view<TransformComponent, MeshRendererComponent>();
 		{
 			m_Registry.view<NativeScriptComponent>().each([=](auto entity, auto& nsc) {
 				if (!nsc.Instance) {
@@ -484,28 +532,22 @@ namespace Pistachio {
 			}
 		}
 		if (mainCamera) {
+			SortMeshComponents();
+			UpdateObjectCBs();
 			float color[4] = { 0,0,0,0 };
-			float color1[4] = { -1,-1,-1,-1 };
-			m_gBuffer.Clear(color, 0);
-			m_gBuffer.Clear(color, 1);
-			m_gBuffer.Clear(color, 2);
-			m_gBuffer.Clear(color, 3);
-			m_gBuffer.Clear(color1, 4);
+			m_gBuffer.ClearAll(color);
 			m_finalRender.Clear(color, 0);
-			m_gBuffer.Bind(0, 5);
+			m_gBuffer.Bind(0, 4);
+			DirectX::XMMATRIX view = DirectX::XMMatrixInverse(nullptr, cameraTransform);
 			{
-				DirectX::XMMATRIX view = DirectX::XMMatrixInverse(nullptr, cameraTransform);
 				Renderer::whiteTexture.Bind(9);
-				Renderer::whiteTexture.Bind(10);
-				Renderer::whiteTexture.Bind(11);
-				Renderer::whiteTexture.Bind(12);
 				auto group = m_Registry.view<TransformComponent, LightComponent>();
 				for (auto& entity : group)
 				{
 					Light light;
 					auto [tc, lightcomponent] = group.get<TransformComponent, LightComponent>(entity);
-					DirectX::XMStoreFloat4(&light.positionxtype, tc.Translation);
-					light.positionxtype.w = (float)lightcomponent.Type;
+					DirectX::XMStoreFloat3(&light.position, tc.Translation);
+					light.type = lightcomponent.Type;
 					DirectX::XMVECTOR lightTransform = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.f, 0.f, -1.f, 1.f), tc.Rotation);
 					DirectX::XMStoreFloat4(&light.rotation, lightTransform);
 					light.exData = { lightcomponent.exData.x , lightcomponent.exData.y, lightcomponent.exData.z, (float)lightcomponent.CastShadow };
@@ -514,21 +556,20 @@ namespace Pistachio {
 					if (lightcomponent.CastShadow)
 					{
 						RendererBase::SetCullMode(CullMode::Front);
-						if (lightcomponent.Type == 0)
+						if (lightcomponent.Type == LightType::Directional)
 						{
 							float aspect = (float)m_viewportWidth / (float)m_ViewportHeight;
-							lightMatrix[0] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, mainCamera->GetPerspNear(), 10.f), light, 1.05f);
-							lightMatrix[1] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 10.f, 50.f), light, 1.2f);
-							lightMatrix[2] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 50.f, 70.f), light, 1.f);
-							lightMatrix[3] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 70.f, mainCamera->GetPerspFar()), light, 1.f);
+							lightMatrix[0] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, mainCamera->GetPerspNear(), 30.f), light, 1.05f);
+							lightMatrix[1] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 30.f, 100.f), light, 1.2f);
+							lightMatrix[2] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 100.f, 500.f), light, 1.f);
+							lightMatrix[3] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 500.f, mainCamera->GetPerspFar()), light, 1.f);
 						}
-						else if (lightcomponent.Type == 2)
+						else if (lightcomponent.Type == LightType::Spot)
 						{
 							lightMatrix[0] = lightMatrix[1] = lightMatrix[2] = lightMatrix[3] = DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(tc.Translation, DirectX::XMVectorAdd(tc.Translation, DirectX::XMLoadFloat4(&light.rotation)), DirectX::XMVectorSet(0, 1, 0, 0)) * DirectX::XMMatrixPerspectiveFovLH(DirectX::XMScalarACos(lightcomponent.exData.x) * 2, 1, 0.1f, lightcomponent.exData.z));
 						}
 						lightcomponent.shadowMap.Clear();
 						lightcomponent.shadowMap.Bind();
-						auto group = m_Registry.view<TransformComponent, MeshRendererComponent>();
 						RendererBase::Getd3dDeviceContext()->PSSetShader(nullptr, nullptr, 0);
 						Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Vertex);
 						Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Geometry);
@@ -536,11 +577,14 @@ namespace Pistachio {
 						Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x * 4) + 1] = lightMatrix[1];
 						Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x * 4) + 2] = lightMatrix[2];
 						Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x * 4) + 3] = lightMatrix[3];
+						Renderer::passConstants.EyePosW.w = lightcomponent.shadowMap.GetSize();
+						ChangeVP(lightcomponent.shadowMap.GetSize() / 2);
 						RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
+						Renderer::UpdatePassConstants();
 						for (auto& entity : group)
 						{
 							//TO-DO MATERIALS
-							auto [transform, mesh] = group.get<TransformComponent, MeshRendererComponent>(entity);
+							auto [transform, mesh] = transfromMesh.get(entity);
 							auto model = GetAssetManager()->GetModelResource(mesh.Model);
 							if (model) {
 								auto& VB = model->meshes[mesh.modelIndex].GetVertexBuffer();
@@ -550,7 +594,7 @@ namespace Pistachio {
 							}
 						}
 						RendererBase::ChangeViewport(m_gBuffer.GetWidth(), m_gBuffer.GetHeight());
-						m_gBuffer.Bind(0, 5);
+						m_gBuffer.Bind(0, 4);
 						lightcomponent.shadowMap.BindResource(9 + Renderer::passConstants.numlights.x);
 						RendererBase::SetCullMode(CullMode::Back);
 					}
@@ -561,10 +605,9 @@ namespace Pistachio {
 			Renderer::BeginScene(mainCamera, cameraTransform);
 			//3D Rendering
 			{
-				auto group = m_Registry.view<TransformComponent, MeshRendererComponent>();
-				for (auto& entity : group)
+				for (auto& entity : transfromMesh)
 				{
-					auto [transform, mesh] = group.get(entity);
+					auto [transform, mesh] = transfromMesh.get(entity);
 					auto mat = GetAssetManager()->GetMaterialResource(mesh.material);
 					auto model = GetAssetManager()->GetModelResource(mesh.Model);
 					if (model) {

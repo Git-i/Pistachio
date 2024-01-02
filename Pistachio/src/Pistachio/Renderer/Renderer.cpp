@@ -8,7 +8,7 @@ DirectX::XMVECTOR Pistachio::Renderer::m_campos = DirectX::XMVectorZero();
 Pistachio::RenderTexture Pistachio::Renderer::BrdfTex;
 Pistachio::ShaderLibrary Pistachio::Renderer::shaderlib = Pistachio::ShaderLibrary();
 Pistachio::ConstantBuffer Pistachio::Renderer::MaterialCB = Pistachio::ConstantBuffer();
-Pistachio::ConstantBuffer Pistachio::Renderer::LightCB = Pistachio::ConstantBuffer();
+Pistachio::StructuredBuffer Pistachio::Renderer::LightSB;
 std::vector<Pistachio::ConstantBuffer> Pistachio::Renderer::TransformationBuffer;
 Pistachio::PassConstants Pistachio::Renderer::passConstants;
 Pistachio::ConstantBuffer Pistachio::Renderer::PassCB = {};
@@ -31,7 +31,7 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION();
 		MaterialStruct cb;
 		MaterialCB.Create(nullptr, sizeof(MaterialStruct));
-		LightCB.Create(&LightData, sizeof(LightData));
+		LightSB.CreateStack(&LightData, sizeof(LightData),sizeof(Light));
 		struct CameraStruct {
 			DirectX::XMMATRIX viewproj;
 			DirectX::XMMATRIX view;
@@ -220,7 +220,7 @@ namespace Pistachio {
 		shaderlib.Add("Post-Shader", postprocess_Shader);
 		BYTE data[4] = { 255,255,255,255 };
 		whiteTexture.CreateStack(1, 1, TextureFormat::RGBA8U,data);
-		Shader::SetPSBuffer(LightCB, 0);
+		LightSB.Bind(7);
 		Shader::SetVSBuffer(PassCB, 0);
 		Shader::SetPSBuffer(MaterialCB, 1);
 		auto Windata = GetWindowDataPtr();
@@ -252,7 +252,7 @@ namespace Pistachio {
 		prefilter.BindResource(2);
 		CameraData.viewProjection = viewproj;
 		CameraData.viewPos = {campos.x,campos.y, campos.z, 1.f};
-		LightCB.Update(&LightData, sizeof(LightData));
+		LightSB.Update(&LightData, sizeof(LightData));
 		UpdatePassConstants();
 		
 		whiteTexture.Bind(3);
@@ -272,7 +272,7 @@ namespace Pistachio {
 		CameraData.viewProjection = viewproj;
 		CameraData.view = DirectX::XMMatrixTranspose(view);
 		CameraData.viewPos = campos;
-		LightCB.Update(&LightData, sizeof(LightData));
+		LightSB.Update(&LightData, sizeof(LightData));
 		UpdatePassConstants();
 		whiteTexture.Bind(3);
 		whiteTexture.Bind(4);
@@ -292,7 +292,7 @@ namespace Pistachio {
 		CameraData.viewProjection = viewproj;
 		CameraData.view = DirectX::XMMatrixTranspose(cam.GetViewMatrix());
 		CameraData.viewPos = campos;
-		LightCB.Update(&LightData, sizeof(LightData));
+		LightSB.Update(&LightData, sizeof(LightData));
 		UpdatePassConstants();
 		whiteTexture.Bind(3);
 		whiteTexture.Bind(4);

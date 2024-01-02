@@ -57,7 +57,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;IMGUI;_CRT_SECURE_NO_WARNINGS;TRACY_ENABLE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;IMGUI;_CRT_SECURE_NO_WARNINGS;TRACY_ENABLE;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo;$(SolutionDir)Pistachio\vendor\physx\include;$(SolutionDir)Pistachio\vendor\SimpleMath;$(SolutionDir)Pistachio\vendor\tracy\tracy</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -115,6 +115,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Pistachio\Allocators\AtlasAllocator.h" />
     <ClInclude Include="src\Pistachio\Asset\Asset.h" />
     <ClInclude Include="src\Pistachio\Asset\AssetManager.h" />
     <ClInclude Include="src\Pistachio\Asset\RefCountedObject.h" />
