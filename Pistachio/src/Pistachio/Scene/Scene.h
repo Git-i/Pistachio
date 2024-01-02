@@ -4,6 +4,7 @@
 #include "Pistachio/Renderer/EditorCamera.h"
 #include "Pistachio/Core/UUID.h"
 #include "Pistachio\Renderer\Mesh.h"
+#include "Pistachio\Allocators\AtlasAllocator.h"
 namespace physx {
 	class PxScene;
 }
@@ -36,6 +37,7 @@ namespace Pistachio {
 		void UpdateObjectCBs();
 		void SortMeshComponents();
 		DirectX::XMMATRIX GetTransfrom(Entity e);
+		AtlasAllocator sm_allocator;
 	private:
 		Pistachio::Mesh* ScreenSpaceQuad;
 		entt::registry m_Registry;

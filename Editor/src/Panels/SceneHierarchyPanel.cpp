@@ -31,8 +31,7 @@ namespace Pistachio {
 			{
 				const wchar_t* data = (const wchar_t*)payload->Data;
 				auto path = std::filesystem::path("assets") / data;
-				Asset modelAsset;
-				modelAsset = GetAssetManager()->CreateModelAsset(path.string().c_str());
+				Asset modelAsset = GetAssetManager()->CreateModelAsset(path.string().c_str());
 				auto model = GetAssetManager()->GetModelResource(modelAsset);
 				if (model)
 				{
@@ -453,7 +452,7 @@ namespace Pistachio {
 		});
 		DrawComponent<LightComponent>("Light", entity, [](auto& component) {
 			const char* lightTypeStrings[] = { "Directional Light", "Point Light", "Spot Light"};
-			const char* currentLightTypeString = lightTypeStrings[component.Type];
+			const char* currentLightTypeString = lightTypeStrings[(int)component.Type];
 			if (ImGui::BeginCombo("Light Type", currentLightTypeString))
 			{
 				for (int i = 0; i < 3; i++)
@@ -462,7 +461,7 @@ namespace Pistachio {
 					if (ImGui::Selectable(lightTypeStrings[i], isSelected))
 					{
 						currentLightTypeString = lightTypeStrings[i];
-						component.Type = i;
+						component.Type = (LightType)i;
 					}
 				}
 				ImGui::EndCombo();
@@ -495,11 +494,11 @@ namespace Pistachio {
 					component.shadowMap.Create(1024);
 				}
 			}
-			if (component.Type == 1)
+			if (component.Type == LightType::Point)
 			{
 				ImGui::DragFloat("Max. Distance", &component.exData.z, 1, 0, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 			}
-			if (component.Type == 2)
+			if (component.Type == LightType::Spot)
 			{
 				float outercone = DirectX::XMScalarACos(component.exData.x);
 				float innercone = DirectX::XMScalarACos(component.exData.y);

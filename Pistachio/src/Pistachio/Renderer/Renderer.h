@@ -11,12 +11,31 @@
 #include "Pistachio\Asset\AssetManager.h"
 #include "Pistachio/Renderer/EditorCamera.h"
 namespace Pistachio {
+	
 	struct Light {
-		DirectX::XMFLOAT4 positionxtype; // for directional lights this is direction and type
-		DirectX::XMFLOAT4 colorxintensity;
+		DirectX::XMFLOAT3 position;// for directional lights this is direction
+		LightType type;
+		DirectX::XMFLOAT3 color;
+		float intensity;
 		DirectX::XMFLOAT4 exData;
 		DirectX::XMFLOAT4 rotation;
 	};
+	struct ShadowCastingLight
+	{
+		DirectX::XMMATRIX projection[6]; // used for frustum culling
+		Region shadowMap;
+		Light light;
+		bool shadow_dirty;
+		ShadowCastingLight(DirectX::XMMATRIX* _projection, Region _region, Light _light, bool shadowDirty, int numMatrices)
+		{
+			for (int i = 0; i < numMatrices; i++)
+				projection[i] = _projection[i];
+			shadowMap = _region;
+			light = _light;
+			shadow_dirty = shadowDirty;
+		}
+	};
+	using RegularLight = Light;
 	struct PassConstants
 	{
 		DirectX::XMFLOAT4X4 View;
@@ -50,7 +69,8 @@ namespace Pistachio {
 		static void Init(const char* skybox);
 		static void EndScene();
 		static void Submit(Mesh* mesh, Shader* shader,  Material* mat, int ID);
-		static void AddLight(const Light& light);
+		static void AddShadowCastingLight(const ShadowCastingLight& light);
+		static void AddLight(const RegularLight& light);
 		inline static ShaderLibrary& GetShaderLibrary() { return shaderlib; }
 		inline static ID3D11ShaderResourceView* GetFrambufferSRV() { return (ID3D11ShaderResourceView*)fbo.GetID().ptr; };
 		inline static ID3D11ShaderResourceView* GetIrradianceFrambufferSRV() { return (ID3D11ShaderResourceView*)ifbo.GetID().ptr; };
@@ -80,7 +100,7 @@ namespace Pistachio {
 		static ShaderLibrary shaderlib;
 		static ConstantBuffer MaterialCB;
 		static ConstantBuffer PassCB;
-		static ConstantBuffer LightCB;
+		static StructuredBuffer LightSB;
 		static std::vector<ConstantBuffer> TransformationBuffer;
 		static struct CamerData { DirectX::XMMATRIX viewProjection; DirectX::XMMATRIX view;  DirectX::XMFLOAT4 viewPos; }CameraData;
 		static Texture2D whiteTexture;
@@ -89,6 +109,7 @@ namespace Pistachio {
 		static Light* lightIndexPtr;
 		static Material* currentMat;
 		static Shader* currentShader;
+		static Texture2D shadowMapAtlas;
 		friend class Scene;
 		friend class Material;
 	};

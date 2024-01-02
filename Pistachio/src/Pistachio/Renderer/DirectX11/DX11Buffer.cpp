@@ -99,4 +99,51 @@ namespace Pistachio {
 		result->CreateStack(indices, size, stride);
 		return result;
 	}
+	void StructuredBuffer::CreateStack(const void* data, std::uint32_t size, std::uint32_t stride)
+	{
+		PT_PROFILE_FUNCTION();
+		ID3D11Buffer* buffer;
+		D3D11_BUFFER_DESC bd;
+		bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		bd.Usage = D3D11_USAGE_DYNAMIC;
+		bd.ByteWidth = size;
+		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		bd.StructureByteStride = stride;
+		D3D11_SUBRESOURCE_DATA sd = {};
+		sd.pSysMem = data;
+		D3D11_SUBRESOURCE_DATA* sd_ptr = data ? &sd : nullptr;
+		RendererBase::Getd3dDevice()->CreateBuffer(&bd, sd_ptr, &buffer);
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		srvDesc.Buffer.ElementOffset = 0;
+		srvDesc.Buffer.ElementWidth = stride;
+		srvDesc.Buffer.NumElements = size / stride;
+		RendererBase::Getd3dDevice()->CreateShaderResourceView(buffer, &srvDesc, (ID3D11ShaderResourceView**)(ID.ReleaseAndGetAddressOf()));
+		buffer->Release();
+	}
+	void StructuredBuffer::Bind(std::uint32_t slot) const
+	{
+		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, 1, (ID3D11ShaderResourceView**)ID.GetAddressOf());
+	}
+	void StructuredBuffer::Update(const void* data, std::uint32_t size)
+	{
+		ID3D11ShaderResourceView* srv = (ID3D11ShaderResourceView*)ID.Get();
+		ID3D11Resource* res;
+		srv->GetResource(&res);
+		D3D11_MAPPED_SUBRESOURCE sr;
+		RendererBase::Getd3dDeviceContext()->Map(res, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+		memcpy(sr.pData, data, size);
+		RendererBase::Getd3dDeviceContext()->Unmap(res, 0);
+		res->Release();
+	}
+	StructuredBuffer* StructuredBuffer::Create(const void* data, std::uint32_t size, std::uint32_t stride)
+	{
+		PT_PROFILE_FUNCTION();
+		StructuredBuffer* result = new StructuredBuffer;
+		result->CreateStack(data, size, stride);
+		return result;
+	}
 }

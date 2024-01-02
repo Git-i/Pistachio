@@ -3,7 +3,8 @@
 #include "Pistachio/Renderer/Camera.h"
 #include "Pistachio/Renderer/Mesh.h"
 #include "Pistachio\Renderer\ShadowMap.h"
-#include "Pistachio\Asset\AssetManager.h"
+#include "Pistachio\Asset\AssetManager.h"#
+#include "Pistachio\Allocators\AtlasAllocator.h"
 #include "Entity.h"
 namespace Pistachio{
 	// Generic ----------------------------------------------------------------------------------
@@ -109,22 +110,22 @@ namespace Pistachio{
 		}
 	};
 	struct LightComponent {
-		int Type = 0;
+		LightType Type;
 		float Intensity = 1.f;
 		DirectX::XMFLOAT3 color = {1,1,1};
-		bool CastShadow = false;
+		bool shadow = false;
 		DirectX::XMFLOAT3 exData = { 0.01f,0.1f,1.0f };
-		DirectX::XMFLOAT3 rotation;
-		ShadowMap shadowMap;
+		DirectX::XMFLOAT3 rotation = {};
+		Region shadowMap;
 		LightComponent(const LightComponent& other)
 		{
 			Type = other.Type;
 			Intensity = other.Intensity;
 			color = other.color;
-			CastShadow = other.CastShadow;
+			shadow = other.shadow;
 			exData = other.exData;
 			rotation = other.rotation;
-		}
+		};
 		LightComponent() = default;
 	};
 	// Physics---------------------------------------------------------------------------------------------------------------

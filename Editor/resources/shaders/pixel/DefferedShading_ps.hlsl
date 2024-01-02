@@ -24,22 +24,19 @@ float Window(float distance, float max_distance);
 #define PI 3.14159265359
 struct Light
 {
-    float4 positionxtype; // for directional lights this is direction and type
+    float3 position; // for directional lights this is direction and type
+    int type;
     float4 colorxintensity;
     float4 exData;
     float4 rotation;
 };
-cbuffer CBuff : register(b0)
-{
-    Light lights[128];
-};
+StructuredBuffer<Light> lights : register(t7);
 
 float4 main(float2 uv : UV, float3 camPos : CAM_POS, int numlights : NUM_LIGHTS) : SV_Target
 {
     float4 albedo = color.Sample(my_sampler, uv);
     float4 normal_rough = normal_roughness.Sample(my_sampler, uv);
     float4 position_metal = position_metallic.Sample(my_sampler, uv);
-    float4 shadow = shadow_t.Sample(my_sampler, uv);
     float metallic = position_metal.w;
     float roughness = normal_rough.w;
     clip(albedo.a < 0.1f ? -1 : 1);
@@ -47,35 +44,30 @@ float4 main(float2 uv : UV, float3 camPos : CAM_POS, int numlights : NUM_LIGHTS)
     float3 WorldPos = position_metal.xyz;
     float3 V = normalize(camPos.xyz - WorldPos);
     float3 R = reflect(-V, N);
-
+    
     float3 F0 = float3(0.04, 0.04, 0.04);
     F0 = lerp(F0, albedo.xyz, metallic);
     float l;
     // reflectance equation
     float3 Lo = float3(0.0, 0.0, 0.0);
     // Lighting
-    float shadows[128];
-    shadows[0] = shadow.x;
-    shadows[1] = shadow.y;
-    shadows[2] = shadow.z;
-    shadows[3] = shadow.a;
     for (int i = 0; i < numlights; i++)
     {
         // -------------Evaluate L and Attenuation-----------------//
-        float3 Ls[3] = { normalize(lights[i].rotation.xyz), normalize(lights[i].positionxtype.xyz - WorldPos), float3(0, 0, 0) };
+        float3 Ls[3] = { normalize(lights[i].rotation.xyz), normalize(lights[i].position - WorldPos), float3(0, 0, 0) };
         Ls[2] = Ls[1];
-        float3 L = Ls[lights[i].positionxtype.w];
+        float3 L = Ls[lights[i].type];
         
-        float distance = length(lights[i].positionxtype.xyz - WorldPos);
+        float distance = length(lights[i].position - WorldPos);
         float window = Window(distance, lights[i].exData.z);
         float t = saturate((dot(lights[i].rotation.xyz, -L) - lights[i].exData.x) / (lights[i].exData.y - lights[i].exData.x));
         float attenuations[3] = { 1, window / (distance * distance), window * t * t / (distance * distance) };
-        float attenuation = attenuations[lights[i].positionxtype.w];
+        float attenuation = attenuations[lights[i].type];
         //-----------------------------------------------------------//
         float NdotL = dot(N, L);
         NdotL = max(NdotL, 0.0);
         float3 H = normalize(V + L);
-        float3 radiance = (lights[i].colorxintensity.xyz) * attenuation;
+        float3 radiance = (lights[i].colorxintensity.xyz) * attenuation * lights[i].colorxintensity.w;
 
         // cook-torrance brdf
         float NDF = DistributionGGX(N, H, roughness);
@@ -90,7 +82,7 @@ float4 main(float2 uv : UV, float3 camPos : CAM_POS, int numlights : NUM_LIGHTS)
         float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
         float3 specular = numerator / max(denominator, 0.001);
 
-        Lo += (kD * albedo.xyz / PI + specular) * radiance * NdotL * lights[i].colorxintensity.w * (1 - shadows[i]);
+        Lo += (kD * albedo.xyz / PI + specular) * radiance * NdotL;
     }
     float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 

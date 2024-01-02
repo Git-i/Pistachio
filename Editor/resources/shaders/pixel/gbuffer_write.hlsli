@@ -35,7 +35,6 @@ struct PSOUTPUT
     float4 normal_rougness : SV_Target1;
     float4 position_metallic : SV_Target2;
     float4 shadow_info : SV_Target3;
-    int id : SV_Target4;
 };
 #ifdef SHADOW_MAP
 float Shadow(float3 projCoords, int layer)
@@ -59,7 +58,6 @@ PSOUTPUT main(PSINTPUT input)
 {
     PSOUTPUT pso;
     pso.color = albedoMultiplier * albedoTexture.Sample(my_sampler, input.uv);
-    pso.id = entityID;
     pso.normal_rougness = float4(input.Normal, roughnessMultiplier * roughnessTexture.Sample(my_sampler, input.uv).x);
     pso.position_metallic = float4(input.WorldPos, metallicMultiplier * metallicTexture.Sample(my_sampler, input.uv).x);
     #ifdef SHADOW_MAP

@@ -1367,6 +1367,9 @@
     <ClInclude Include="vendor\tracy\tracy\TracyVulkan.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Pistachio\Allocators\AtlasAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vendor\assimp\include\assimp\color4.inl">

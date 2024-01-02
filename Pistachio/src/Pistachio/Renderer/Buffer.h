@@ -30,7 +30,7 @@ namespace Pistachio {
 		unsigned int count;
 		PlatformRendererID_t ID;
 	};
-	struct Buffer
+	struct Buffer //todo rename this class
 	{
 	public:
 		const VertexBuffer* vb;
@@ -42,5 +42,14 @@ namespace Pistachio {
 			vb->Bind();
 			ib->Bind();
 		}
+	};
+	struct StructuredBuffer
+	{
+		void Bind(std::uint32_t slot) const;
+		void Update(const void* data, std::uint32_t size);
+		static StructuredBuffer* Create(const void* data, std::uint32_t size, std::uint32_t stride);
+		void CreateStack(const void* data, std::uint32_t size, std::uint32_t stride);
+	private:
+		PlatformRendererID_t ID;
 	};
 }
