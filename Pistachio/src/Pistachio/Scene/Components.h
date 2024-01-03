@@ -35,7 +35,7 @@ namespace Pistachio{
 		Vector3 Scale = {1.f,1.f,1.f};
 		mutable int NumNegativeScaleComps = 0;
 		bool bDirty = true;
-		
+		bool shouldClean = false;
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
 		TransformComponent(const DirectX::XMVECTOR& translation) : Translation(translation){}

@@ -1,4 +1,4 @@
-#include "ptpch.h"#
+#include "ptpch.h"
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Application.h"
 #include "Pistachio/Event/Event.h"

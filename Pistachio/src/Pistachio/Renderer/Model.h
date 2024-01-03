@@ -6,12 +6,14 @@
 
 #include "Mesh.h"
 #include "../Asset/RefCountedObject.h"
+#include "Pistachio\Core\Math.h"
 namespace Pistachio {
     class Model : public RefCountedObject
     {
     public:
         // model data 
         std::vector<Mesh> meshes;
+        std::vector<BoundingBox> aabbs;
         // constructor, expects a filepath to a 3D model.
         Model(const char* path)
         {
@@ -24,6 +26,6 @@ namespace Pistachio {
         Error loadModel(const char* path);
         // processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
         void processNode(aiNode* node, const aiScene* scene);
-        Mesh processMesh(aiMesh* mesh, const aiScene* scene);
+        void processMesh(aiMesh* mesh, const aiScene* scene);
     };
 }

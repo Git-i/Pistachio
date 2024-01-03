@@ -22,7 +22,7 @@ Pistachio::Texture2D Pistachio::Renderer::whiteTexture = Pistachio::Texture2D();
 Pistachio::Material Pistachio::Renderer::DefaultMaterial = Pistachio::Material();
 Pistachio::Material* Pistachio::Renderer::currentMat = nullptr;
 Pistachio::Shader* Pistachio::Renderer::currentShader = nullptr;
-
+Pistachio::ShadowMap Pistachio::Renderer::shadowMapAtlas;
 static Pistachio::SamplerState* brdfSampler ;
 static Pistachio::SamplerState* shadowSampler;
 namespace Pistachio {
@@ -230,6 +230,7 @@ namespace Pistachio {
 		RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &mainTarget, RendererBase::GetDepthStencilView());
 		delete ss;
 		fbo.BindResource(8);
+		shadowMapAtlas.Create(4096);
 		ZeroMemory(&LightData, sizeof(LightData));
 		lightIndexPtr = LightData.lights;
 		DefaultMaterial.Initialize();
@@ -242,6 +243,15 @@ namespace Pistachio {
 		*lightIndexPtr = light;
 		lightIndexPtr++;
 		passConstants.numlights.x++;
+	}
+	void Renderer::AddShadowCastingLight(const ShadowCastingLight& light)
+	{
+		//todo actually implement this
+		PT_PROFILE_FUNCTION();
+		*lightIndexPtr = light.light;
+		lightIndexPtr++;
+		passConstants.numlights.x++;
+
 	}
 	void Renderer::BeginScene(PerspectiveCamera* cam) {
 		PT_PROFILE_FUNCTION();

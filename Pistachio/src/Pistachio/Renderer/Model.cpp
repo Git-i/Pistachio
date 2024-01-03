@@ -4,6 +4,7 @@
 #include "../Core/Log.h"
 #include "assimp/DefaultLogger.hpp"
 #include "../Core/Error.h"
+
 namespace Pistachio {
     Model* Model::Create(const char* path)
     {
@@ -16,10 +17,11 @@ namespace Pistachio {
         if (!Pistachio::Error::CheckFileExistence(path))
             return Error(ErrorType::NonExistentFile, std::string(__FUNCTION__) + ", filename: " + path);
         Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded);
+        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded | aiProcess_GenBoundingBoxes);
         if (!scene)
         {
             PT_CORE_ERROR(importer.GetErrorString());
+            return Error(ErrorType::Unknown, std::string(__FUNCTION__));
         }
         // process ASSIMP's root node recursively
         processNode(scene->mRootNode, scene);
@@ -34,7 +36,7 @@ namespace Pistachio {
             // the node object only contains indices to index the actual objects in the scene. 
             // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-            meshes.push_back(processMesh(mesh, scene));
+            processMesh(mesh, scene);
         }
         // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
         for (unsigned int i = 0; i < node->mNumChildren; i++)
@@ -43,12 +45,19 @@ namespace Pistachio {
         }
 
     }
-    Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
+    void Model::processMesh(aiMesh* mesh, const aiScene* scene)
     {
         PT_PROFILE_FUNCTION()
         // data to fill
         std::vector<Vertex> vertices;
         std::vector<unsigned int> indices;
+
+        
+        aiVector3D boundingBoxCentre = (mesh->mAABB.mMin + mesh->mAABB.mMax) / aiVector3D{ 0.5f, 0.5f, 0.5f };
+        aiVector3D boundingBoxExtents = mesh->mAABB.mMax - mesh->mAABB.mMin;
+        Vector3 bbCentre = { boundingBoxCentre.x , boundingBoxCentre.y, boundingBoxCentre.z };
+        Vector3 bbExtents = { boundingBoxExtents.x, boundingBoxExtents.y, boundingBoxExtents.z };
+        aabbs.emplace_back(bbCentre, bbExtents);
 
         // walk through each of the mesh's vertices
         for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -65,6 +74,8 @@ namespace Pistachio {
                 vertex.normal.y = mesh->mNormals[i].y;
                 vertex.normal.z = mesh->mNormals[i].z;
             }
+            else 
+                vertex.normal = { 0.f, 0.f, 0.f };
             // texture coordinates
             if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
             {
@@ -87,6 +98,6 @@ namespace Pistachio {
                 indices.push_back(face.mIndices[j]);
             }
         }
-        return Mesh(vertices, indices);
+        meshes.emplace_back(vertices, indices);
     }
 }

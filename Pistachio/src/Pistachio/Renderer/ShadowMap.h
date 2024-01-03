@@ -1,6 +1,7 @@
 #pragma once
 #include "../Core.h"
 #include "RendererID_t.h"
+#include "Pistachio\Allocators\AtlasAllocator.h"
 namespace Pistachio {
 	class ShadowMap
 	{
@@ -9,7 +10,7 @@ namespace Pistachio {
 		ShadowMap() = default;
 		void Create(std::uint32_t size);
 		void UpdateSize(std::uint32_t size);
-		void Clear();
+		void Clear(const Region& region);
 		void Bind(int slot = 0);
 		void BindResource(int slot = 0);
 		std::uint32_t GetSize() const { return m_size; }
