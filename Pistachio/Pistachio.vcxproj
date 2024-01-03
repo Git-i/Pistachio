@@ -159,6 +159,7 @@
     <ClInclude Include="src\Pistachio\Core\Window.h" />
     <ClInclude Include="src\Pistachio\Renderer\ShadowMap.h" />
     <ClInclude Include="src\Pistachio\Scene\Components.h" />
+    <ClInclude Include="src\Pistachio\Scene\CullingManager.h" />
     <ClInclude Include="src\Pistachio\Scene\Entity.h" />
     <ClInclude Include="src\Pistachio\Scene\Scene.h" />
     <ClInclude Include="src\Pistachio\Scene\SceneSerializer.h" />
@@ -508,6 +509,7 @@
     <ClInclude Include="vendor\tracy\tracy\TracyVulkan.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Pistachio\Allocators\AtlasAllocator.cpp" />
     <ClCompile Include="src\Pistachio\Asset\AssetManager.cpp" />
     <ClCompile Include="src\Pistachio\Core\UUID.cpp" />
     <ClCompile Include="src\Pistachio\Physics\Physics.cpp" />
@@ -536,6 +538,7 @@
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputPoll.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.cpp" />
+    <ClCompile Include="src\Pistachio\Scene\CullingManager.cpp" />
     <ClCompile Include="src\Pistachio\Scene\Entity.cpp" />
     <ClCompile Include="src\Pistachio\Scene\Scene.cpp" />
     <ClCompile Include="src\Pistachio\Scene\SceneSerializer.cpp" />

@@ -468,30 +468,30 @@ namespace Pistachio {
 			}
 			ImGui::ColorEdit3("Light Color", (float*)&component.color);
 			ImGui::DragFloat("Intensity", &component.Intensity, 1.f, 0.f, 100.f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-			if (component.CastShadow)
+			if (component.shadow)
 			{
-				if (ImGui::BeginCombo("Shadow Map Size", std::to_string(component.shadowMap.GetSize()).c_str()))
+				if (ImGui::BeginCombo("Shadow Map Size", std::to_string(component.shadowMap.size.x).c_str()))
 				{
 					for (int i = 0; i < 4; i++)
 					{
-						bool isSelected = component.shadowMap.GetSize() == 1024 * std::pow(2, i);
+						bool isSelected = component.shadowMap.size.x == 1024 * std::pow(2, i);
 						if (ImGui::Selectable(std::to_string((int)(1024 * std::pow(2, i))).c_str(), isSelected))
 						{
-							component.shadowMap.UpdateSize(1024 * std::pow(2, i));
+							//component.shadowMap.UpdateSize(1024 * std::pow(2, i));
 						}
 					}
 					ImGui::EndCombo();
 				}
 			}
-			if (ImGui::Checkbox("Cast Shadow", &component.CastShadow))
+			if (ImGui::Checkbox("Cast Shadow", &component.shadow))
 			{ 
-				if (!component.CastShadow)
+				if (!component.shadow)
 				{
-					component.shadowMap.~ShadowMap();
+					component.shadow = false;
 				}
 				else
 				{
-					component.shadowMap.Create(1024);
+					component.shadow = true;
 				}
 			}
 			if (component.Type == LightType::Point)

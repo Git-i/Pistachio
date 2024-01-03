@@ -10,6 +10,8 @@
 #include "Pistachio/Event/ApplicationEvent.h"
 #include "Pistachio\Asset\AssetManager.h"
 #include "Pistachio/Renderer/EditorCamera.h"
+#include "Pistachio\Allocators\AtlasAllocator.h"
+#include "ShadowMap.h"
 namespace Pistachio {
 	
 	struct Light {
@@ -109,7 +111,7 @@ namespace Pistachio {
 		static Light* lightIndexPtr;
 		static Material* currentMat;
 		static Shader* currentShader;
-		static Texture2D shadowMapAtlas;
+		static ShadowMap shadowMapAtlas;
 		friend class Scene;
 		friend class Material;
 	};

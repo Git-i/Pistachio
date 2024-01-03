@@ -1,6 +1,6 @@
 #include "ptpch.h"
 #include "../ShadowMap.h"
-#include <d3d11.h>
+#include <d3d11_1.h>
 #include "../RendererBase.h"
 namespace Pistachio
 {
@@ -41,6 +41,7 @@ namespace Pistachio
 		srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 
 		RendererBase::Getd3dDevice()->CreateShaderResourceView(pShadowMap, &srvDesc, (ID3D11ShaderResourceView**)m_SRV.ReleaseAndGetAddressOf());
+		RendererBase::Getd3dDeviceContext()->ClearDepthStencilView((ID3D11DepthStencilView*)m_DSV.Get(), D3D11_CLEAR_DEPTH, 0.f, 0);
 		pShadowMap->Release();
 	}
 	void ShadowMap::UpdateSize(std::uint32_t size)
@@ -51,10 +52,16 @@ namespace Pistachio
 		m_SRV = nullptr;
 		Create(size);
 	}
-	void ShadowMap::Clear()
+	void ShadowMap::Clear(const Region& region)
 	{
 		PT_PROFILE_FUNCTION();
-		RendererBase::Getd3dDeviceContext()->ClearDepthStencilView((ID3D11DepthStencilView*)m_DSV.Get(), D3D11_CLEAR_DEPTH, 1.f, 0);
+		float color[4] = { 1.f,1.f,1.f,1.f };
+		D3D11_RECT rect;
+		rect.left = region.offset.x;
+		rect.right = region.offset.x + region.size.x;
+		rect.top = region.offset.y;
+		rect.bottom = region.offset.y + region.size.y;
+		((ID3D11DeviceContext1*)RendererBase::Getd3dDeviceContext())->ClearView((ID3D11DepthStencilView*)m_DSV.Get(), color, &rect, 1);
 	}
 	void ShadowMap::Bind(int slot)
 	{
