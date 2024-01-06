@@ -30,9 +30,9 @@ VS_OUT main( float4 pos : POSITION )
 {
     VS_OUT vso;
     vso.lsm[0] = lightSpaceMatrix[0];
-    vso.lsm[1] = lightSpaceMatrix[0];
-    vso.lsm[2] = lightSpaceMatrix[0];
-    vso.lsm[3] = lightSpaceMatrix[0];
+    vso.lsm[1] = lightSpaceMatrix[1];
+    vso.lsm[2] = lightSpaceMatrix[2];
+    vso.lsm[3] = lightSpaceMatrix[3];
     vso.pos = mul(pos, transform);
     return vso;
 }

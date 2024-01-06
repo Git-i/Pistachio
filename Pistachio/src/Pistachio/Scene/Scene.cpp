@@ -2,7 +2,7 @@
 #include "Scene.h"
 #include "Components.h"
 #include "Pistachio/Renderer/Renderer2D.h"
-#include "Pistachio/Renderer/Renderer.h"
+
 #include "Entity.h"
 #include "imgui.h"
 #include "ImGuizmo.h"
@@ -84,13 +84,16 @@ static DirectX::XMMATRIX GetLightMatrixFromCamera(const DirectX::XMMATRIX& camVi
 	return DirectX::XMMatrixMultiplyTranspose(lightView, lightProjection);
 }
 static D3D11_VIEWPORT vp[4];
-static void ChangeVP(float size)
+static void ChangeVP(float size, Pistachio::hiVector2 offset)
 {
 	vp[0].Width = vp[0].Height = size;
+	vp[0].TopLeftX = offset.x;
+	vp[0].TopLeftY = offset.y;
 	vp[1] = vp[2] = vp[3] = vp[0];
-	vp[1].TopLeftX = size;
-	vp[2].TopLeftY = size;
-	vp[3].TopLeftX = vp[3].TopLeftY = size;
+	vp[1].TopLeftX += size;
+	vp[2].TopLeftY += size;
+	vp[3].TopLeftX += size;
+	vp[3].TopLeftY += size;
 }
 namespace Pistachio {
 	
@@ -273,7 +276,7 @@ namespace Pistachio {
 	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
 	{
 		PT_PROFILE_FUNCTION();
-		SortMeshComponents();
+		
 		/*
 		  1. Gather a list of lights that affect the frame (culling), if a light doesnt affect a frame make sure its region in the atlas is invalid.
 		  2. for any light that already has a region, we check the cascade from camera to see if it needs to be shrunk or grown, then render all meshes to the atlas if the region was shrunk or grown 
@@ -285,18 +288,23 @@ namespace Pistachio {
 		*/
 		//todo add a quality setting features
 		static std::vector<ShadowCastingLight> shadowCastingLights;
+		static std::vector<bool> shadow_dirty; //todo: do this better
 		static std::vector<RegularLight> regularLights;
 		auto transformMesh = m_Registry.view<TransformComponent, MeshRendererComponent>();
 		static std::vector<Entity> meshesToDraw;
 		//mark dirty transforms
 		{
-			auto meshParent = m_Registry.view<ParentComponent, TransformComponent>();
-			for (auto entity : meshParent)
+			PT_PROFILE_SCOPE("Dirty Transform Components");
+			auto transformParent = m_Registry.view<ParentComponent, TransformComponent>();
+			for (auto entity : transformParent)
 			{
-				auto [Parent, transform] = meshParent.get(entity);
+				auto [Parent, transform] = transformParent.get(entity);
 				if (transform.bDirty)
 				{
-					continue;
+					if (Parent.parentID >= 0)
+						transform.worldSpaceTransform = transform.GetTransform({ (entt::entity)Parent.parentID, this });
+					else
+						transform.worldSpaceTransform = transform.GetLocalTransform();
 				}
 				auto PID = Parent.parentID;
 				while (PID != -1)
@@ -305,6 +313,10 @@ namespace Pistachio {
 					if (parentTransform.bDirty)
 					{
 						transform.bDirty = true;
+						if (Parent.parentID >= 0)
+							transform.worldSpaceTransform = transform.GetTransform({ (entt::entity)Parent.parentID, this });
+						else
+							transform.worldSpaceTransform = transform.GetLocalTransform();
 						break;
 					}
 					auto& parentComp = m_Registry.get<ParentComponent>((entt::entity)PID);
@@ -312,7 +324,9 @@ namespace Pistachio {
 				}
 			}
 		}
-		UpdateObjectCBs(); //clean dirty transform meshes
+		//todo: combine these two functions into one that loops through all the meshes, and probably also does the frsutum culling
+		UpdateObjectCBs();
+		SortMeshComponents();//clean dirty transform meshes
 		//frustum culling
 		BoundingFrustum cameraFrustum(camera.GetProjection());
 		cameraFrustum.Transform(cameraFrustum, camera.GetViewMatrix().Invert());
@@ -324,10 +338,14 @@ namespace Pistachio {
 				if (mesh.Model.m_uuid)
 				{
 					BoundingBox box = model->aabbs[mesh.modelIndex];
-					box.Transform(box, transform.GetLocalTransform()); //replace with global transform
+					box.Transform(box, transform.worldSpaceTransform);
 					if (CullingManager::FrustumCull(box, cameraFrustum)) //we passed the test
 					{
 						meshesToDraw.emplace_back(e, this);
+					}
+					else
+					{
+						int a = 9;
 					}
 				}
 			}
@@ -350,10 +368,12 @@ namespace Pistachio {
 					bool visible = CullingManager::FrustumCull(BoundingSphere(tc.Translation, lightcomponent.exData.z), cameraFrustum);
 					if (!visible)
 					{
-						if (lightcomponent.shadowMap.size.x)
+						if (lightcomponent.shadowMap)
 						{
+							//todo: remove this line, it is completely unnecessary and only for debug
+							Renderer::shadowMapAtlas.Clear(sm_allocator.GetRegion(lightcomponent.shadowMap), 0.f);
 							sm_allocator.DeAllocate(lightcomponent.shadowMap);
-							lightcomponent.shadowMap = Region{ {0,0}, {0,0} };
+							lightcomponent.shadowMap = 0;
 						}
 						continue; //de allocate and dont submit to renderer
 					}
@@ -371,10 +391,14 @@ namespace Pistachio {
 				DirectX::XMMATRIX lightMatrix[4] = { DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity() };
 				if (lightcomponent.shadow)
 				{
+					iVector2 allocation_size;
 					int numLightMatrices;
+					bool dirty = lightcomponent.shadow_dirty;
 					if(lightcomponent.Type == LightType::Directional)
 					{
+						dirty = true;
 						numLightMatrices = 4;
+						allocation_size = { 256*4, 256*4 };
 						lightMatrix[0] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), camera.GetNearClip(), 30.f), light, 1.05f);
 						lightMatrix[1] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), 30.f, 100.f), light, 1.2f);
 						lightMatrix[2] = GetLightMatrixFromCamera(camera.GetViewMatrix(), DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera.GetFOVdeg()), camera.GetAspectRatio(), 100.f, 500.f), light, 1.2f);
@@ -383,34 +407,44 @@ namespace Pistachio {
 					else if (lightcomponent.Type == LightType::Spot)
 					{
 						numLightMatrices = 1;
+						allocation_size = { 256 , 256 };
 						lightMatrix[0] = DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(tc.Translation, DirectX::XMVectorAdd(tc.Translation, DirectX::XMLoadFloat4(&light.rotation)), DirectX::XMVectorSet(0,1,0,0)) * DirectX::XMMatrixPerspectiveFovLH(DirectX::XMScalarACos(lightcomponent.exData.x) * 2, 1, 0.1f, lightcomponent.exData.z));
 					}
-					//todo : Handle point light matrices;
+					else if (lightcomponent.Type == LightType::Point)
+					{
+						int numLightMatrices = 4;
+						allocation_size = {256*3, 256*2};
+						//todo : Handle point light matrices;
+					}
 					Region sm_region;
-					bool dirty = false;
+					
 					if (tc.bDirty)
 					{
 						dirty = true;
 					}
-					if (lightcomponent.shadowMap.size.x != 0) // if there was a shadow map dont allocate a new one unnecessarily
+					if (lightcomponent.shadowMap != 0) // if there was a shadow map dont allocate a new one unnecessarily
 					{
 						//todo camera cascades for varying shadow map sizes at different distance levels
-						sm_region = lightcomponent.shadowMap;
+						sm_region = sm_allocator.GetRegion(lightcomponent.shadowMap);
 					}
 					else
 					{
-						sm_region = sm_allocator.Allocate({ 256, 256 }, AllocatorFlags::None); // todo render settings to control allocation size
-						lightcomponent.shadowMap = sm_region;
+						lightcomponent.shadowMap = sm_allocator.Allocate(allocation_size, AllocatorFlags::None); // todo render settings to control allocation size
+						sm_region = sm_allocator.GetRegion(lightcomponent.shadowMap);
 						dirty = true;
 					}
-					Renderer::AddShadowCastingLight(shadowCastingLights.emplace_back(lightMatrix, sm_region, light, dirty, numLightMatrices));
+					lightcomponent.shadow_dirty = false;
+					shadow_dirty.emplace_back(dirty);
+					Renderer::AddShadowCastingLight(shadowCastingLights.emplace_back(lightMatrix, sm_region, light, numLightMatrices));
 				}
 				else
 				{
-					if (lightcomponent.shadowMap.size.x != 0)
+					if (lightcomponent.shadowMap != 0)
 					{
+						//todo: remove this line, it is completely unnecessary and only for debug
+						Renderer::shadowMapAtlas.Clear(sm_allocator.GetRegion(lightcomponent.shadowMap), 0.f);
 						sm_allocator.DeAllocate(lightcomponent.shadowMap);
-						lightcomponent.shadowMap = Region{ {0,0}, {0,0} };
+						lightcomponent.shadowMap = 0;
 					}
 					Renderer::AddLight(regularLights.emplace_back(light));
 				}
@@ -426,45 +460,25 @@ namespace Pistachio {
 			shader->Bind(ShaderType::Vertex);
 			shader->Bind(ShaderType::Geometry);
 			RendererBase::Getd3dDeviceContext()->PSSetShader(nullptr, nullptr, 0); //todo change this code
+			
 		}
 		//dirty shadow casting lights, and draw dirty ones, directional lights will be handles spearately
 		{
+			int i = 0;
 			for (auto& light : shadowCastingLights)
 			{
-				union { BoundingFrustum frustum; BoundingSphere sphere; } BoundingObject = {};
-				if (light.light.type == LightType::Point)
+				i++;
+				BoundingSphere BoundingObject = {}; // todo: add support for frustum for more accurate spot light culling
+				BoundingObject = BoundingSphere(light.light.position, light.light.exData.z);
+				if (true)
 				{
-					BoundingObject.sphere = BoundingSphere(light.light.position, light.light.exData.x);
-				}
-				else if (light.light.type == LightType::Spot)
-				{
-					BoundingObject.frustum; //=projection matrix
-				}
-				bool cleared = false;
-				if (light.shadow_dirty)
-				{
-					//todo move into a function and make it work for all light types
-					//Render Mesh only works for spot lights
-					RendererBase::ChangeViewport(light.shadowMap.size.x, light.shadowMap.size.y, light.shadowMap.offset.x, light.shadowMap.offset.y);
-
 					Renderer::shadowMapAtlas.Clear(light.shadowMap);
-					cleared = true;
-					//todo make a new constant buffer for shadow code stuff
-					Renderer::passConstants.lightSpaceMatrix[0] = light.projection[0];
-					Renderer::UpdatePassConstants();
-					for (auto e : transformMesh)
-					{
-						auto [transform, mesh] = transformMesh.get(e);
-						if (mesh.Model.m_uuid)
-						{
-							Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
-							Model* model = GetAssetManager()->GetModelResource(mesh.Model);
-							Mesh _mesh = model->meshes[mesh.modelIndex];
-							Buffer buffer = { &_mesh.GetVertexBuffer(), &_mesh.GetIndexBuffer() };
-							RendererBase::DrawIndexed(buffer);
-						}
-					}
+					if(light.light.type == LightType::Spot) RenderSpotLightShadows(transformMesh, light);
+					else if(light.light.type == LightType::Point) RenderPointLightShadows(transformMesh, light);
+					else if(light.light.type == LightType::Directional) RenderDirectionalLightShadows(transformMesh, light);
+					
 				}
+				//todo: improve efficieny of this code, i don't know how yet
 				else
 				{
 					for (auto entity : transformMesh)//unsure if this would work
@@ -475,33 +489,17 @@ namespace Pistachio {
 
 						if (transform.bDirty)
 						{
-							light.shadow_dirty = true;
+							shadow_dirty[i-1] = true;
 							bool visible = true;
-							if (light.light.type == LightType::Spot) visible = CullingManager::FrustumCull(GetAssetManager()->GetModelResource(mesh.Model)->aabbs[mesh.modelIndex], BoundingObject.frustum);
-							else if (light.light.type == LightType::Point) visible = CullingManager::SphereCull(GetAssetManager()->GetModelResource(mesh.Model)->aabbs[mesh.modelIndex], BoundingObject.sphere);
+							auto aabb = GetAssetManager()->GetModelResource(mesh.Model)->aabbs[mesh.modelIndex];
+							aabb.Transform(aabb, transform.worldSpaceTransform);
+							visible = CullingManager::SphereCull(aabb, BoundingObject);
 							if (visible)
 							{
-								//todo move into a function and make it work for all light types and add frustum culling
-								//Render Mesh only works for spot lights
-								RendererBase::ChangeViewport(light.shadowMap.size.x, light.shadowMap.size.y, light.shadowMap.offset.x, light.shadowMap.offset.y);
-
 								Renderer::shadowMapAtlas.Clear(light.shadowMap);
-								cleared = true;
-								//todo make a new constant buffer for shadow code stuff
-								Renderer::passConstants.lightSpaceMatrix[0] = light.projection[0];
-								Renderer::UpdatePassConstants();
-								for (auto e : transformMesh)
-								{
-									auto [transform, mesh] = transformMesh.get(e);
-									if (mesh.Model.m_uuid)
-									{
-										Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
-										Model* model = GetAssetManager()->GetModelResource(mesh.Model);
-										Mesh _mesh = model->meshes[mesh.modelIndex];
-										Buffer buffer = { &_mesh.GetVertexBuffer(), &_mesh.GetIndexBuffer() };
-										RendererBase::DrawIndexed(buffer);
-									}
-								}
+								if (light.light.type == LightType::Spot) RenderSpotLightShadows(transformMesh, light);
+								else if (light.light.type == LightType::Point) RenderPointLightShadows(transformMesh, light);
+								else if (light.light.type == LightType::Directional) RenderDirectionalLightShadows(transformMesh, light);
 								break;
 							}
 						}
@@ -520,13 +518,17 @@ namespace Pistachio {
 		}
 		
 		m_gBuffer.Bind(0, 4);
+		ImGui::Image(Renderer::shadowMapAtlas.m_SRV.Get(), { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x });
+		Renderer::shadowMapAtlas.BindResource(9);
 		//proceed with normal shading
 		
 		{
 			PT_PROFILE_SCOPE("Object Rendering (Gbuffer Write)")
 			Renderer::BeginScene(camera);
-			for (auto& entity : transformMesh)
+			int i = 0;
+			for (auto& entity : meshesToDraw)
 			{	
+				i++;
 				auto [transform, mesh] = transformMesh.get(entity);
 				auto mat = GetAssetManager()->GetMaterialResource(mesh.material);
 				auto model = GetAssetManager()->GetModelResource(mesh.Model);
@@ -539,6 +541,7 @@ namespace Pistachio {
 						Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), mat, (uint32_t)entity);
 				}
 			}
+			ImGui::Text("Meshes Rendered: %d", i);
 		}
 		m_finalRender.Bind(0, 1);
 		m_gBuffer.BindResource(3, 4);
@@ -579,6 +582,7 @@ namespace Pistachio {
 		shadowCastingLights.clear();
 		regularLights.clear();
 		meshesToDraw.clear();
+		shadow_dirty.clear();
 		//clean transforms here
 		auto transforms = m_Registry.view<TransformComponent>();
 		for (auto e : transforms)
@@ -807,14 +811,8 @@ namespace Pistachio {
 			if (transform.bDirty)
 			{
 				TransformData td;
-				auto PID = m_Registry.get<ParentComponent>(entity).parentID;
-				DirectX::XMMATRIX transformMat;
-				if(PID >= 0)
-					transformMat = transform.GetTransform({ (entt::entity)PID, this });
-				else
-					transformMat = transform.GetLocalTransform();
-				td.transform = DirectX::XMMatrixTranspose(transformMat);
-				td.normal = DirectX::XMMatrixInverse(nullptr, transformMat);
+				td.transform = DirectX::XMMatrixTranspose(transform.worldSpaceTransform);
+				td.normal = DirectX::XMMatrixInverse(nullptr, transform.worldSpaceTransform);
 				if (m_Registry.any_of<MeshRendererComponent>(entity))
 				{
 					auto& mesh = m_Registry.get<MeshRendererComponent>(entity);
@@ -841,6 +839,62 @@ namespace Pistachio {
 			PT_CORE_WARN("Actually sorted");
 			m_Registry.sort<MeshRendererComponent>([](const MeshRendererComponent& lhs, const MeshRendererComponent& rhs) {return lhs.material.m_uuid < rhs.material.m_uuid; });
 		}
+	}
+	template <typename T>
+	void Scene::RenderSpotLightShadows(T& transformMesh, ShadowCastingLight& light)
+	{
+		RendererBase::ChangeViewport(light.shadowMap.size.x, light.shadowMap.size.y, light.shadowMap.offset.x, light.shadowMap.offset.y);
+
+		//todo make a new constant buffer for shadow code stuff
+		Renderer::passConstants.lightSpaceMatrix[0] = DirectX::XMLoadFloat4x4(&light.projection[0]);
+		Renderer::passConstants.lightSpaceMatrix[1] = DirectX::XMLoadFloat4x4(&light.projection[0]);
+		Renderer::passConstants.lightSpaceMatrix[2] = DirectX::XMLoadFloat4x4(&light.projection[0]);
+		Renderer::passConstants.lightSpaceMatrix[3] = DirectX::XMLoadFloat4x4(&light.projection[0]);
+		Renderer::UpdatePassConstants();
+		for (auto e : transformMesh)
+		{
+			auto [transform, mesh] = transformMesh.get(e);
+			if (mesh.Model.m_uuid)
+			{
+				Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
+				Model* model = GetAssetManager()->GetModelResource(mesh.Model);
+				Mesh _mesh = model->meshes[mesh.modelIndex];
+				Buffer buffer = { &_mesh.GetVertexBuffer(), &_mesh.GetIndexBuffer() };
+				RendererBase::DrawIndexed(buffer);
+			}
+		}
+	}
+	//todo implement these
+	template <typename T>
+	void Scene::RenderPointLightShadows(T& transformMesh, ShadowCastingLight& light)
+	{
+
+	}
+	template <typename T>
+	void Scene::RenderDirectionalLightShadows(T& transformMesh, ShadowCastingLight& light)
+	{
+		ChangeVP(light.shadowMap.size.x / 2, light.shadowMap.offset);
+		RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
+
+		//todo make a new constant buffer for shadow code stuff
+		Renderer::passConstants.lightSpaceMatrix[0] = DirectX::XMLoadFloat4x4(&light.projection[0]);
+		Renderer::passConstants.lightSpaceMatrix[1] = DirectX::XMLoadFloat4x4(&light.projection[1]);
+		Renderer::passConstants.lightSpaceMatrix[2] = DirectX::XMLoadFloat4x4(&light.projection[2]);
+		Renderer::passConstants.lightSpaceMatrix[3] = DirectX::XMLoadFloat4x4(&light.projection[3]);
+		Renderer::UpdatePassConstants();
+		for (auto e : transformMesh)
+		{
+			auto [transform, mesh] = transformMesh.get(e);
+			if (mesh.Model.m_uuid)
+			{
+				Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
+				Model* model = GetAssetManager()->GetModelResource(mesh.Model);
+				Mesh _mesh = model->meshes[mesh.modelIndex];
+				Buffer buffer = { &_mesh.GetVertexBuffer(), &_mesh.GetIndexBuffer() };
+				RendererBase::DrawIndexed(buffer);
+			}
+		}
+
 	}
 	template<typename T>
 	void OnComponentAdded(Entity entity, T& component)

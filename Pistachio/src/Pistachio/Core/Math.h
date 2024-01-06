@@ -54,7 +54,12 @@ namespace Pistachio
             y = y / other.y;
         }
     };
-
+    struct hiVector2
+    {
+        std::uint16_t x, y;
+        hiVector2(iVector2 vec) : x(vec.x), y(vec.y) {}
+        hiVector2() : x(0), y(0) {}
+    };
     class Math
     {
     public:

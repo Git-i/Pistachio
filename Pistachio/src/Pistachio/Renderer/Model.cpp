@@ -53,8 +53,8 @@ namespace Pistachio {
         std::vector<unsigned int> indices;
 
         
-        aiVector3D boundingBoxCentre = (mesh->mAABB.mMin + mesh->mAABB.mMax) / aiVector3D{ 0.5f, 0.5f, 0.5f };
-        aiVector3D boundingBoxExtents = mesh->mAABB.mMax - mesh->mAABB.mMin;
+        aiVector3D boundingBoxCentre = (mesh->mAABB.mMin + mesh->mAABB.mMax) * .5f;
+        aiVector3D boundingBoxExtents = (mesh->mAABB.mMax - mesh->mAABB.mMin) * .5f;
         Vector3 bbCentre = { boundingBoxCentre.x , boundingBoxCentre.y, boundingBoxCentre.z };
         Vector3 bbExtents = { boundingBoxExtents.x, boundingBoxExtents.y, boundingBoxExtents.z };
         aabbs.emplace_back(bbCentre, bbExtents);

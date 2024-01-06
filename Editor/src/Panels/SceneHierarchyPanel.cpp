@@ -416,7 +416,7 @@ namespace Pistachio {
 		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [](auto& component) {
 			ImGui::ColorEdit4("Color", (float*)&component.Color);
 		});
-		DrawComponent<MeshRendererComponent>("Mesh Renderer", entity, [](MeshRendererComponent& component) {
+		DrawComponent<MeshRendererComponent>("Mesh Renderer", entity, [&](MeshRendererComponent& component) {
 			ImGui::Button("Mesh");
 			auto model = GetAssetManager()->GetModelResource(component.Model);
 			if (ImGui::BeginDragDropTarget())
@@ -427,6 +427,7 @@ namespace Pistachio {
 					const wchar_t* data = (const wchar_t*)payload->Data;
 					auto path = std::filesystem::path("assets") / data;
 					component.Model = GetAssetManager()->CreateModelAsset(path.string().c_str());
+					m_Context->m_Registry.get<TransformComponent>(entity).bDirty = true;
 				}
 				ImGui::EndDragDropTarget();
 			}
@@ -450,7 +451,7 @@ namespace Pistachio {
 				ImGui::SliderInt("Mesh Index", &component.modelIndex, 0, model->meshes.size()-1);
 			}
 		});
-		DrawComponent<LightComponent>("Light", entity, [](auto& component) {
+		DrawComponent<LightComponent>("Light", entity, [&](auto& component) {
 			const char* lightTypeStrings[] = { "Directional Light", "Point Light", "Spot Light"};
 			const char* currentLightTypeString = lightTypeStrings[(int)component.Type];
 			if (ImGui::BeginCombo("Light Type", currentLightTypeString))
@@ -462,6 +463,16 @@ namespace Pistachio {
 					{
 						currentLightTypeString = lightTypeStrings[i];
 						component.Type = (LightType)i;
+						//allocate shadow map with size fitting the new type
+						if (component.shadow && component.shadowMap) //it casts shadow and already has a valid atlas region
+						{
+							AtlasAllocator& allocator = m_Context->sm_allocator;
+							allocator.DeAllocate(component.shadowMap);
+							component.shadow_dirty = true;
+							if (component.Type == LightType::Point) component.shadowMap=allocator.Allocate({ 256 * 3, 256 * 2 }, AllocatorFlags::None);
+							else if (component.Type == LightType::Spot) component.shadowMap=allocator.Allocate({ 256, 256 }, AllocatorFlags::None);
+							else if (component.Type == LightType::Directional) component.shadowMap=allocator.Allocate({ 256*2, 256*2 }, AllocatorFlags::None);
+						}
 					}
 				}
 				ImGui::EndCombo();
@@ -470,18 +481,7 @@ namespace Pistachio {
 			ImGui::DragFloat("Intensity", &component.Intensity, 1.f, 0.f, 100.f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 			if (component.shadow)
 			{
-				if (ImGui::BeginCombo("Shadow Map Size", std::to_string(component.shadowMap.size.x).c_str()))
-				{
-					for (int i = 0; i < 4; i++)
-					{
-						bool isSelected = component.shadowMap.size.x == 1024 * std::pow(2, i);
-						if (ImGui::Selectable(std::to_string((int)(1024 * std::pow(2, i))).c_str(), isSelected))
-						{
-							//component.shadowMap.UpdateSize(1024 * std::pow(2, i));
-						}
-					}
-					ImGui::EndCombo();
-				}
+				ImGui::Text("Delete this tempoary text that says this component casts shadow");
 			}
 			if (ImGui::Checkbox("Cast Shadow", &component.shadow))
 			{ 
@@ -496,15 +496,16 @@ namespace Pistachio {
 			}
 			if (component.Type == LightType::Point)
 			{
-				ImGui::DragFloat("Max. Distance", &component.exData.z, 1, 0, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+				if (ImGui::DragFloat("Max. Distance", &component.exData.z, 1, 0.3f, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp))
+					component.shadow_dirty = true;
 			}
 			if (component.Type == LightType::Spot)
 			{
 				float outercone = DirectX::XMScalarACos(component.exData.x);
 				float innercone = DirectX::XMScalarACos(component.exData.y);
-				ImGui::SliderAngle("Outer Cone", (float*)&outercone, DirectX::XMConvertToDegrees(innercone), 90.f);
-				ImGui::SliderAngle("Inner Cone", (float*)&innercone, 0, DirectX::XMConvertToDegrees(outercone));
-				ImGui::DragFloat("Max. Distance", &component.exData.z, 1, 0, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+				if(ImGui::SliderAngle("Outer Cone", (float*)&outercone, DirectX::XMConvertToDegrees(innercone), 90.f))component.shadow_dirty = true;
+				if(ImGui::SliderAngle("Inner Cone", (float*)&innercone, 0, DirectX::XMConvertToDegrees(outercone)))component.shadow_dirty = true;
+				if(ImGui::DragFloat("Max. Distance", &component.exData.z, 1, 0.3f, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp))component.shadow_dirty = true;
 				component.exData.x = DirectX::XMScalarCos(outercone);
 				component.exData.y = DirectX::XMScalarCos(innercone);
 			}

@@ -15,8 +15,9 @@ Pistachio::ConstantBuffer Pistachio::Renderer::PassCB = {};
 Pistachio::RenderCubeMap Pistachio::Renderer::fbo = Pistachio::RenderCubeMap();
 Pistachio::RenderCubeMap Pistachio::Renderer::ifbo = Pistachio::RenderCubeMap();
 Pistachio::RenderCubeMap Pistachio::Renderer::prefilter = { Pistachio::RenderCubeMap() };
-Pistachio::Renderer::LD  Pistachio::Renderer::LightData = {};
-Pistachio::Light* Pistachio::Renderer::lightIndexPtr = nullptr;
+std::vector<Pistachio::RegularLight>   Pistachio::Renderer::RegularLightData = {};
+std::vector<Pistachio::ShadowCastingLight>   Pistachio::Renderer::ShadowLightData = {};
+std::vector<std::uint8_t> Pistachio::Renderer::LightSBCPU;
 Pistachio::Renderer::CamerData Pistachio::Renderer::CameraData = {};
 Pistachio::Texture2D Pistachio::Renderer::whiteTexture = Pistachio::Texture2D();
 Pistachio::Material Pistachio::Renderer::DefaultMaterial = Pistachio::Material();
@@ -31,7 +32,7 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION();
 		MaterialStruct cb;
 		MaterialCB.Create(nullptr, sizeof(MaterialStruct));
-		LightSB.CreateStack(&LightData, sizeof(LightData),sizeof(Light));
+		LightSB.CreateStack(nullptr, sizeof(ShadowCastingLight) * 256,16); //todo : make light buffer dynamic
 		struct CameraStruct {
 			DirectX::XMMATRIX viewproj;
 			DirectX::XMMATRIX view;
@@ -231,8 +232,6 @@ namespace Pistachio {
 		delete ss;
 		fbo.BindResource(8);
 		shadowMapAtlas.Create(4096);
-		ZeroMemory(&LightData, sizeof(LightData));
-		lightIndexPtr = LightData.lights;
 		DefaultMaterial.Initialize();
 		DefaultMaterial.Update();
 
@@ -240,17 +239,15 @@ namespace Pistachio {
 	void Renderer::AddLight(const Light& light)
 	{
 		PT_PROFILE_FUNCTION();
-		*lightIndexPtr = light;
-		lightIndexPtr++;
-		passConstants.numlights.x++;
+		RegularLightData.push_back(light);
+		passConstants.numRegularlights++;
 	}
 	void Renderer::AddShadowCastingLight(const ShadowCastingLight& light)
 	{
 		//todo actually implement this
 		PT_PROFILE_FUNCTION();
-		*lightIndexPtr = light.light;
-		lightIndexPtr++;
-		passConstants.numlights.x++;
+		ShadowLightData.push_back(light);
+		passConstants.numShadowlights++;
 
 	}
 	void Renderer::BeginScene(PerspectiveCamera* cam) {
@@ -262,7 +259,14 @@ namespace Pistachio {
 		prefilter.BindResource(2);
 		CameraData.viewProjection = viewproj;
 		CameraData.viewPos = {campos.x,campos.y, campos.z, 1.f};
-		LightSB.Update(&LightData, sizeof(LightData));
+		uint32_t regularLightByteSize = sizeof(RegularLight) * RegularLightData.size(), shadowLightByteSize = sizeof(ShadowCastingLight) * ShadowLightData.size();
+		LightSBCPU.resize(shadowLightByteSize + regularLightByteSize);
+		if (regularLightByteSize)
+			memcpy(&LightSBCPU[0], RegularLightData.data(), regularLightByteSize);
+		if (shadowLightByteSize)
+			memcpy(&LightSBCPU[regularLightByteSize], ShadowLightData.data(), shadowLightByteSize);
+		if(LightSBCPU.size())
+			LightSB.Update(LightSBCPU.data(), shadowLightByteSize + regularLightByteSize);
 		UpdatePassConstants();
 		
 		whiteTexture.Bind(3);
@@ -282,7 +286,14 @@ namespace Pistachio {
 		CameraData.viewProjection = viewproj;
 		CameraData.view = DirectX::XMMatrixTranspose(view);
 		CameraData.viewPos = campos;
-		LightSB.Update(&LightData, sizeof(LightData));
+		uint32_t regularLightByteSize = sizeof(RegularLight) * RegularLightData.size(), shadowLightByteSize = sizeof(ShadowCastingLight) * ShadowLightData.size();
+		LightSBCPU.resize(shadowLightByteSize + regularLightByteSize);
+		if (regularLightByteSize)
+			memcpy(&LightSBCPU[0], RegularLightData.data(), regularLightByteSize);
+		if (shadowLightByteSize)
+			memcpy(&LightSBCPU[regularLightByteSize], ShadowLightData.data(), shadowLightByteSize);
+		if (LightSBCPU.size())
+			LightSB.Update(LightSBCPU.data(), shadowLightByteSize + regularLightByteSize);
 		UpdatePassConstants();
 		whiteTexture.Bind(3);
 		whiteTexture.Bind(4);
@@ -302,7 +313,14 @@ namespace Pistachio {
 		CameraData.viewProjection = viewproj;
 		CameraData.view = DirectX::XMMatrixTranspose(cam.GetViewMatrix());
 		CameraData.viewPos = campos;
-		LightSB.Update(&LightData, sizeof(LightData));
+		uint32_t regularLightByteSize = sizeof(RegularLight) * RegularLightData.size(), shadowLightByteSize = sizeof(ShadowCastingLight) * ShadowLightData.size();
+		LightSBCPU.resize(shadowLightByteSize + regularLightByteSize);
+		if (regularLightByteSize)
+			memcpy(&LightSBCPU[0], RegularLightData.data(), regularLightByteSize);
+		if(shadowLightByteSize)
+			memcpy(&LightSBCPU[regularLightByteSize], ShadowLightData.data(), shadowLightByteSize);
+		if (LightSBCPU.size())
+			LightSB.Update(LightSBCPU.data(), shadowLightByteSize + regularLightByteSize);
 		UpdatePassConstants();
 		whiteTexture.Bind(3);
 		whiteTexture.Bind(4);
@@ -317,9 +335,11 @@ namespace Pistachio {
 			RendererBase::GetSwapChain()->Present(1, 0);
 		else
 			RendererBase::GetSwapChain()->Present(0, DXGI_PRESENT_DO_NOT_WAIT | DXGI_PRESENT_ALLOW_TEARING);
-		ZeroMemory(&LightData, sizeof(LightData));
-		lightIndexPtr = LightData.lights;
-		passConstants.numlights = {0,0,0,0};
+		RegularLightData.clear();
+		ShadowLightData.clear();
+		LightSBCPU.clear();
+		passConstants.numRegularlights = 0;
+		passConstants.numShadowlights = 0;
 	}
 	void Renderer::Shutdown() {
 		delete brdfSampler;
