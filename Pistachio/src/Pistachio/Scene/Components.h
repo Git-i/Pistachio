@@ -35,11 +35,11 @@ namespace Pistachio{
 		Vector3 Scale = {1.f,1.f,1.f};
 		mutable int NumNegativeScaleComps = 0;
 		bool bDirty = true;
-		bool shouldClean = false;
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
 		TransformComponent(const DirectX::XMVECTOR& translation) : Translation(translation){}
 		//Editor Only
+		DirectX::XMMATRIX worldSpaceTransform;
 		void RecalculateRotation()
 		{
 			Rotation = Quaternion::CreateFromYawPitchRoll(RotationEulerHint);
@@ -114,9 +114,10 @@ namespace Pistachio{
 		float Intensity = 1.f;
 		DirectX::XMFLOAT3 color = {1,1,1};
 		bool shadow = false;
+		bool shadow_dirty = true; // todo: mix it in with the other bool on top
 		DirectX::XMFLOAT3 exData = { 0.01f,0.1f,1.0f };
 		DirectX::XMFLOAT3 rotation = {};
-		Region shadowMap;
+		uint32_t shadowMap;
 		LightComponent(const LightComponent& other)
 		{
 			Type = other.Type;

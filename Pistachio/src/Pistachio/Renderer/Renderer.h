@@ -21,20 +21,20 @@ namespace Pistachio {
 		float intensity;
 		DirectX::XMFLOAT4 exData;
 		DirectX::XMFLOAT4 rotation;
+		
 	};
 	struct ShadowCastingLight
 	{
-		DirectX::XMMATRIX projection[6]; // used for frustum culling
-		Region shadowMap;
 		Light light;
-		bool shadow_dirty;
-		ShadowCastingLight(DirectX::XMMATRIX* _projection, Region _region, Light _light, bool shadowDirty, int numMatrices)
+		DirectX::XMFLOAT4X4 projection[4]; // used for frustum culling
+		Region shadowMap;
+		
+		ShadowCastingLight(DirectX::XMMATRIX* _projection, Region _region, Light _light, int numMatrices)
 		{
 			for (int i = 0; i < numMatrices; i++)
-				projection[i] = _projection[i];
+				DirectX::XMStoreFloat4x4(&projection[i] ,_projection[i]);
 			shadowMap = _region;
 			light = _light;
-			shadow_dirty = shadowDirty;
 		}
 	};
 	using RegularLight = Light;
@@ -55,7 +55,9 @@ namespace Pistachio {
 		float TotalTime;
 		float DeltaTime;
 		DirectX::XMMATRIX lightSpaceMatrix[16];
-		DirectX::XMFLOAT4 numlights;
+		int numRegularlights;
+		int numShadowlights;
+		DirectX::XMFLOAT2 _pad;
 	};
 	struct TransformData
 	{
@@ -86,9 +88,7 @@ namespace Pistachio {
 		static void OnWindowResize(WindowResizeEvent& e)
 		{
 		}
-		struct LD {
-			Light lights[128];
-		};
+		
 	private:
 		static void CreateConstantBuffers();
 		static void UpdatePassConstants();
@@ -107,8 +107,9 @@ namespace Pistachio {
 		static struct CamerData { DirectX::XMMATRIX viewProjection; DirectX::XMMATRIX view;  DirectX::XMFLOAT4 viewPos; }CameraData;
 		static Texture2D whiteTexture;
 		static PassConstants passConstants;
-		static LD LightData;
-		static Light* lightIndexPtr;
+		static std::vector<RegularLight> RegularLightData;
+		static std::vector<ShadowCastingLight> ShadowLightData;
+		static std::vector<std::uint8_t> LightSBCPU;
 		static Material* currentMat;
 		static Shader* currentShader;
 		static ShadowMap shadowMapAtlas;

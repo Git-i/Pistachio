@@ -5,6 +5,7 @@
 #include "Pistachio/Core/UUID.h"
 #include "Pistachio\Renderer\Mesh.h"
 #include "Pistachio\Allocators\AtlasAllocator.h"
+#include "Pistachio/Renderer/Renderer.h"
 namespace physx {
 	class PxScene;
 }
@@ -37,8 +38,11 @@ namespace Pistachio {
 		void UpdateObjectCBs();
 		void SortMeshComponents();
 		DirectX::XMMATRIX GetTransfrom(Entity e);
-		AtlasAllocator sm_allocator;
+		template <typename T> void RenderSpotLightShadows(T&, ShadowCastingLight&);
+		template <typename T> void RenderPointLightShadows(T&, ShadowCastingLight&);
+		template <typename T> void RenderDirectionalLightShadows(T&, ShadowCastingLight&);
 	private:
+		AtlasAllocator sm_allocator;
 		Pistachio::Mesh* ScreenSpaceQuad;
 		entt::registry m_Registry;
 		physx::PxScene* m_PhysicsScene = NULL;
@@ -48,5 +52,6 @@ namespace Pistachio {
 		unsigned int m_viewportWidth, m_ViewportHeight;
 		RenderTexture m_gBuffer;
 		RenderTexture m_finalRender;
+		
 	};
 }

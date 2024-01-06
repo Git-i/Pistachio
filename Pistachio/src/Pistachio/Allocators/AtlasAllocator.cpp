@@ -71,7 +71,7 @@ namespace Pistachio
         }
         return retVal;
     }
-    Region AtlasAllocator::Allocate(iVector2 size, AllocatorFlags flags)
+    uint32_t AtlasAllocator::Allocate(iVector2 size, AllocatorFlags flags)
     {
         std::vector<iVector2> valid_positions;
         iVector2 bestPos = { 0,0 };
@@ -127,14 +127,27 @@ namespace Pistachio
         else if ((flags & AllocatorFlags::DownscaleOnFail) != AllocatorFlags::None)
         {
             if (size.x == m_portion_size.x && size.y == m_portion_size.y)
-                return { bestPos , portion_size };
+                return 0;
             return Allocate(size / iVector2{ 2,2 }, AllocatorFlags::DownscaleOnFail);
         }
-        return { bestPos , portion_size };
+        else
+            return 0;
+        id++;
+        auto findit = indexRegionMap.find(id);
+        while (findit != indexRegionMap.end()) //check if the id is available
+        {
+            id++;
+            auto findit = indexRegionMap.find(id);
+        }
+        indexRegionMap[id] = { bestPos , portion_size };
+        return id;
     }
 
-    void AtlasAllocator::DeAllocate(Region region)
+    void AtlasAllocator::DeAllocate(uint32_t id)
     {
+        if (id == 0) return;
+        if (auto findit = indexRegionMap.find(id); findit == indexRegionMap.end()) return; //id doesnt exist
+        Region region = indexRegionMap.at(id);
         for (int k = 0; k < region.size.y / m_portion_size.y; k++)
         {
             for (int l = 0; l < region.size.x / m_portion_size.x; l++)
@@ -142,6 +155,17 @@ namespace Pistachio
                 m_portions[region.offset.y / m_portion_size.y + k][region.offset.x / m_portion_size.x + l].used = false;
             }
         }
+        indexRegionMap.erase(id);
     }
 
+    void AtlasAllocator::DeFragment()
+    {
+
+    }
+    Region AtlasAllocator::GetRegion(std::uint32_t id)
+    {
+        if (id == 0) return Region();
+        if (auto findit = indexRegionMap.find(id); findit == indexRegionMap.end()) return Region(); //id doesnt exist
+        return indexRegionMap.at(id);
+    }
 }

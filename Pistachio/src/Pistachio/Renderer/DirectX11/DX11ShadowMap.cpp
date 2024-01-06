@@ -52,10 +52,10 @@ namespace Pistachio
 		m_SRV = nullptr;
 		Create(size);
 	}
-	void ShadowMap::Clear(const Region& region)
+	void ShadowMap::Clear(const hRegion& region, float cval)
 	{
 		PT_PROFILE_FUNCTION();
-		float color[4] = { 1.f,1.f,1.f,1.f };
+		float color[4] = {cval, cval, cval, cval };
 		D3D11_RECT rect;
 		rect.left = region.offset.x;
 		rect.right = region.offset.x + region.size.x;

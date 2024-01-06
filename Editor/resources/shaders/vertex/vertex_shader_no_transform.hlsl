@@ -2,7 +2,9 @@ struct VS_OUT
 {
     float2 uv : UV;
     float3 camPos : CAM_POS;
-    int numlights : NUM_LIGHTS;
+    int numRegularlights : NUM_LIGHTS0;
+    int numShadowlights : NUM_LIGHTS1;
+    float4x4 view_mat : VIEW;
     float4 pos : SV_Position;
 };
 cbuffer FrameCB : register(b0)
@@ -22,14 +24,17 @@ cbuffer FrameCB : register(b0)
     float TotalTime;
     float DeltaTime;
     matrix lightSpaceMatrix[16];
-    float4 numlights;
+    int numRegularlights;
+    int numShadowlights;
 };
 VS_OUT main(float3 pos : POSITION, float3 normal : NORMAL, float2 UV : UV)
 {
     VS_OUT vso;
     vso.pos = float4(pos, 1.f);
     vso.camPos = EyePosW;
-    vso.numlights = numlights;
+    vso.numRegularlights = numRegularlights;
+    vso.numShadowlights = numShadowlights;
     vso.uv = UV;
+    vso.view_mat = View;
 	return vso;
 }

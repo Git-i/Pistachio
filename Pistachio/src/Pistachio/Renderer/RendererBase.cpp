@@ -59,9 +59,10 @@ namespace Pistachio {
 		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateCWCull);
 		desc.CullMode = D3D11_CULL_FRONT;
 		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateCCWCull);
-		desc.DepthBias = 100000;
-		desc.DepthBiasClamp = 0.0f;
-		desc.SlopeScaledDepthBias = 1.0f;
+		desc.CullMode = D3D11_CULL_FRONT;
+		//desc.DepthBias = 100000;
+		//desc.DepthBiasClamp = 0.0f;
+		//desc.SlopeScaledDepthBias = 1.0f;
 		g_pd3dDevice->CreateRasterizerState(&desc, &pShadowMapRasterizerState);
 		return 0;
 	#endif 
