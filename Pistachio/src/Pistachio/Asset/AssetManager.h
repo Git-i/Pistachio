@@ -6,7 +6,7 @@
 #include "Asset.h"
 namespace Pistachio
 {
-	class AssetManager
+	class PISTACHIO_API AssetManager
 	{
 	public:
 		Asset CreateMaterialAsset(const std::string& filename);
@@ -24,5 +24,5 @@ namespace Pistachio
 		std::unordered_map<std::string, UUID> pathUUIDMap;
 		std::unordered_map<UUID, RefCountedObject*> assetResourceMap;
 	};
- AssetManager* GetAssetManager();
+	PISTACHIO_API AssetManager* GetAssetManager();
 }

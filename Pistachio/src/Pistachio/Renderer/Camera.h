@@ -1,7 +1,7 @@
 #pragma once
 #include "../Core/Math.h"
 namespace Pistachio {
-	class OrthographicCamera {
+	class PISTACHIO_API OrthographicCamera {
 	public:
 		OrthographicCamera(float left, float right, float top, float bottom, float aspectratio);
 		inline Vector3 GetPosition() { return m_Position; }
@@ -23,7 +23,7 @@ namespace Pistachio {
 		Vector3 m_Position;
 		float m_Rotation = 0.0f;
 	};
-	class PerspectiveCamera {
+	class PISTACHIO_API PerspectiveCamera {
 	public:
 		PerspectiveCamera(float fov, float nearPlane, float farPLane);
 		inline DirectX::XMFLOAT3 GetPosition() { return m_eye; }
@@ -51,7 +51,7 @@ namespace Pistachio {
 		float m_Rotation;
 	};
 
-	class RuntimeCamera {
+	class PISTACHIO_API RuntimeCamera {
 	public:
 		RuntimeCamera() : m_projection(Matrix4::Identity){}
 		RuntimeCamera(const Matrix4& projection) : m_projection(projection) {}
@@ -60,7 +60,7 @@ namespace Pistachio {
 	protected:
 		Matrix4 m_projection;
 	};
-	class SceneCamera : public RuntimeCamera {
+	class PISTACHIO_API SceneCamera : public RuntimeCamera {
 	public:
 		enum class ProjectionType {Perspective = 0, Orthographic};
 	public:

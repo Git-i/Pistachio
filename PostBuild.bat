@@ -1,0 +1,1 @@
+copy bin\Debug-x64\Pistachio\Pistachio.dll bin\Debug-x64\Pistachio-Editor

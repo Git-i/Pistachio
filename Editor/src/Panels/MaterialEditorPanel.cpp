@@ -8,7 +8,7 @@
 namespace Pistachio
 {
 	MaterialEditorPanel::MaterialEditorPanel()
-		: cam(Matrix4::Identity)
+		: cam(Matrix4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1))
 	{
 		RenderTextureDesc desc;
 		desc.height = 512;

@@ -43,6 +43,7 @@ namespace Pistachio {
 	void Renderer2D::Init()
 	{
 		PT_PROFILE_FUNCTION();
+		std::cout << "renderer2d" << std::endl;
 		unsigned int* quadIndices = new unsigned int[s_Data.MaxIndices];
 		unsigned int offset = 0;
 		for (unsigned int i = 0; i < s_Data.MaxIndices; i+=6)

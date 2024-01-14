@@ -26,6 +26,7 @@ Pistachio::Shader* Pistachio::Renderer::currentShader = nullptr;
 Pistachio::ShadowMap Pistachio::Renderer::shadowMapAtlas;
 static Pistachio::SamplerState* brdfSampler ;
 static Pistachio::SamplerState* shadowSampler;
+
 namespace Pistachio {
 	void Renderer::CreateConstantBuffers()
 	{
@@ -43,7 +44,7 @@ namespace Pistachio {
 	void Renderer::Init(const char* skybox)
 	{
 		PT_PROFILE_FUNCTION();
-		
+		std::cout << "renderer" << std::endl;
 		CreateConstantBuffers();
 		struct CameraStruct {
 			DirectX::XMMATRIX viewproj;
@@ -308,8 +309,6 @@ namespace Pistachio {
 		viewproj = DirectX::XMMatrixTranspose(cam.GetViewProjection());
 		ID3D11ShaderResourceView* pBrdfSRV = (ID3D11ShaderResourceView*)BrdfTex.GetSRV().ptr;
 		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(0, 1, &pBrdfSRV);
-		ifbo.BindResource(1);
-		prefilter.BindResource(2);
 		CameraData.viewProjection = viewproj;
 		CameraData.view = DirectX::XMMatrixTranspose(cam.GetViewMatrix());
 		CameraData.viewPos = campos;
@@ -322,24 +321,29 @@ namespace Pistachio {
 		if (LightSBCPU.size())
 			LightSB.Update(LightSBCPU.data(), shadowLightByteSize + regularLightByteSize);
 		UpdatePassConstants();
+		ifbo.BindResource(1);
+		prefilter.BindResource(2);
 		whiteTexture.Bind(3);
 		whiteTexture.Bind(4);
 		whiteTexture.Bind(5);
+		LightSB.Bind(7);
+		fbo.BindResource(8);
 		currentMat = nullptr;
+		currentShader = nullptr;
 	}
 	void Renderer::EndScene()
 	{
 		PT_PROFILE_FUNCTION()
-		auto data = ((WindowData*)GetWindowDataPtr());
-		if (data->vsync)
-			RendererBase::GetSwapChain()->Present(1, 0);
-		else
-			RendererBase::GetSwapChain()->Present(0, DXGI_PRESENT_DO_NOT_WAIT | DXGI_PRESENT_ALLOW_TEARING);
 		RegularLightData.clear();
 		ShadowLightData.clear();
 		LightSBCPU.clear();
 		passConstants.numRegularlights = 0;
 		passConstants.numShadowlights = 0;
+		auto data = ((WindowData*)GetWindowDataPtr());
+		if (data->vsync)
+			RendererBase::GetSwapChain()->Present(1, 0);
+		else
+			RendererBase::GetSwapChain()->Present(0, DXGI_PRESENT_DO_NOT_WAIT | DXGI_PRESENT_ALLOW_TEARING);
 	}
 	void Renderer::Shutdown() {
 		delete brdfSampler;

@@ -1,7 +1,7 @@
 #pragma once
 #include "Scene.h"
 #include "Pistachio/Core/UUID.h"
-struct IDComponent
+struct PISTACHIO_API IDComponent
 {
 	Pistachio::UUID uuid;
 	IDComponent() = default;
@@ -10,7 +10,7 @@ struct IDComponent
 	{}
 };
 namespace Pistachio {
-	class Entity {
+	class PISTACHIO_API Entity {
 	public:
 		Entity() = default;
 		Entity(entt::entity handle, Scene* scene);
@@ -49,7 +49,7 @@ namespace Pistachio {
 	private:
 		entt::entity m_EntityHandle = entt::null;
 		Scene* m_Scene = nullptr;
-		friend class TransformComponent;
+		friend struct TransformComponent;
 	};
 }
 

@@ -4,6 +4,7 @@
 #ifdef PT_PLATFORM_WINDOWS
 extern Pistachio::Application* Pistachio::CreateApplication();
 
+#ifndef PT_CUSTOM_ENTRY
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
     PT_PROFILE_BEGIN_SESSION("Startup", "Pistachio-Startup-Profile.json");
@@ -11,7 +12,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLi
     PT_PROFILE_END_SESSION();
 
     PT_PROFILE_BEGIN_SESSION("Runtime", "Pistachio-Runtime-Profile.json");
-    app->Run();
+    while (true) { app->Run(); };
     PT_PROFILE_END_SESSION();
 
     PT_PROFILE_BEGIN_SESSION("Shutdown", "Pistachio-Shutdown-Profile.json");
@@ -20,5 +21,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLi
 
     return 0;
 }
+#endif // !PT_CUSTOM_ENTRY
+
 
 #endif // PT_PLATFORM_WINDOWS

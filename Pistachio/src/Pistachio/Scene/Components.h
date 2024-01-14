@@ -3,12 +3,13 @@
 #include "Pistachio/Renderer/Camera.h"
 #include "Pistachio/Renderer/Mesh.h"
 #include "Pistachio\Renderer\ShadowMap.h"
-#include "Pistachio\Asset\AssetManager.h"#
+#include "Pistachio\Asset\AssetManager.h"
 #include "Pistachio\Allocators\AtlasAllocator.h"
+#include "Pistachio\Core\Property.h"
 #include "Entity.h"
 namespace Pistachio{
 	// Generic ----------------------------------------------------------------------------------
-	struct IDComponent
+	struct PISTACHIO_API IDComponent
 	{
 		UUID uuid;
 		IDComponent() = default;
@@ -16,10 +17,10 @@ namespace Pistachio{
 		IDComponent(UUID uuid) : uuid(uuid)
 		{}
 	};
-	struct ParentComponent {
+	struct PISTACHIO_API ParentComponent {
 		std::int64_t parentID = 0;
 	};
-	struct TagComponent {
+	struct PISTACHIO_API TagComponent {
 		std::string Tag;
 		TagComponent() = default;
 		TagComponent(const TagComponent&) = default;
@@ -27,17 +28,19 @@ namespace Pistachio{
 		{}
 
 	};
-	struct TransformComponent {
-		Vector3 Translation = Vector3::Zero;
-		Quaternion Rotation = Quaternion::Identity;
-		//Editor Only
-		Vector3 RotationEulerHint;
-		Vector3 Scale = {1.f,1.f,1.f};
-		mutable int NumNegativeScaleComps = 0;
+	struct PISTACHIO_API TransformComponent {
+	private:
+	public:
 		bool bDirty = true;
+		PROPERTY(Vector3, TransformComponent, Translation, { return *this; }, { old_value = value; parent->bDirty = true; }) = Vector3(0,0,0);
+		PROPERTY(Quaternion, TransformComponent, Rotation, { return *this; }, { old_value = value; parent->bDirty = true; }) = Quaternion(0,0,0,0);
+		PROPERTY(Vector3, TransformComponent, Scale, { return *this; }, { old_value = value; parent->bDirty = true; }) = Vector3(1,1,1);
+		//Editor Only
+		PROPERTY(Vector3, TransformComponent, RotationEulerHint, { return *this; }, { old_value = value; parent->RecalculateRotation();}) = Vector3(0,0,0);
+		mutable int NumNegativeScaleComps = 0;
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
-		TransformComponent(const DirectX::XMVECTOR& translation) : Translation(translation){}
+		TransformComponent(const Vector3& translation) { Translation = translation; }
 		//Editor Only
 		DirectX::XMMATRIX worldSpaceTransform;
 		void RecalculateRotation()
@@ -64,7 +67,7 @@ namespace Pistachio{
 	//-----------------------------------------------------------------------------------------------------------------------
 
 	// 3D -------------------------------------------------------------------------------------------------------------------
-	struct MeshRendererComponent {
+	struct PISTACHIO_API MeshRendererComponent {
 		Asset Model;
 		Asset material;
 		std::size_t cbIndex = 0;
@@ -76,22 +79,22 @@ namespace Pistachio{
 		MeshRendererComponent(const char* path) { Model = GetAssetManager()->CreateModelAsset(path); }
 	};
 	// ----------------------------------------------------------------------------------------------------------------------
-	struct SpriteRendererComponent {
+	struct PISTACHIO_API SpriteRendererComponent {
 		DirectX::XMFLOAT4 Color = {1.f,1.f,1.f, 1.f}; 
 		SpriteRendererComponent() = default;
 		SpriteRendererComponent(const SpriteRendererComponent&) = default;
 		SpriteRendererComponent(const DirectX::XMFLOAT4& color) : Color(color) {}
 		SpriteRendererComponent(const DirectX::XMVECTOR& color){DirectX::XMStoreFloat4(&Color, color); }
 	};
-	struct CameraComponent {
+	struct PISTACHIO_API CameraComponent {
 		SceneCamera camera;
 		bool Primary = true;
 		bool FixedAspectRatio = false;
 		CameraComponent() = default;
 		CameraComponent(const CameraComponent&) = default;
 	};
-	class ScriptableComponent;
-	struct NativeScriptComponent {
+	class PISTACHIO_API ScriptableComponent;
+	struct PISTACHIO_API NativeScriptComponent {
 		ScriptableComponent* Instance = nullptr;
 		
 		std::function<void()> InstantiateFunction;
@@ -109,7 +112,7 @@ namespace Pistachio{
 			OnUpdateFunction = [](ScriptableComponent* instance, float delta) { ((T*)instance)->OnUpdate(delta); };
 		}
 	};
-	struct LightComponent {
+	struct PISTACHIO_API LightComponent {
 		LightType Type;
 		float Intensity = 1.f;
 		DirectX::XMFLOAT3 color = {1,1,1};
@@ -130,7 +133,7 @@ namespace Pistachio{
 		LightComponent() = default;
 	};
 	// Physics---------------------------------------------------------------------------------------------------------------
-	struct RigidBodyComponent {
+	struct PISTACHIO_API RigidBodyComponent {
 		enum class BodyType{Static, Dynamic, Kinematic};
 		BodyType type = BodyType::Static;
 		float Density = 10.f;
@@ -139,21 +142,21 @@ namespace Pistachio{
 		float DynamicFriction = .5f;
 		float Restitution = .5f;
 	};
-	struct BoxColliderComponent {
+	struct PISTACHIO_API BoxColliderComponent {
 		DirectX::XMFLOAT3 size = { 1.f, 1.f, 1.f };
 		DirectX::XMFLOAT3 offset = { .0f, .0f, .0f };
 		
 	};
-	struct SphereColliderComponent {
+	struct PISTACHIO_API SphereColliderComponent {
 		float size = 1.f;
 		DirectX::XMFLOAT3 offset = { .0f, .0f, .0f };
 	};
-	struct CapsuleColliderComponent {
+	struct PISTACHIO_API CapsuleColliderComponent {
 		float radius = 1.f;
 		float height;
 		DirectX::XMFLOAT3 offset = { .0f, .0f, .0f };
 	};
-	struct PlaneColliderComponent {
+	struct PISTACHIO_API PlaneColliderComponent {
 		float size = 1.f;
 		DirectX::XMFLOAT3 offset = { .0f, .0f, .0f };
 	};

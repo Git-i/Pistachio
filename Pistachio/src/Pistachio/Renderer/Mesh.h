@@ -3,7 +3,7 @@
 #include "Shader.h"
 #include "../Core/Error.h"
 namespace Pistachio {
-	struct Vertex
+	struct PISTACHIO_API Vertex
 	{
 		struct {
 			float x, y, z;
@@ -21,11 +21,11 @@ namespace Pistachio {
 		}
 		Vertex(){}
 	};
-	struct Face
+	struct PISTACHIO_API Face
 	{
 		unsigned int i0, i1, i2;
 	};
-	class Mesh {
+	class PISTACHIO_API Mesh {
 	public:
 		Mesh(){}
 		static Mesh* Create(const char* filepath, std::uint32_t index = 0);

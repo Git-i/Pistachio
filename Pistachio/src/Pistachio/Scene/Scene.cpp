@@ -4,8 +4,12 @@
 #include "Pistachio/Renderer/Renderer2D.h"
 
 #include "Entity.h"
+#ifdef IMGUI
 #include "imgui.h"
 #include "ImGuizmo.h"
+
+#endif // IMGUI
+
 #include "PxPhysicsAPI.h"
 #include "ScriptableComponent.h"
 #include "Pistachio/Physics/Physics.h"
@@ -186,7 +190,7 @@ namespace Pistachio {
 			if (rigidBody.type == RigidBodyComponent::BodyType::Dynamic)
 			{
 				physx::PxQuat rotation(DirectX::XMVectorGetX(transform.Rotation), DirectX::XMVectorGetY(transform.Rotation), DirectX::XMVectorGetZ(transform.Rotation), DirectX::XMVectorGetW(transform.Rotation));
-				physx::PxTransform pxtransform(DirectX::XMVectorGetX(transform.Translation), DirectX::XMVectorGetY(transform.Translation), DirectX::XMVectorGetZ(transform.Translation), rotation);
+				physx::PxTransform pxtransform(transform.Translation.x, transform.Translation.y, transform.Translation.z, rotation);
 				rigidBody.RuntimeBody = Physics::gPhysics->createRigidDynamic(pxtransform);
 				physx::PxRigidBodyExt::updateMassAndInertia(*((physx::PxRigidBody*)rigidBody.RuntimeBody), rigidBody.Density);
 				m_PhysicsScene->addActor(*((physx::PxRigidDynamic*)rigidBody.RuntimeBody));
@@ -518,7 +522,6 @@ namespace Pistachio {
 		}
 		
 		m_gBuffer.Bind(0, 4);
-		ImGui::Image(Renderer::shadowMapAtlas.m_SRV.Get(), { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x });
 		Renderer::shadowMapAtlas.BindResource(9);
 		//proceed with normal shading
 		
@@ -541,7 +544,6 @@ namespace Pistachio {
 						Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), mat, (uint32_t)entity);
 				}
 			}
-			ImGui::Text("Meshes Rendered: %d", i);
 		}
 		m_finalRender.Bind(0, 1);
 		m_gBuffer.BindResource(3, 4);
@@ -901,65 +903,70 @@ namespace Pistachio {
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<TransformComponent>(Entity entity, TransformComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<TransformComponent>(Entity entity, TransformComponent& component)
 	{
 		
 	}
 	template<>
-	void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& component)
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<CameraComponent>(Entity entity, CameraComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<CameraComponent>(Entity entity, CameraComponent& component)
 	{
 		component.camera.SetViewportSize(m_viewportWidth, m_ViewportHeight);
 	}
 	template<>
-	void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& component)
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<MeshRendererComponent>(Entity entity, MeshRendererComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<MeshRendererComponent>(Entity entity, MeshRendererComponent& component)
 	{
 		ConstantBuffer cb;
 		cb.Create(nullptr, sizeof(TransformData));
 		Renderer::TransformationBuffer.push_back(cb);
 		component.cbIndex = Renderer::TransformationBuffer.size() - 1;
+		const auto& transform = m_Registry.get<TransformComponent>(entity);
+		TransformData td;
+		td.transform = DirectX::XMMatrixTranspose(transform.worldSpaceTransform);
+		td.normal = DirectX::XMMatrixInverse(nullptr, transform.worldSpaceTransform);
+		Renderer::TransformationBuffer[component.cbIndex].Update(&td, sizeof(TransformData));
 	}
 	template<>
-	void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& component)
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<IDComponent>(Entity entity, IDComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<IDComponent>(Entity entity, IDComponent& component)
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<LightComponent>(Entity entity, LightComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<LightComponent>(Entity entity, LightComponent& component)
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<RigidBodyComponent>(Entity entity, RigidBodyComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<RigidBodyComponent>(Entity entity, RigidBodyComponent& component)
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& component)
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<SphereColliderComponent>(Entity entity, SphereColliderComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<SphereColliderComponent>(Entity entity, SphereColliderComponent& component)
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<CapsuleColliderComponent>(Entity entity, CapsuleColliderComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<CapsuleColliderComponent>(Entity entity, CapsuleColliderComponent& component)
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<PlaneColliderComponent>(Entity entity, PlaneColliderComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<PlaneColliderComponent>(Entity entity, PlaneColliderComponent& component)
 	{
 	}
 	template<>
-	void Scene::OnComponentAdded<ParentComponent>(Entity entity, ParentComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<ParentComponent>(Entity entity, ParentComponent& component)
 	{
 	}
 

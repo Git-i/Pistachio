@@ -3,7 +3,7 @@
 #include "RendererID_t.h"
 #include "Pistachio\Allocators\AtlasAllocator.h"
 namespace Pistachio {
-	class ShadowMap
+	class PISTACHIO_API ShadowMap
 	{
 	public:
 		ShadowMap(const ShadowMap& other);

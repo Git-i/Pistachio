@@ -1,7 +1,7 @@
 #pragma once
 #include "Mesh.h"
 namespace Pistachio {
-	class MeshFactory
+	class PISTACHIO_API MeshFactory
 	{
 	public:
 		//Generate A Plane

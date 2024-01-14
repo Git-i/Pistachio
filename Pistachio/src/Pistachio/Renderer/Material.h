@@ -6,7 +6,7 @@
 #include "../Renderer/Shader.h"
 namespace Pistachio
 {
-	class Material : public RefCountedObject
+	class PISTACHIO_API Material : public RefCountedObject
 	{
 	public:
 		Vector4 diffuseColor = Vector4(1.f, 1.f, 1.f, 1.f);
@@ -32,7 +32,7 @@ namespace Pistachio
 		static Material* Create(const char* filepath);
 	};
 
-	class MaterialSerializer
+	class PISTACHIO_API MaterialSerializer
 	{
 	public:
 		void Serialize(const std::string& filepath, const Material& mat);

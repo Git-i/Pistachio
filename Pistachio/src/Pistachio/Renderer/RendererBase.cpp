@@ -3,17 +3,17 @@
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Core/Error.h"
-Microsoft::WRL::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateNoCull = NULL;
-Microsoft::WRL::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCWCull = NULL;
-Microsoft::WRL::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCCWCull = NULL;
-Microsoft::WRL::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pShadowMapRasterizerState = NULL;
-Microsoft::WRL::ComPtr<ID3D11DepthStencilState> Pistachio::RendererBase::pDSStateLess = NULL;
-Microsoft::WRL::ComPtr<ID3D11DepthStencilState> Pistachio::RendererBase::pDSStateLessEqual = NULL;
-Microsoft::WRL::ComPtr<ID3D11Device> Pistachio::RendererBase::g_pd3dDevice = NULL;
-Microsoft::WRL::ComPtr<ID3D11DeviceContext> Pistachio::RendererBase::g_pd3dDeviceContext = NULL;
-Microsoft::WRL::ComPtr<IDXGISwapChain> Pistachio::RendererBase::g_pSwapChain = NULL;
-Microsoft::WRL::ComPtr<ID3D11RenderTargetView> Pistachio::RendererBase::g_mainRenderTargetView = NULL;
-Microsoft::WRL::ComPtr<ID3D11DepthStencilView> Pistachio::RendererBase::pDSV = NULL;
+Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateNoCull = NULL;
+Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCWCull = NULL;
+Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCCWCull = NULL;
+Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pShadowMapRasterizerState = NULL;
+Pistachio::ComPtr<ID3D11DepthStencilState> Pistachio::RendererBase::pDSStateLess = NULL;
+Pistachio::ComPtr<ID3D11DepthStencilState> Pistachio::RendererBase::pDSStateLessEqual = NULL;
+Pistachio::ComPtr<ID3D11Device> Pistachio::RendererBase::g_pd3dDevice = NULL;
+Pistachio::ComPtr<ID3D11DeviceContext> Pistachio::RendererBase::g_pd3dDeviceContext = NULL;
+Pistachio::ComPtr<IDXGISwapChain> Pistachio::RendererBase::g_pSwapChain = NULL;
+Pistachio::ComPtr<ID3D11RenderTargetView> Pistachio::RendererBase::g_mainRenderTargetView = NULL;
+Pistachio::ComPtr<ID3D11DepthStencilView> Pistachio::RendererBase::pDSV = NULL;
 bool Pistachio::RendererBase::IsDeviceNull = true;
 FLOAT Pistachio::RendererBase::m_ClearColor[4] = {0};
 namespace Pistachio {
@@ -37,11 +37,17 @@ namespace Pistachio {
 	}
 	bool RendererBase::Init(HWND hwnd)
 	{
+		std::cout << "rbase " << std::endl;
 		PT_PROFILE_FUNCTION();
 	#ifdef PISTACHIO_RENDER_API_DX11
-		Error::LogErrorToConsole(DX11RendererBase::CreateDevice(hwnd, &g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext, &pDSV, &g_mainRenderTargetView));
+		if (hwnd)
+		{
+			Error::LogErrorToConsole(DX11RendererBase::CreateDevice(hwnd, &g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext, &pDSV, &g_mainRenderTargetView));
+			RendererBase::Resize(((WindowData*)GetWindowDataPtr())->width, ((WindowData*)GetWindowDataPtr())->height);
+		}
+		else
+			Error::LogErrorToConsole(DX11RendererBase::CreateHeadlessDevice(&g_pd3dDevice, &g_pd3dDeviceContext, &pDSV, &g_mainRenderTargetView));
 		PT_CORE_INFO("RendererBase Initialized with API: DirectX 11");
-		RendererBase::Resize(((WindowData*)GetWindowDataPtr())->width, ((WindowData*)GetWindowDataPtr())->height);
 		IsDeviceNull = false;
 		g_pd3dDeviceContext->IASetPrimitiveTopology(DX11Topology(PrimitiveTopology::TriangleList));
 		D3D11_RASTERIZER_DESC desc = {};

@@ -6,17 +6,21 @@
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Event/KeyEvent.h"
 
-#include "Pistachio/ImGui/ImGuiLayer.h"
 #include "Pistachio/Renderer/Renderer.h"
 #include "Pistachio/Renderer/Buffer.h"
 #include "Pistachio/Renderer/Shader.h"
 #include "Pistachio/Renderer/Camera.h"
 namespace Pistachio {
 
+	struct PISTACHIO_API InitModeHeadless
+	{
+
+	};
 	class PISTACHIO_API Application
 	{
 	public:
 		Application(const char* name);
+		Application(const char* name, InitModeHeadless headless);
 		virtual ~Application();
 		void Run();
 		void OnEvent(Event& e);
@@ -25,8 +29,9 @@ namespace Pistachio {
 		bool OnWindowResize(WindowResizeEvent& e);
 		inline static Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
-		inline ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
+		void SetImGuiContext(void* ctx);
 	private:
+		bool m_headless = false;
 		LayerStack m_layerstack;
 		std::unique_ptr<Window> m_Window;
 		bool m_Running = true;
@@ -37,8 +42,7 @@ namespace Pistachio {
 		double lastFrameTime = 0.0f;
 		double InitTime;
 		LARGE_INTEGER ticks;
-		ImGuiLayer* m_ImGuiLayer;
 	};
-
+	
 	Application* CreateApplication();
 }

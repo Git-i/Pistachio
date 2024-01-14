@@ -5,6 +5,7 @@
 #include "Panels/ConsolePanel.h"
 #include "Panels/MaterialEditorPanel.h"
 #include "Pistachio/Renderer/EditorCamera.h"
+#include "ImGui\ImGuiLayer.h"
 namespace Pistachio {
 	class EditorLayer : public Pistachio::Layer
 	{
@@ -36,6 +37,7 @@ namespace Pistachio {
 		Entity m_HoveredEntity;
 		Entity m_meshEntity;
 		int m_GizmoType = -1;
+		ImGuiLayer* imguiLayer;
 		EditorCamera m_EditorCamera;
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;

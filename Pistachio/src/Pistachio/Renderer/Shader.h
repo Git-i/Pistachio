@@ -2,11 +2,11 @@
 #include "../Core.h"
 #include "RendererID_t.h"
 namespace Pistachio {
-	enum class LightType
+	enum class PISTACHIO_API LightType
 	{
 		Directional, Point, Spot
 	};
-	class ConstantBuffer {
+	class PISTACHIO_API ConstantBuffer {
 	public:
 		void Update(void* data, unsigned int size);
 		void Create(void* data, unsigned int size);
@@ -14,7 +14,7 @@ namespace Pistachio {
 		PlatformRendererID_t ID;
 		friend class Shader;
 	};
-	struct MaterialStruct
+	struct PISTACHIO_API MaterialStruct
 	{
 		DirectX::XMFLOAT4 albedo = {0,0,0,0};
 		float metallic= 0;
@@ -22,14 +22,14 @@ namespace Pistachio {
 		int ID = 0;
 		int _pad = 0;
 	};
-	enum class ShaderType
+	enum class PISTACHIO_API ShaderType
 	{
 		Vertex = 0,
 		Pixel = 1,
 		Fragment = 1,
 		Geometry = 2
 	};
-	enum class BufferLayoutFormat
+	enum class PISTACHIO_API BufferLayoutFormat
 	{
 		FLOAT4 = 0,
 		UINT4,
@@ -44,7 +44,7 @@ namespace Pistachio {
 		UINT,
 		INT,
 	};
-	struct BufferLayout
+	struct PISTACHIO_API BufferLayout
 	{
 		const char* Name;
 		BufferLayoutFormat Format;
@@ -76,7 +76,7 @@ namespace Pistachio {
 	}
 
 
-	class GeometryShader {
+	class PISTACHIO_API GeometryShader {
 	public:
 		GeometryShader(const wchar_t* src);
 		GeometryShader(){}
@@ -87,7 +87,7 @@ namespace Pistachio {
 		friend class Shader;
 	};
 
-	class PixelShader {
+	class PISTACHIO_API PixelShader {
 	public:
 		PixelShader(const wchar_t* src);
 		PixelShader(){}
@@ -98,7 +98,7 @@ namespace Pistachio {
 		friend class Shader;
 	};
 
-	class VertexShader {
+	class PISTACHIO_API VertexShader {
 	public:
 		VertexShader(const wchar_t* src);
 		VertexShader(){}
@@ -109,7 +109,7 @@ namespace Pistachio {
 		friend class Shader;
 	};
 
-	class Shader
+	class PISTACHIO_API Shader
 	{
 	public:
 		Shader(const wchar_t* vsrc, const wchar_t* fsrc);
@@ -127,7 +127,7 @@ namespace Pistachio {
 		GeometryShader m_gs;
 		PlatformRendererID_t InputLayout_ID;
 	};
-	class ShaderLibrary
+	class PISTACHIO_API ShaderLibrary
 	{
 	public:
 		void Add(const std::string& name,const Ref<Shader>& Shader);

@@ -5,7 +5,7 @@
 #include "Pistachio/Event/Event.h"
 
 void SetWindowDataPtr(void* value);
-void* GetWindowDataPtr();
+PISTACHIO_API void* GetWindowDataPtr();
 
 
 	struct PlatformData {
@@ -49,7 +49,7 @@ using EventCallbackFn = std::function<void(Pistachio::Event& e)>;
 			virtual void SetVsync(unsigned int enabled) = 0;
 			virtual void SetEventCallback(const EventCallbackFn& event) = 0;
 			virtual unsigned int IsVsync() const = 0;
-			static Window* Create(const WindowInfo& info = WindowInfo());
+			static Window* Create(const WindowInfo& info = WindowInfo(), bool m_headless = false);
 			PlatformData pd;
 		protected:
 			WindowData m_data;

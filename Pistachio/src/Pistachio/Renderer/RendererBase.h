@@ -13,7 +13,7 @@ namespace Pistachio {
 	enum class DepthStencilOp {
 		Less, Less_Equal
 	};
-	class RendererBase
+	class PISTACHIO_API RendererBase
 	{
 	public:
 		static bool IsDeviceNull;
@@ -42,17 +42,17 @@ namespace Pistachio {
 		#endif
 	private:
 		#ifdef PISTACHIO_RENDER_API_DX11
-			static Microsoft::WRL::ComPtr<ID3D11Device> g_pd3dDevice;
-			static Microsoft::WRL::ComPtr<ID3D11DeviceContext> g_pd3dDeviceContext;
-			static Microsoft::WRL::ComPtr<IDXGISwapChain> g_pSwapChain;
-			static Microsoft::WRL::ComPtr<ID3D11RenderTargetView> g_mainRenderTargetView;
-			static Microsoft::WRL::ComPtr<ID3D11DepthStencilView> pDSV;
-			static Microsoft::WRL::ComPtr<ID3D11RasterizerState> pRasterizerStateNoCull;
-			static Microsoft::WRL::ComPtr<ID3D11RasterizerState> pShadowMapRasterizerState;
-			static Microsoft::WRL::ComPtr<ID3D11RasterizerState> pRasterizerStateCWCull;
-			static Microsoft::WRL::ComPtr<ID3D11RasterizerState> pRasterizerStateCCWCull;
-			static Microsoft::WRL::ComPtr<ID3D11DepthStencilState> pDSStateLess;
-			static Microsoft::WRL::ComPtr<ID3D11DepthStencilState> pDSStateLessEqual;
+			static ComPtr<ID3D11Device> g_pd3dDevice;
+			static ComPtr<ID3D11DeviceContext> g_pd3dDeviceContext;
+			static ComPtr<IDXGISwapChain> g_pSwapChain;
+			static ComPtr<ID3D11RenderTargetView> g_mainRenderTargetView;
+			static ComPtr<ID3D11DepthStencilView> pDSV;
+			static ComPtr<ID3D11RasterizerState> pRasterizerStateNoCull;
+			static ComPtr<ID3D11RasterizerState> pShadowMapRasterizerState;
+			static ComPtr<ID3D11RasterizerState> pRasterizerStateCWCull;
+			static ComPtr<ID3D11RasterizerState> pRasterizerStateCCWCull;
+			static ComPtr<ID3D11DepthStencilState> pDSStateLess;
+			static ComPtr<ID3D11DepthStencilState> pDSStateLessEqual;
 		#endif
 		static FLOAT m_ClearColor[4];
 	};

@@ -4,7 +4,7 @@
 #include "Pistachio/Scene/Components.h"
 #include "Pistachio/Renderer/EditorCamera.h"
 namespace Pistachio {
-	class Renderer2D {
+	class PISTACHIO_API Renderer2D {
 	public:
 		static void Init();
 		static void BeginScene(const OrthographicCamera& camera);

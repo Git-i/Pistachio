@@ -1,6 +1,6 @@
 #pragma once
 namespace Pistachio {
-	class RefCountedObject
+	class PISTACHIO_API RefCountedObject
 	{
 	public:
 		int hold() const;

@@ -8,7 +8,7 @@
 #include "../Asset/RefCountedObject.h"
 #include "Pistachio\Core\Math.h"
 namespace Pistachio {
-    class Model : public RefCountedObject
+    class PISTACHIO_API Model : public RefCountedObject
     {
     public:
         // model data 
@@ -17,7 +17,7 @@ namespace Pistachio {
         // constructor, expects a filepath to a 3D model.
         Model(const char* path)
         {
-            loadModel(path);
+            Error::LogErrorToConsole(loadModel(path));
         }
 
         static Model* Create(const char* path);

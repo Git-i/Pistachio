@@ -1,7 +1,7 @@
 #pragma once
 #include <xhash>
 namespace Pistachio {
-	class UUID 
+	class PISTACHIO_API UUID 
 	{
 	public:
 		UUID();

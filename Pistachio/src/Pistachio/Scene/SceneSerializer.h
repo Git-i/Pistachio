@@ -1,7 +1,7 @@
 #pragma once
 #include "Scene.h"
 namespace Pistachio {
-	class SceneSerializer {
+	class PISTACHIO_API SceneSerializer {
 	public:
 		SceneSerializer(const Ref<Scene>& scene);
 		void Serialize(const std::string& filepath);

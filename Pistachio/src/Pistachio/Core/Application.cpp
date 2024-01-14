@@ -7,24 +7,54 @@
 #include "Pistachio/Physics/Physics.h"
 #include "Pistachio/Renderer/Renderer2D.h"
 #include "Tracy.hpp"
+#include "imgui.h"
 namespace Pistachio {
 	Application* Application::s_Instance = nullptr;
 	Application::Application(const char* name)
 	{
 		PT_PROFILE_FUNCTION();
-		m_ImGuiLayer = new ImGuiLayer;
 		s_Instance = this;
 		WindowInfo info;
 		info.height = 720;
 		info.width = 1280;
-		info.vsync = 0;
+		info.vsync = 1;
 		info.title = name;
 		m_Window = Scope<Window>(Window::Create(info));
 		Pistachio::Log::Init();
 		RendererBase::Init(m_Window->pd.hwnd);
-		Renderer::Init("resources/textures/hdr/panorama_image.png");
+		Renderer::Init("resources/textures/hdr/small_empty_room_1_4k.hdr");
 		Renderer2D::Init();
-		Physics::Init();
+		std::cout << "phys time" << std::endl;
+		//Physics::Init();
+		std::cout << "physics initialized" << std::endl;
+		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
+#ifdef IMGUI
+		PushOverlay(m_ImGuiLayer);
+#endif
+		QueryPerformanceFrequency(&frequency);
+		period = 1 / (float)frequency.QuadPart;
+		QueryPerformanceCounter(&ticks);
+		InitTime = (ticks.QuadPart * period);
+	}
+
+	Application::Application(const char* name, InitModeHeadless headless)
+	{
+		PT_PROFILE_FUNCTION();
+		s_Instance = this;
+		m_headless = true;
+		WindowInfo info;
+		info.height = 1;
+		info.width = 1;
+		info.vsync = 0;
+		info.title = name;
+		m_Window = Scope<Window>(Window::Create(info, m_headless));
+		Pistachio::Log::Init();
+		RendererBase::Init(m_Window->pd.hwnd);
+		Renderer::Init("resources/textures/hdr/small_empty_room_1_4k.hdr");
+		Renderer2D::Init();
+		std::cout << "phys time" << std::endl;
+		//Physics::Init();
+		std::cout << "physics initialized" << std::endl;
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 #ifdef IMGUI
 		PushOverlay(m_ImGuiLayer);
@@ -78,9 +108,29 @@ namespace Pistachio {
 		}
 		return false;
 	}
+	void Application::SetImGuiContext(void* ctx)
+	{
+		ImGui::SetCurrentContext((ImGuiContext*)ctx);
+	}
 	void Application::Run()
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
+		if (m_headless)
+		{
+			QueryPerformanceCounter(&ticks);
+			double time = (ticks.QuadPart * period) - InitTime;
+			float delta = (float)(time - lastFrameTime);
+			FrameMark;
+			lastFrameTime = time;
+			if (!m_minimized) {
+				for (Layer* layer : m_layerstack)
+					layer->OnUpdate(delta);
+			}
+			for (Layer* layer : m_layerstack)
+				layer->OnImGuiRender();
+			Renderer::EndScene();
+			return;
+		}
 		while (m_Running) {
 			QueryPerformanceCounter(&ticks);
 			double time = (ticks.QuadPart * period) - InitTime;
@@ -97,7 +147,6 @@ namespace Pistachio {
 			}
 			if (!m_Running)
 				break;
-			m_ImGuiLayer->Begin();
 
 
 			m_Window->OnUpdate(delta);
@@ -107,7 +156,6 @@ namespace Pistachio {
 			}
 			for (Layer* layer : m_layerstack)
 				layer->OnImGuiRender();
-			m_ImGuiLayer->End();
 			Renderer::EndScene();
 		}
 		
