@@ -2,7 +2,7 @@
 #include "Pistachio\Core\UUID.h"
 namespace Pistachio
 {
-	enum class ResourceType
+	enum class PISTACHIO_API ResourceType
 	{
 		Invalid,
 		Texture,
@@ -11,7 +11,7 @@ namespace Pistachio
 		Animation,
 		Audio,
 	};
-	class Asset
+	class PISTACHIO_API Asset
 	{
 	public:
 		friend class AssetManager;

@@ -1,9 +1,11 @@
 #include "ptpch.h"
 #include "WindowsWindow.h"
 #include "Pistachio/Core/Log.h"
+#ifdef IMGUI
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
+#endif
 
 #include "Pistachio/Event/ApplicationEvent.h"
 #include "Pistachio/Event/KeyEvent.h"
@@ -24,8 +26,8 @@ void SetWindowDataPtr(void* value)
 
 
 
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
@@ -187,19 +189,19 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 namespace Pistachio {
 	
-	Window* Window::Create(const WindowInfo& info)
+	Window* Window::Create(const WindowInfo& info, bool m_headless)
 	{
-		return new WindowsWindow(info);
+		return new WindowsWindow(info, m_headless);
 	}
-	WindowsWindow::WindowsWindow(const WindowInfo& info)
+	WindowsWindow::WindowsWindow(const WindowInfo& info, bool headless)
 	{
-		Init(info, GetModuleHandleA(NULL));
+		Init(info, GetModuleHandleA(NULL), headless);
 	}
 	WindowsWindow::~WindowsWindow()
 	{
 		Shutdown();
 	}
-	int WindowsWindow::Init(const WindowInfo& info, HINSTANCE hInstance)
+	int WindowsWindow::Init(const WindowInfo& info, HINSTANCE hInstance, bool headless)
 	{
 		PT_PROFILE_FUNCTION();
 		SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -278,7 +280,7 @@ namespace Pistachio {
 #endif
 		m_data.dpiscale = (float)GetDpiForWindow(pd.hwnd)/96.f;
 		ShowWindow(pd.hwnd, SW_SHOWDEFAULT);
-		
+		if (headless) ShowWindow(pd.hwnd, SW_HIDE);
 		return 0;
 
 	}

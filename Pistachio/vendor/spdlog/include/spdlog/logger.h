@@ -2,7 +2,6 @@
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 
 #pragma once
-
 // Thread safe logger (except for set_error_handler())
 // Has name, log level, vector of std::shared sink pointers and formatter
 // Upon each log write the logger:
@@ -50,32 +49,22 @@
 #endif
 
 namespace spdlog {
-
 class SPDLOG_API logger
 {
 public:
     // Empty logger
-    explicit logger(std::string name)
-        : name_(std::move(name))
-        , sinks_()
-    {}
+    explicit logger(std::string name);
 
     // Logger with range on sinks
     template<typename It>
-    logger(std::string name, It begin, It end)
-        : name_(std::move(name))
-        , sinks_(begin, end)
-    {}
+    logger(std::string name, It begin, It end);
 
     // Logger with single sink
-    logger(std::string name, sink_ptr single_sink)
-        : logger(std::move(name), {std::move(single_sink)})
-    {}
+
+    logger(std::string name, sink_ptr single_sink);
 
     // Logger with sinks init list
-    logger(std::string name, sinks_init_list sinks)
-        : logger(std::move(name), sinks.begin(), sinks.end())
-    {}
+    logger(std::string name, sinks_init_list sinks);
 
     virtual ~logger() = default;
 

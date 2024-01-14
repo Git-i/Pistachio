@@ -2,7 +2,7 @@
 #include <DirectXColors.h>
 #include "Pistachio/Scene/SceneSerializer.h"
 #include "Pistachio/Utils/PlatformUtils.h"
-#include "ImGuizmo.h"
+#include "../../imguizmo/ImGuizmo.h"
 namespace Pistachio {
 	EditorLayer::EditorLayer(const char* name) : Layer(name), 
 		m_playButton(Texture2D::Create("resources/textures/icons/play_icon.png")), 
@@ -11,14 +11,18 @@ namespace Pistachio {
 		m_rotateButton(Texture2D::Create("resources/textures/icons/rotate_icon.png")),
 		m_scaleButton(Texture2D::Create("resources/textures/icons/scale_icon.png")),
 		m_EntityTexture(Texture2D::Create(1, 1, TextureFormat::INT, nullptr, (TextureFlags)((int)TextureFlags::ALLOW_CPU_ACCESS_READ | (int)TextureFlags::USAGE_STAGING))),
-		envshader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso")
+		envshader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso"),
+		imguiLayer(new ImGuiLayer())
 	{
+		Pistachio::Application::Get().PushOverlay(imguiLayer);
+		Pistachio::Application::Get().SetImGuiContext(ImGui::GetCurrentContext());
 		cube.CreateStack("cube.obj");
 		envshader.CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 	}
 	void EditorLayer::OnUpdate(float delta)
 	{
 		PT_PROFILE_FUNCTION()
+			//imguiLayer->Begin();
 		switch(m_SceneState)
 		{
 			case SceneState::Edit:
@@ -50,6 +54,8 @@ namespace Pistachio {
 	}
 	void EditorLayer::OnImGuiRender()
 	{
+		//todo fix imgui
+		return;
 		ImGui::DockSpaceOverViewport();
 		ImGui::GetStyle().WindowMinSize.x = 270.f * ((WindowData*)GetWindowDataPtr())->dpiscale;
 		ImGui::BeginMainMenuBar();
@@ -62,7 +68,7 @@ namespace Pistachio {
 			if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
 				SaveSceneAs();
 			if (ImGui::MenuItem("Exit", "Alt+F4"))
-				PostMessageA(Application::Get().GetWindow().pd.hwnd, WM_CLOSE, 0, 0);
+				//todo handle message system with engine PostMessageA(Application::Get().GetWindow().pd.hwnd, WM_CLOSE, 0, 0);
 			ImGui::EndMenu();
 		}
 		static bool gbuffervisualize = false;
@@ -99,7 +105,6 @@ namespace Pistachio {
 		if (ImGui::Begin("Scene"))
 		{
 			auto offset = ImGui::GetCursorPos();
-			Application::Get().GetImGuiLayer()->BlockEvents = !ImGui::IsWindowHovered();
 			ImVec2 viewportSize = ImGui::GetContentRegionAvail();
 			if (viewportSize.x != wndwith || viewportSize.y != wndheight) {
 				m_ActiveScene->OnViewportResize(viewportSize.x, viewportSize.y);

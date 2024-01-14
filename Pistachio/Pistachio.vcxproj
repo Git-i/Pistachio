@@ -20,7 +20,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>NotSet</CharacterSet>
@@ -47,6 +47,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)bin\$(Configuration)-$(Platform)\$(Projectname)\</OutDir>
     <IntDir>$(SolutionDir)bin-int\$(Configuration)-$(Platform)\$(Projectname)\</IntDir>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)bin\$(Configuration)-$(Platform)\$(Projectname)\</OutDir>
@@ -57,7 +58,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;IMGUI;_CRT_SECURE_NO_WARNINGS;TRACY_ENABLE;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;_CRT_SECURE_NO_WARNINGS;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS;PISTACHIO_BUILD_DLL;DYNAMICLINK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo;$(SolutionDir)Pistachio\vendor\physx\include;$(SolutionDir)Pistachio\vendor\SimpleMath;$(SolutionDir)Pistachio\vendor\tracy\tracy</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -70,12 +71,13 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\gainput\lib;$(SolutionDir)Pistachio\vendor\glfw\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;yaml-cppd.lib;PhysXExtensions_static_64.lib;PhysXPvdSDK_static_64.lib;PhysXVehicle_static_64.lib;PhysXVehicle2_static_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCooking_64.lib;SnippetUtils_static_64.lib;PVDRuntime_64.lib;SnippetRender_static_64.lib;SceneQuery_static_64.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;$(SolutionDir)Pistachio\vendor\physx\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)bin\Debug-x64\Pistachio-Editor
+copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)EditorCSharp\bin\Debug\net7.0
+copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleApp1\bin\Debug\net8.0-windows</Command>
     </PostBuildEvent>
     <Lib>
       <AdditionalDependencies>assimp-vc143-mtd.lib;zlibstaticd.lib;yaml-cppd.lib;PhysXExtensions_static_64.lib;PhysXPvdSDK_static_64.lib;PhysXVehicle_static_64.lib;PhysXVehicle2_static_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCooking_64.lib;SnippetUtils_static_64.lib;PVDRuntime_64.lib;SnippetRender_static_64.lib;SceneQuery_static_64.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib</AdditionalDependencies>
@@ -121,9 +123,11 @@
     <ClInclude Include="src\Pistachio\Asset\RefCountedObject.h" />
     <ClInclude Include="src\Pistachio\Core\Error.h" />
     <ClInclude Include="src\Pistachio\Core\Math.h" />
+    <ClInclude Include="src\Pistachio\Core\Property.h" />
     <ClInclude Include="src\Pistachio\Core\UUID.h" />
     <ClInclude Include="src\Pistachio\Debug\Instrumentor.h" />
     <ClInclude Include="src\Pistachio\Physics\Physics.h" />
+    <ClInclude Include="src\Pistachio\Renderer\com_ptr.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Texture.h" />
     <ClInclude Include="src\Pistachio\Core\Timestep.h" />
@@ -154,7 +158,6 @@
     <ClInclude Include="src\Pistachio\Core\Application.h" />
     <ClInclude Include="src\Pistachio\Core.h" />
     <ClInclude Include="src\Pistachio\Core\EntryPoint.h" />
-    <ClInclude Include="src\Pistachio\ImGui\ImGuiLayer.h" />
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.h" />
     <ClInclude Include="src\Pistachio\Core\Window.h" />
     <ClInclude Include="src\Pistachio\Renderer\ShadowMap.h" />
@@ -284,7 +287,6 @@
     <ClInclude Include="vendor\gainput\include\gainput\recorder\GainputInputPlayer.h" />
     <ClInclude Include="vendor\gainput\include\gainput\recorder\GainputInputRecorder.h" />
     <ClInclude Include="vendor\gainput\include\gainput\recorder\GainputInputRecording.h" />
-    <ClInclude Include="vendor\imguizmo\ImGuizmo.h" />
     <ClInclude Include="vendor\imgui\imconfig.h" />
     <ClInclude Include="vendor\imgui\imgui.h" />
     <ClInclude Include="vendor\imgui\imgui_impl_dx11.h" />
@@ -463,7 +465,6 @@
     <ClInclude Include="vendor\spdlog\include\spdlog\tweakme.h" />
     <ClInclude Include="vendor\spdlog\include\spdlog\version.h" />
     <ClInclude Include="vendor\stb_image\stb_image.h" />
-    <ClInclude Include="vendor\text-editor\TextEditor.h" />
     <ClInclude Include="vendor\tracy\client\TracyArmCpuTable.hpp" />
     <ClInclude Include="vendor\tracy\client\TracyCallstack.h" />
     <ClInclude Include="vendor\tracy\client\TracyCallstack.hpp" />
@@ -534,7 +535,6 @@
     <ClCompile Include="src\Pistachio\Core\LayerStack.cpp" />
     <ClCompile Include="src\Pistachio\Core\Log.cpp" />
     <ClCompile Include="src\Pistachio\Core\Application.cpp" />
-    <ClCompile Include="src\Pistachio\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputPoll.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.cpp" />
@@ -549,9 +549,8 @@
     </ClCompile>
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RendererBase.cpp" />
-    <ClCompile Include="vendor\imguizmo\ImGuizmo.cpp">
+    <ClCompile Include="vendor\entt\include\entt.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="vendor\imgui\imgui.cpp" />
     <ClCompile Include="vendor\imgui\imgui_demo.cpp" />
@@ -564,53 +563,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="vendor\spdlog\include\spdlog\logger.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="vendor\stb_image\stb_image.cpp" />
-    <ClCompile Include="vendor\text-editor\TextEditor.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracyAlloc.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracyCallstack.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracyDxt1.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracyOverride.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracyProfiler.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracySysPower.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracySysTime.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracySysTrace.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\tracy_rpmalloc.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\common\TracySocket.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\common\TracyStackFrames.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\common\TracySystem.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\common\tracy_lz4.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\common\tracy_lz4hc.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="vendor\tracy\TracyClient.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>

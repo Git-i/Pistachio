@@ -15,7 +15,7 @@ namespace Pistachio {
 			ReporterString = "Unknown Internal Error";
 		}
 		inline static bool CheckFileExistence(const char* filepath) {
-			//if (std::filesystem::exists(filepath))
+			if (std::filesystem::exists(filepath))
 				return true;
 			return false;
 		}

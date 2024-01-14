@@ -2,13 +2,13 @@
 #include "../Core.h"
 #include "RendererID_t.h"
 namespace Pistachio {
-	enum class TextureAddress {
+	enum class PISTACHIO_API TextureAddress {
 		Border, Clamp, Mirror, Wrap
 	};
-	enum class Filter {
+	enum class PISTACHIO_API Filter {
 		Point = 0, Linear = 1
 	};
-	enum class ComparisonFunc
+	enum class PISTACHIO_API ComparisonFunc
 	{
 		Never = 1,
 		Less = 2,
@@ -19,7 +19,7 @@ namespace Pistachio {
 		GreaterOrEqual = 7,
 		Always = 8
 	};
-	struct SamplerStateDesc
+	struct PISTACHIO_API SamplerStateDesc
 	{
 		Filter magFilter;
 		Filter minFilter;
@@ -37,7 +37,7 @@ namespace Pistachio {
 		bool AnisotropyEnable;
 		static const SamplerStateDesc Default;
 	};
-	class SamplerState
+	class PISTACHIO_API SamplerState
 	{
 	public:
 		static SamplerState* Create(const SamplerStateDesc& stateDesc);

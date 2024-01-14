@@ -1,7 +1,7 @@
 #pragma once
 #include "Pistachio/Renderer/Texture.h"
 #include <filesystem>
-#include "../text-editor/TextEditor.h"
+#include "../../text-editor/TextEditor.h"
 namespace Pistachio {
 	class ContentBrowserPanel {
 	public:

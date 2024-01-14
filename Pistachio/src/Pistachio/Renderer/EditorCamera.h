@@ -5,11 +5,8 @@
 #include "Pistachio/Event/MouseEvent.h"
 #include <Pistachio/Event/KeyEvent.h>
 
-
-
 namespace Pistachio {
-
-	class EditorCamera : public RuntimeCamera
+	class PISTACHIO_API EditorCamera : public RuntimeCamera
 	{
 	public:
 		EditorCamera() = default;

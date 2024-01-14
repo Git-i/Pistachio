@@ -1,4 +1,5 @@
 #pragma once
+#include "Pistachio\Core.h"
 #include "SimpleMath.h"
 namespace Pistachio
 {

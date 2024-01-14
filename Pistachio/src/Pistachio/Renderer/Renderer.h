@@ -14,7 +14,7 @@
 #include "ShadowMap.h"
 namespace Pistachio {
 	
-	struct Light {
+	struct PISTACHIO_API Light {
 		DirectX::XMFLOAT3 position;// for directional lights this is direction
 		LightType type;
 		DirectX::XMFLOAT3 color;
@@ -23,7 +23,7 @@ namespace Pistachio {
 		DirectX::XMFLOAT4 rotation;
 		
 	};
-	struct ShadowCastingLight
+	struct PISTACHIO_API ShadowCastingLight
 	{
 		Light light;
 		DirectX::XMFLOAT4X4 projection[4]; // used for frustum culling
@@ -38,7 +38,7 @@ namespace Pistachio {
 		}
 	};
 	using RegularLight = Light;
-	struct PassConstants
+	struct PISTACHIO_API PassConstants
 	{
 		DirectX::XMFLOAT4X4 View;
 		DirectX::XMFLOAT4X4 InvView;
@@ -59,12 +59,12 @@ namespace Pistachio {
 		int numShadowlights;
 		DirectX::XMFLOAT2 _pad;
 	};
-	struct TransformData
+	struct PISTACHIO_API TransformData
 	{
 		DirectX::XMMATRIX transform;
 		DirectX::XMMATRIX normal;
 	};
-	class Renderer {
+	class PISTACHIO_API Renderer {
 	public:
 		static void Shutdown();
 		static void BeginScene(PerspectiveCamera* cam);

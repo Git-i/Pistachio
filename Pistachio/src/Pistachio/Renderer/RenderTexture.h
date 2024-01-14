@@ -2,15 +2,15 @@
 #include "Texture.h"
 #include "RendererID_t.h"
 namespace Pistachio {
-	struct RenderTextureAttachmentSpecification {
+	struct PISTACHIO_API RenderTextureAttachmentSpecification {
 		RenderTextureAttachmentSpecification() = default;
 		RenderTextureAttachmentSpecification(std::initializer_list<TextureFormat> attachments) : Attachments(attachments) {}
 		std::vector<TextureFormat> Attachments;
 	};
-	struct RenderTextureDesc {
+	struct PISTACHIO_API RenderTextureDesc {
 		int width; int height; int miplevels = 1; RenderTextureAttachmentSpecification Attachments;
 	};
-	class RenderTexture : public Texture {
+	class PISTACHIO_API RenderTexture : public Texture {
 
 	public:
 		void Bind(int slot = 0, int count = 1) const;
@@ -33,7 +33,7 @@ namespace Pistachio {
 		PlatformRendererID_t m_pDSV = { 0 };
 		int m_width, m_height, m_miplevels;
 	};
-	class RenderCubeMap : public Texture{	
+	class PISTACHIO_API RenderCubeMap : public Texture{
 	public:
 		~RenderCubeMap() = default;
 		void Bind(int slot = 0) const;

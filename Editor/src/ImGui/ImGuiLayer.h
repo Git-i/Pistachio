@@ -8,12 +8,13 @@
 #include "Pistachio/Event/Event.h"
 
 namespace Pistachio {
-	class PISTACHIO_API ImGuiLayer : public Layer {
+	class ImGuiLayer : public Layer {
 	public:
 		ImGuiLayer();
 		~ImGuiLayer();
 		void OnUpdate(float delta) override;
 		void OnEvent(Event& event) override;
+		void OnImGuiRender() override;
 		void Begin();
 		void End();
 		bool OnKeyPressed(KeyPressedEvent& event);
@@ -23,5 +24,6 @@ namespace Pistachio {
 		void SetLightTheme();
 		bool BlockEvents;
 	private:
+		
 	};
 }

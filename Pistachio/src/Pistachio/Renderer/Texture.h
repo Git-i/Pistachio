@@ -4,13 +4,13 @@
 #include "../Utils/RendererUtils.h"
 #include "../Asset/RefCountedObject.h"
 namespace Pistachio {
-	class Texture : public RefCountedObject
+	class PISTACHIO_API Texture : public RefCountedObject
 	{
 	public:
 		virtual unsigned int GetHeight() const = 0;
 		virtual unsigned int GetWidth() const = 0;
 	};
-	class Texture2D : public Texture
+	class PISTACHIO_API Texture2D : public Texture
 	{
 	public:
 		unsigned int GetHeight() const override;

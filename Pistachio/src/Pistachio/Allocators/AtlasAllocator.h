@@ -2,25 +2,25 @@
 #include "Pistachio\Core\Math.h"
 namespace Pistachio
 {
-    enum class AllocatorFlags
+    enum class PISTACHIO_API AllocatorFlags
     {
         None = 0,
         DownscaleOnFail = 1,
     };
     DEFINE_ENUM_FLAG_OPERATORS(AllocatorFlags);
-    struct Region
+    struct PISTACHIO_API Region
     {
         iVector2 offset;
         iVector2 size;
     };
-    struct hRegion
+    struct PISTACHIO_API hRegion
     {
         hiVector2 offset;
         hiVector2 size;
         hRegion() = default;
         hRegion(Region r) : offset(r.offset), size(r.size) {}
     };
-    struct Entry
+    struct PISTACHIO_API Entry
     {
         iVector2 val;
         bool used;
@@ -28,8 +28,8 @@ namespace Pistachio
         Entry(iVector2 vec) :val(vec), used(false) {}
         Entry(iVector2 vec, bool _used) : val(vec), used(_used) {}
     };
-    typedef std::vector<Entry> Row;
-    class AtlasAllocator
+    typedef PISTACHIO_API std::vector<Entry> Row;
+    class PISTACHIO_API AtlasAllocator
     {
     public:
         AtlasAllocator(iVector2 max_size, iVector2 portion_size);

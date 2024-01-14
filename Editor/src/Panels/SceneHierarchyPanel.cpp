@@ -371,14 +371,14 @@ namespace Pistachio {
 				auto& tc = entity.GetComponent<TransformComponent>();
 				Vector3 rotationDeg = tc.RotationEulerHint;
 				rotationDeg = { DirectX::XMConvertToDegrees(rotationDeg.x),DirectX::XMConvertToDegrees(rotationDeg.y),DirectX::XMConvertToDegrees(rotationDeg.z)};
-				if(DrawVec3Control("Translation", (float*)&tc.Translation))
-					m_SelectionContext.GetComponent<TransformComponent>().bDirty = true;
-				if(DrawVec3Control("Rotation", (float*)&rotationDeg)) 
-					m_SelectionContext.GetComponent<TransformComponent>().bDirty = true;
-				if(DrawVec3Control("Scale", (float*)&tc.Scale, 1.f))
-					m_SelectionContext.GetComponent<TransformComponent>().bDirty = true;
-				tc.RotationEulerHint = { DirectX::XMConvertToRadians(rotationDeg.x), DirectX::XMConvertToRadians(rotationDeg.y), DirectX::XMConvertToRadians(rotationDeg.z), 1.f };
-				tc.RecalculateRotation();
+				Vector3 placeholder = tc.Translation;
+				if (DrawVec3Control("Translation", (float*)&placeholder))
+					tc.Translation = placeholder;
+				if (DrawVec3Control("Rotation", (float*)&rotationDeg))
+					tc.RotationEulerHint = Vector3{ DirectX::XMConvertToRadians(rotationDeg.x), DirectX::XMConvertToRadians(rotationDeg.y), DirectX::XMConvertToRadians(rotationDeg.z)};
+				placeholder = tc.Scale;
+				if (DrawVec3Control("Scale", (float*)&placeholder, 1.f))
+					tc.Scale = placeholder;
 				ImGui::TreePop();
 			}
 			ImGui::Separator();
@@ -427,7 +427,6 @@ namespace Pistachio {
 					const wchar_t* data = (const wchar_t*)payload->Data;
 					auto path = std::filesystem::path("assets") / data;
 					component.Model = GetAssetManager()->CreateModelAsset(path.string().c_str());
-					m_Context->m_Registry.get<TransformComponent>(entity).bDirty = true;
 				}
 				ImGui::EndDragDropTarget();
 			}

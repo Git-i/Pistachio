@@ -2,12 +2,33 @@
 #include "ImGuiLayer.h"
 #include "Pistachio/Renderer/RendererBase.h"
 #include "Pistachio/Core/Application.h"
+#include "../../imguizmo/ImGuizmo.h"
 
-#include "ImGuizmo.h"
 namespace Pistachio {
 	ImGuiLayer::ImGuiLayer()
 		: Layer("ImGuiLayer")
 	{
+		ImGui_ImplWin32_EnableDpiAwareness();
+		// Setup Dear ImGui context
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		//io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
+		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
+		ImGui::StyleColorsDark();
+		io.Fonts->AddFontFromFileTTF("Cascadia.ttf", 14 * ((WindowData*)GetWindowDataPtr())->dpiscale);
+		// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+		ImGuiStyle& style = ImGui::GetStyle();
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			style.WindowRounding = 0.0f;
+		}
+		SetDarkTheme();
+		ImGui_ImplWin32_Init(Application::Get().GetWindow().pd.hwnd);
+		ImGui_ImplDX11_Init(RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());
 	}
 	ImGuiLayer::~ImGuiLayer()
 	{
@@ -26,6 +47,10 @@ namespace Pistachio {
 		if (event.GetEventType() == EventType::MouseScrolled)
 			event.Handled = ImGui::GetIO().WantCaptureMouse && BlockEvents;
 	}
+	void ImGuiLayer::OnImGuiRender()
+	{
+		End();
+	}
 	bool ImGuiLayer::OnKeyPressed(KeyPressedEvent& e)
 	{
 		if (ImGui::GetIO().WantCaptureKeyboard && BlockEvents)
@@ -43,6 +68,7 @@ namespace Pistachio {
 	}
 	void ImGuiLayer::End()
 	{
+		return;
 		ImGui::Render();
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -53,27 +79,7 @@ namespace Pistachio {
 	}
 	void ImGuiLayer::OnAttach()
 	{
-		ImGui_ImplWin32_EnableDpiAwareness();
-		// Setup Dear ImGui context
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-		//io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
-		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
-		ImGui::StyleColorsDark();
-		io.Fonts->AddFontFromFileTTF("Cascadia.ttf", 14* ((WindowData*)GetWindowDataPtr())->dpiscale);
-		// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-		ImGuiStyle& style = ImGui::GetStyle();
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			style.WindowRounding = 0.0f;
-		}
-		SetDarkTheme();
-		ImGui_ImplWin32_Init(Application::Get().GetWindow().pd.hwnd);
-		ImGui_ImplDX11_Init(RendererBase::Getd3dDevice(), RendererBase::Getd3dDeviceContext());
+		
 	}
 	void ImGuiLayer::SetGreenTheme()
 	{

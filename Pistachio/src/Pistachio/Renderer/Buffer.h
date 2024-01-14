@@ -1,7 +1,7 @@
 #pragma once
 #include "RendererID_t.h"
 namespace Pistachio {
-	class VertexBuffer
+	class PISTACHIO_API VertexBuffer
 	{
 	public:
 		VertexBuffer();
@@ -17,7 +17,7 @@ namespace Pistachio {
 		unsigned int stride = 0;
 		PlatformRendererID_t ID;
 	};
-	class IndexBuffer
+	class PISTACHIO_API IndexBuffer
 	{
 	public:
 		IndexBuffer();
@@ -30,7 +30,7 @@ namespace Pistachio {
 		unsigned int count;
 		PlatformRendererID_t ID;
 	};
-	struct Buffer //todo rename this class
+	struct PISTACHIO_API Buffer //todo rename this class
 	{
 	public:
 		const VertexBuffer* vb;
@@ -43,7 +43,7 @@ namespace Pistachio {
 			ib->Bind();
 		}
 	};
-	struct StructuredBuffer
+	struct PISTACHIO_API StructuredBuffer
 	{
 		void Bind(std::uint32_t slot) const;
 		void Update(const void* data, std::uint32_t size);

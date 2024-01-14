@@ -2,7 +2,7 @@
 #include "Pistachio\Core\Math.h"
 namespace Pistachio
 {
-	class CullingManager
+	class PISTACHIO_API CullingManager
 	{
 	public:
 		static bool FrustumCull(const BoundingBox& aabb, const BoundingFrustum& frustum );    //returns true if the object is visible

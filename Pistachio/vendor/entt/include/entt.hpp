@@ -104,7 +104,6 @@
 #endif
 
 #endif
-
 // #include "config/macro.h"
 #ifndef ENTT_CONFIG_MACRO_H
 #define ENTT_CONFIG_MACRO_H
@@ -57858,12 +57857,9 @@ public:
      * @param args Parameters to use to construct the instance.
      * @return A wrapper containing the new instance, if any.
      */
-    template<typename... Args>
-    [[nodiscard]] meta_any construct(Args &&...args) const {
-        meta_any arguments[sizeof...(Args) + 1u]{{*ctx, std::forward<Args>(args)}...};
-        return construct(arguments, sizeof...(Args));
-    }
 
+    template<typename... Args>
+    [[nodiscard]] meta_any construct(Args &&...args) const;
     /**
      * @brief Wraps an opaque element of the underlying type.
      * @param element A valid pointer to an element of the underlying type.

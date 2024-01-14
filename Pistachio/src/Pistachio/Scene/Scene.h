@@ -11,12 +11,12 @@ namespace physx {
 }
 namespace Pistachio {
 	class Entity;
-	struct SceneDesc
+	struct PISTACHIO_API SceneDesc
 	{
 		DirectX::XMFLOAT2 Resolution;
 		SceneDesc() : Resolution({1920, 1080}) {}
 	};
-	class Scene {
+	class PISTACHIO_API Scene {
 	public:
 		Scene(SceneDesc desc  = SceneDesc());
 		~Scene();
@@ -33,8 +33,8 @@ namespace Pistachio {
 		Entity GetPrimaryCameraEntity();
 		const RenderTexture& GetGBuffer() { return m_gBuffer; };
 		const RenderTexture& GetRenderedScene() { return m_finalRender; };
-	private:
 		template<typename T> void OnComponentAdded(Entity entity, T& component);
+	private:
 		void UpdateObjectCBs();
 		void SortMeshComponents();
 		DirectX::XMMATRIX GetTransfrom(Entity e);
@@ -54,4 +54,5 @@ namespace Pistachio {
 		RenderTexture m_finalRender;
 		
 	};
+
 }

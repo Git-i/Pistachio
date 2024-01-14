@@ -51,9 +51,6 @@
     <ClCompile Include="vendor\imgui\imgui_widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pistachio\ImGui\ImGuiLayer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="vendor\imgui\imgui_demo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -120,16 +117,10 @@
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsPlatformUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vendor\imguizmo\ImGuizmo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Pistachio\Renderer\EditorCamera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Core\UUID.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\text-editor\TextEditor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Physics\Physics.cpp">
@@ -150,48 +141,6 @@
     <ClCompile Include="src\Pistachio\Renderer\Material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vendor\tracy\client\tracy_rpmalloc.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracyAlloc.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracyCallstack.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracyDxt1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracyOverride.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracyProfiler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracySysPower.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracySysTime.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\client\TracySysTrace.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\common\tracy_lz4.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\common\tracy_lz4hc.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\common\TracySocket.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\common\TracyStackFrames.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\tracy\common\TracySystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="vendor\tracy\TracyClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -199,6 +148,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Scene\CullingManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spdlog\include\spdlog\logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\entt\include\entt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -270,9 +225,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vendor\imgui\imstb_truetype.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Pistachio\ImGui\ImGuiLayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Core\Input.h">
@@ -998,9 +950,6 @@
     <ClInclude Include="src\Pistachio\Utils\PlatformUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="vendor\imguizmo\ImGuizmo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Pistachio\Renderer\EditorCamera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1211,9 +1160,6 @@
     <ClInclude Include="src\Pistachio\Utils\RendererUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="vendor\text-editor\TextEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Pistachio\Physics\Physics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1377,6 +1323,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Scene\CullingManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Core\Property.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Renderer\com_ptr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

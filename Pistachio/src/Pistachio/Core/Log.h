@@ -1,7 +1,9 @@
 #pragma once
+#define SPDLOG_NO_TLS
 #include "Pistachio/Core.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
+
 
 namespace Pistachio {
 	

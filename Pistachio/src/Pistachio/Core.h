@@ -99,4 +99,3 @@ namespace Pistachio {
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "Comdlg32.lib")
 
-#include<wrl.h>
