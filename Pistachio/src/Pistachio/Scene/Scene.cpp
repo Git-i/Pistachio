@@ -355,7 +355,7 @@ namespace Pistachio {
 			}
 		}
 
-		float color[4] = { 0,0,0,0 };
+		float color[4] = { 1,0.5,0,0 };
 		m_gBuffer.ClearAll(color);
 		m_finalRender.Clear(color, 0);
 		
@@ -592,6 +592,14 @@ namespace Pistachio {
 			auto [transform] = transforms.get(e);
 			transform.bDirty = false;
 		}
+		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Front);
+		DirectX::XMFLOAT3X3 view;
+		DirectX::XMStoreFloat3x3(&view, DirectX::XMLoadFloat4x4(reinterpret_cast<const DirectX::XMFLOAT4X4*>(&camera.GetViewMatrix())));
+		Renderer::BeginScene(&camera, DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat3x3(&view)));
+		static Mesh* cube = Mesh::Create("cube.obj");
+		static Shader* envshader = new Shader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso");
+		Pistachio::Renderer::Submit(cube,envshader, &Renderer::DefaultMaterial, -1);
+		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Back);
 	}
 	void Scene::OnUpdateRuntime(float delta)
 	{

@@ -110,7 +110,9 @@ namespace PistachioCS
 		{
 			Asset^ get()
 			{
-				return gcnew Asset(&m_ptr->Model);
+				Asset^ asset;
+				*asset->m_ptr = m_ptr->Model;
+				return asset;
 			}
 			void set(Asset^ value)
 			{
@@ -121,7 +123,9 @@ namespace PistachioCS
 		{
 			Asset^ get()
 			{
-				return gcnew Asset(&m_ptr->material);
+				Asset^ asset;
+				*asset->m_ptr = m_ptr->material;
+				return asset;
 			}
 			void set(Asset^ value)
 			{

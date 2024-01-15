@@ -7,10 +7,6 @@ namespace PistachioCS
 	{
 		m_ptr = new Pistachio::Entity(handle, scene);
 	}
-	Entity::Entity(const Entity% other)
-	{
-		m_ptr = new Pistachio::Entity(*other.m_ptr);
-	}
 
 	
 	generic <typename T> where T : gcnew()

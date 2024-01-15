@@ -6,10 +6,10 @@ namespace Pistachio {
 	};
 	enum class TextureFlags
 	{
-		NONE,
-		ALLOW_CPU_ACCESS_READ,
-		NO_SHADER_USAGE,
-		USAGE_STAGING
+		NONE = 0,
+		ALLOW_CPU_ACCESS_READ = 1,
+		NO_SHADER_USAGE = 2,
+		USAGE_STAGING = 4
 	};
 	namespace RendererUtils {
 		static DXGI_FORMAT DXGITextureFormat(Pistachio::TextureFormat format) 

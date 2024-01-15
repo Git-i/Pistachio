@@ -7,6 +7,24 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="EditorCSharp.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
+		x:DataType="vm:MainViewModel"
         Title="EditorCSharp">
-        <views:MainView />
+	<DockPanel>
+		<Menu DockPanel.Dock="Top">
+			<MenuItem Header="_File">
+				<MenuItem Header="_Open..." Icon="/Assets/avalonia-ico.ico">
+				</MenuItem>
+				<Separator/>
+				<MenuItem Header="_Exit"/>
+			</MenuItem>
+			<MenuItem Header="_Edit">
+				<MenuItem Header="Copy"/>
+				<MenuItem Header="Paste"/>
+			</MenuItem>
+		</Menu>
+		<Button DockPanel.Dock="Left" VerticalAlignment="Stretch" Width="200"></Button>
+		<Button DockPanel.Dock="Right" VerticalAlignment="Stretch" Width="200"></Button>
+		<Button DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" Height="150"></Button>
+		<views:MainView DataContext="{Binding}"/>
+	</DockPanel>
 </Window>

@@ -11,7 +11,6 @@ namespace PistachioCS
 	internal:
 		Entity(entt::entity handle, Pistachio::Scene* scene);
 	public:
-		Entity(const Entity% other);
 		generic<typename T>  where T : gcnew() T GetComponent();
 		generic<typename T>  where T : gcnew() T AddComponent();
 		generic<typename T> bool HasComponent();
