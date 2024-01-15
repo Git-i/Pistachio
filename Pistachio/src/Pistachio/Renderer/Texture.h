@@ -23,6 +23,7 @@ namespace Pistachio {
 		void CreateStack(int width, int height, TextureFormat format,void* data, TextureFlags flags = TextureFlags::NONE);
 		void CopyIntoRegion(Texture2D& source, unsigned int location_x, unsigned int location_y, unsigned int src_left, unsigned int src_right, unsigned int src_up, unsigned int src_down, unsigned int mipSlice = 0, unsigned int arraySlice = 0);
 		void CopyInto(Texture2D& source);
+		void CopyToCPUBuffer(void* buffer);
 		RendererID_t GetID() const;
 		//TODO: Asset Management
 		bool operator==(const Texture2D& texture) const;

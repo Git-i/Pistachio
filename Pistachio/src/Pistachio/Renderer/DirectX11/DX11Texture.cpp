@@ -20,7 +20,7 @@ namespace Pistachio {
         ImageTextureDesc.SampleDesc.Quality = 0;
         ImageTextureDesc.Usage = ((int)flags & (int)TextureFlags::USAGE_STAGING) ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
         ImageTextureDesc.BindFlags = ((int)flags & (int)TextureFlags::USAGE_STAGING) ? 0 : D3D11_BIND_SHADER_RESOURCE;
-        ImageTextureDesc.CPUAccessFlags = ((int)flags & (int)TextureFlags::ALLOW_CPU_ACCESS_READ ) ? D3D11_CPU_ACCESS_READ: 0;
+        ImageTextureDesc.CPUAccessFlags = ((unsigned int)flags & (unsigned int)TextureFlags::ALLOW_CPU_ACCESS_READ ) ? D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE: 0;
         ImageTextureDesc.MiscFlags = 0;
 
         D3D11_SUBRESOURCE_DATA ImageSubresourceData = {};
@@ -33,7 +33,7 @@ namespace Pistachio {
         else
             Hr = RendererBase::Getd3dDevice()->CreateTexture2D(&ImageTextureDesc, nullptr, &ImageTexture);
         assert(SUCCEEDED(Hr));
-        if (!((int)flags & (int)TextureFlags::NO_SHADER_USAGE))
+        if (!(  ((int)flags & (int)TextureFlags::NO_SHADER_USAGE) || ((int)flags & (int)TextureFlags::USAGE_STAGING)  )) 
         {
             D3D11_SHADER_RESOURCE_VIEW_DESC srvdesc = {};
             srvdesc.Format = ImageTextureDesc.Format;
@@ -142,6 +142,22 @@ namespace Pistachio {
         if(m_bHasView)
             pDstResource->Release();
         pSrcResource->Release();
+    }
+    void Texture2D::CopyToCPUBuffer(void* buffer)
+    {
+        //todo rework this function
+        Texture2D cptex;
+        cptex.CreateStack(1280, 720, TextureFormat::RGBA8U, nullptr, (TextureFlags)((unsigned int)TextureFlags::ALLOW_CPU_ACCESS_READ | (unsigned int)TextureFlags::USAGE_STAGING));
+        cptex.CopyInto(*this);
+        D3D11_MAPPED_SUBRESOURCE sr;
+        ZeroMemory(&sr, sizeof(D3D11_MAPPED_SUBRESOURCE));
+        D3D11_TEXTURE2D_DESC desc;
+        ID3D11Texture2D* tex = (ID3D11Texture2D*)cptex.m_ID.Get();
+        tex->GetDesc(&desc);
+        HRESULT hr = Pistachio::RendererBase::Getd3dDeviceContext()->Map(tex, 0, D3D11_MAP_READ, 0, &sr);
+        memcpy(buffer, sr.pData, m_Height * m_Width * RendererUtils::TextureFormatBytesPerPixel(m_format));
+        Pistachio::RendererBase::Getd3dDeviceContext()->Unmap((ID3D11Texture2D*)tex, 0);
+        tex->Release();
     }
     Texture2D* Texture2D::Create(int width, int height, TextureFormat format, void* data, TextureFlags flags)
     {

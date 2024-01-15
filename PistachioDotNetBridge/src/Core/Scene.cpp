@@ -19,4 +19,14 @@ namespace PistachioCS
 	{
 		return m_ptr->OnUpdateEditor(delta, *camera->m_ptr);
 	}
+	System::IntPtr Scene::GetImage()
+	{
+		unsigned char* a = new unsigned char[1280 * 720 * 4];
+		m_ptr->GetRenderedScene().GetRenderTexture().CopyToCPUBuffer(a);
+		return System::IntPtr(a);
+	}
+	void Scene::FreeImage(System::IntPtr^ ptr)
+	{
+		delete ptr->ToPointer();
+	}
 }

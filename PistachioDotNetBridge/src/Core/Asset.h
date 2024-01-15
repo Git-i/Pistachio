@@ -7,9 +7,8 @@ namespace PistachioCS
 {
 	public ref class Asset : ManagedBase<Pistachio::Asset>
 	{
-	internal:
-		Asset(Pistachio::Asset* ptr) { m_ptr = ptr; }
 	public:
-		Asset() {}
+		Asset() { m_ptr = new Pistachio::Asset(); }
+
 	};
 }

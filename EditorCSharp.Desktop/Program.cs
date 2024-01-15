@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.ReactiveUI;
 
@@ -13,6 +13,9 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        Debugger.Launch();
+        while (!Debugger.IsAttached)
+            System.Threading.Thread.Sleep(100);
         BuildAvaloniaApp()
         .StartWithClassicDesktopLifetime(args);
     }

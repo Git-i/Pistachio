@@ -13,5 +13,7 @@ namespace PistachioCS
 		Scene(float width, float height);
 		Entity^ CreateEntity(System::String^ name);
 		void OnUpdateEditor(float delta, EditorCamera^ camera);
+		System::IntPtr GetImage();
+		void FreeImage(System::IntPtr^ ptr);
 	};
 }

@@ -10,21 +10,26 @@ class EditorLayer : PistachioCS.Layer
         IDComponent id = entity.GetComponent<IDComponent>();
         TagComponent tag = entity.GetComponent<TagComponent>();
         MeshRendererComponent mr = entity.AddComponent<MeshRendererComponent>();
-        EditorCamera a = entity.GetComponent<EditorCamera>(); // exception thrown
+        //EditorCamera a = entity.GetComponent<EditorCamera>(); // exception thrown
         Asset asset = AssetManager.CreateModelAsset("assets/models/obj/ceberus.obj");
-        mr.Model = asset;
+        TransformComponent transform = entity.AddComponent<TransformComponent>();
+        asset = AssetManager.CreateModelAsset("assets/models/obj/ceberus.obj");
         
+        mr.Model = asset;
         Console.WriteLine(id.UUID.Id);
     }
     public override void OnDetach()
     {
         Console.WriteLine("Detach");
+        
     }
     public override void OnUpdate(float delta)
     {
         camera.OnUpdate(delta);
         scene.OnUpdateEditor(delta, camera);
-        //Console.WriteLine("Update ", delta);
+        var buffer = scene.GetImage();
+        Console.WriteLine(buffer);
+
     }
     public EditorLayer()
     {
@@ -42,7 +47,7 @@ class Program
         PistachioCS.Application a = new PistachioCS.Application("5", true);
         EditorLayer layer = new EditorLayer();
         a.PushLayer(layer);
-        while (true) { a.Run(); }
+        a.Run();
         Console.WriteLine("Hello, World!");
     }
 }
