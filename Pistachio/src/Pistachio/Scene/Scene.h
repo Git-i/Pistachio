@@ -29,6 +29,7 @@ namespace Pistachio {
 		void OnUpdateRuntime(float delta);
 		void OnViewportResize(unsigned int width, unsigned int height);
 		void DestroyEntity(Entity entity);
+		template<typename _ComponentTy> auto GetAllComponents() { return m_Registry.view<_ComponentTy>(); }
 		Entity GetRootEntity();
 		Entity GetPrimaryCameraEntity();
 		const RenderTexture& GetGBuffer() { return m_gBuffer; };

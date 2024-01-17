@@ -8,6 +8,14 @@ namespace PistachioCS
 		m_ptr = new Pistachio::Entity(handle, scene);
 	}
 
+	bool Entity::IsValid()
+	{
+		return m_ptr->IsValid();
+	}
+	bool Entity::operator==(Entity^ other)
+	{
+		return ((*m_ptr) == (*other->m_ptr));
+	}
 	
 	generic <typename T> where T : gcnew()
 		T Entity::GetComponent()

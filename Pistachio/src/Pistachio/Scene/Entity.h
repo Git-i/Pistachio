@@ -15,7 +15,10 @@ namespace Pistachio {
 		Entity() = default;
 		Entity(entt::entity handle, Scene* scene);
 		Entity(const Entity& other) = default;
-
+		bool IsValid()
+		{
+			return m_Scene->m_Registry.valid(m_EntityHandle);
+		}
 		template<typename T, typename... Args>
 		T& AddComponent(Args&&... args)
 		{

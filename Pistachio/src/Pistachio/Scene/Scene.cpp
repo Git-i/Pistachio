@@ -1,3 +1,4 @@
+#include "Scene.h"
 #include "ptpch.h"
 #include "Scene.h"
 #include "Components.h"
@@ -100,9 +101,12 @@ static void ChangeVP(float size, Pistachio::hiVector2 offset)
 	vp[3].TopLeftY += size;
 }
 namespace Pistachio {
-	
+	//todo extremely temprary
+	static Shader* envshader;
 	Scene::Scene(SceneDesc desc) : sm_allocator({ 4096, 4096 }, {256, 256})
 	{
+		envshader = new Shader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso");
+		envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		PT_PROFILE_FUNCTION();
 		CreateEntity("Root").GetComponent<ParentComponent>().parentID = -1;
 		vp[0].TopLeftX = 0;
@@ -249,7 +253,7 @@ namespace Pistachio {
 		for (auto child : view)
 		{
 			if (view.get<ParentComponent>(child).parentID == (std::uint32_t)entity)
-				m_Registry.destroy(child);
+				DestroyEntity(Entity(child, this));
 		}
 		m_Registry.destroy(entity);
 	}
@@ -264,6 +268,7 @@ namespace Pistachio {
 		}
 		return Entity();
 	}
+	
 	Entity Scene::GetPrimaryCameraEntity()
 	{
 		PT_PROFILE_FUNCTION();
@@ -298,6 +303,7 @@ namespace Pistachio {
 		static std::vector<Entity> meshesToDraw;
 		//mark dirty transforms
 		{
+			
 			PT_PROFILE_SCOPE("Dirty Transform Components");
 			auto transformParent = m_Registry.view<ParentComponent, TransformComponent>();
 			for (auto entity : transformParent)
@@ -597,7 +603,7 @@ namespace Pistachio {
 		DirectX::XMStoreFloat3x3(&view, DirectX::XMLoadFloat4x4(reinterpret_cast<const DirectX::XMFLOAT4X4*>(&camera.GetViewMatrix())));
 		Renderer::BeginScene(&camera, DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat3x3(&view)));
 		static Mesh* cube = Mesh::Create("cube.obj");
-		static Shader* envshader = new Shader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso");
+		
 		Pistachio::Renderer::Submit(cube,envshader, &Renderer::DefaultMaterial, -1);
 		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Back);
 	}

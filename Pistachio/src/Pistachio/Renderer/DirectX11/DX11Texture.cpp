@@ -157,7 +157,6 @@ namespace Pistachio {
         HRESULT hr = Pistachio::RendererBase::Getd3dDeviceContext()->Map(tex, 0, D3D11_MAP_READ, 0, &sr);
         memcpy(buffer, sr.pData, m_Height * m_Width * RendererUtils::TextureFormatBytesPerPixel(m_format));
         Pistachio::RendererBase::Getd3dDeviceContext()->Unmap((ID3D11Texture2D*)tex, 0);
-        tex->Release();
     }
     Texture2D* Texture2D::Create(int width, int height, TextureFormat format, void* data, TextureFlags flags)
     {

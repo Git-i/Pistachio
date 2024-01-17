@@ -14,7 +14,7 @@ class EditorLayer : PistachioCS.Layer
         Asset asset = AssetManager.CreateModelAsset("assets/models/obj/ceberus.obj");
         TransformComponent transform = entity.AddComponent<TransformComponent>();
         asset = AssetManager.CreateModelAsset("assets/models/obj/ceberus.obj");
-        
+        TagComponent tagComponent = entity.AddComponent<TagComponent>();
         mr.Model = asset;
         Console.WriteLine(id.UUID.Id);
     }

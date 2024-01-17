@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "EditorCSharp.Desktop": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

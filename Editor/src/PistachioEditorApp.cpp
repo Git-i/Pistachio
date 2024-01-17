@@ -7,7 +7,7 @@ namespace Pistachio {
 	class PistachioEditor : public Application
 	{
 	public:
-		PistachioEditor() : Application("Pistachio Editor", InitModeHeadless()) { 
+		PistachioEditor() : Application("Pistachio Editor") { 
 			PushLayer(new EditorLayer("EditorLayer")); 
 			
 			GetWindow().SetVsync(1); 
