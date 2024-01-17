@@ -14,6 +14,9 @@ namespace PistachioCS
 		generic<typename T>  where T : gcnew() T GetComponent();
 		generic<typename T>  where T : gcnew() T AddComponent();
 		generic<typename T> bool HasComponent();
+		bool IsValid();
+		
+		bool operator==(Entity^ other);
 	};
 }
 

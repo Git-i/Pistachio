@@ -68,7 +68,6 @@ namespace Pistachio {
 	}
 	void ImGuiLayer::End()
 	{
-		return;
 		ImGui::Render();
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)

@@ -15,6 +15,7 @@
   </Design.DataContext>
 		<cc:SceneView Width="{Binding $parent.Width}"
 					  Height="{Binding $parent.Height}"
+					  Margin="10"
 					  Name="Scene">
 
 		</cc:SceneView>

@@ -22,7 +22,7 @@ namespace Pistachio {
 	void EditorLayer::OnUpdate(float delta)
 	{
 		PT_PROFILE_FUNCTION()
-			//imguiLayer->Begin();
+			imguiLayer->Begin();
 		switch(m_SceneState)
 		{
 			case SceneState::Edit:
@@ -54,8 +54,6 @@ namespace Pistachio {
 	}
 	void EditorLayer::OnImGuiRender()
 	{
-		//todo fix imgui
-		return;
 		ImGui::DockSpaceOverViewport();
 		ImGui::GetStyle().WindowMinSize.x = 270.f * ((WindowData*)GetWindowDataPtr())->dpiscale;
 		ImGui::BeginMainMenuBar();

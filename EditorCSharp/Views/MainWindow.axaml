@@ -22,9 +22,43 @@
 				<MenuItem Header="Paste"/>
 			</MenuItem>
 		</Menu>
-		<Button DockPanel.Dock="Left" VerticalAlignment="Stretch" Width="200"></Button>
+		<TreeView DockPanel.Dock="Left" Width="200" ItemsSource="{Binding entityNodes}" SelectedItem="{Binding currentNode, Mode=TwoWay}"
+				  SelectionMode="Single">
+			<TreeView.Styles>
+				<Style Selector="TreeViewItem">
+					<Setter Property="ContextMenu">
+						<ContextMenu>
+							<MenuItem Header="Delete Entity" Command="{Binding DeleteEntity}"/>
+						</ContextMenu>
+					</Setter>
+				</Style>
+			</TreeView.Styles>
+			<TreeView.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Create New Entity" Command="{Binding AddEntity}"/>
+					</ContextMenu>
+				</TreeView.ContextMenu>
+			<TreeView.ItemTemplate>
+				<TreeDataTemplate ItemsSource="{Binding children}">
+					<TextBlock Text="{Binding tag}"/>
+				</TreeDataTemplate>
+			</TreeView.ItemTemplate>
+		</TreeView>
 		<Button DockPanel.Dock="Right" VerticalAlignment="Stretch" Width="200"></Button>
-		<Button DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" Height="150"></Button>
+		<Grid DockPanel.Dock="Bottom" ShowGridLines="True" 
+			  ColumnDefinitions="0.25*,0.25*,0.25*,0.25*" 
+			  RowDefinitions="Auto,Auto,Auto,Auto"
+			  HorizontalAlignment="Stretch"
+			  Height="120">
+			<Label Grid.Row="0" Grid.Column="0">File 1</Label>
+			<Label Grid.Row="0" Grid.Column="1">File 2</Label>
+			<Label Grid.Row="0" Grid.Column="2">File 3</Label>
+			<Label Grid.Row="1" Grid.Column="0">File 4</Label>
+			<Label Grid.Row="1" Grid.Column="1">File 5</Label>
+			<Label Grid.Row="1" Grid.Column="2">File 6</Label>
+			<Label Grid.Row="2" Grid.Column="0">File 7</Label>
+			<Label Grid.Row="3" Grid.Column="0">File 8</Label>
+		</Grid>
 		<views:MainView DataContext="{Binding}"/>
 	</DockPanel>
 </Window>
