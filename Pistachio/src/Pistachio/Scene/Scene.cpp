@@ -380,8 +380,6 @@ namespace Pistachio {
 					{
 						if (lightcomponent.shadowMap)
 						{
-							//todo: remove this line, it is completely unnecessary and only for debug
-							Renderer::shadowMapAtlas.Clear(sm_allocator.GetRegion(lightcomponent.shadowMap), 0.f);
 							sm_allocator.DeAllocate(lightcomponent.shadowMap);
 							lightcomponent.shadowMap = 0;
 						}
@@ -451,8 +449,6 @@ namespace Pistachio {
 				{
 					if (lightcomponent.shadowMap != 0)
 					{
-						//todo: remove this line, it is completely unnecessary and only for debug
-						Renderer::shadowMapAtlas.Clear(sm_allocator.GetRegion(lightcomponent.shadowMap), 0.f);
 						sm_allocator.DeAllocate(lightcomponent.shadowMap);
 						lightcomponent.shadowMap = 0;
 					}
@@ -880,7 +876,7 @@ namespace Pistachio {
 			}
 		}
 	}
-	//todo implement these
+	//todo implement this
 	template <typename T>
 	void Scene::RenderPointLightShadows(T& transformMesh, ShadowCastingLight& light)
 	{

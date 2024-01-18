@@ -126,6 +126,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClInclude Include="src\Pistachio\Core\Property.h" />
     <ClInclude Include="src\Pistachio\Core\UUID.h" />
     <ClInclude Include="src\Pistachio\Debug\Instrumentor.h" />
+    <ClInclude Include="src\Pistachio\Event\SceneGraphEvent.h" />
     <ClInclude Include="src\Pistachio\Physics\Physics.h" />
     <ClInclude Include="src\Pistachio\Renderer\com_ptr.h" />
     <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.h" />

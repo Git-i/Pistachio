@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include "Pistachio/Core.h"
 
 namespace Pistachio {
@@ -10,7 +11,8 @@ namespace Pistachio {
 		AppTick, AppUpdate, AppRender,
 		KeyPressed, KeyReleased,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled,
-		GamepadButtonPressed, GamepadPuttonReleased, GamepadJoystickPressed, GamepadJoystickReleased
+		GamepadButtonPressed, GamepadPuttonReleased, GamepadJoystickPressed, GamepadJoystickReleased,
+		EntityCreated, EntityDestroyed, EntityReparented
 	};
 
 	enum EventCategory : char
@@ -18,11 +20,12 @@ namespace Pistachio {
 		None = 0,
 		EventCategoryApplication = 1,
 		EventCategoryKeyboard = 2,
-		EventCategoryMouse = 9,
-		EventCategoryMouseButton = 3,
-		EventCategoryInput = 42,
-		EventCategoryGamepad = 35,
-		EventCategoryGamepadJoystick = 7
+		EventCategoryMouse = 9, //includes mouseButton (9)
+		EventCategoryMouseButton = 3, 
+		EventCategoryInput = 35 * 18, //includes mouse (9) gamepad (35) and keyboard(2)
+		EventCategoryGamepad = 35, //includes gamepadJoystick(7)
+		EventCategoryGamepadJoystick = 7,
+		EventCategorySceneGraph = 11
 	};
 
 #define EVENT_CLASS_TYPE(type) static EventType GetStaticType() { return EventType::type; }\
