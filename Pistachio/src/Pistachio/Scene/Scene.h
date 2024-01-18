@@ -6,6 +6,7 @@
 #include "Pistachio\Renderer\Mesh.h"
 #include "Pistachio\Allocators\AtlasAllocator.h"
 #include "Pistachio/Renderer/Renderer.h"
+#include "Pistachio\Event\SceneGraphEvent.h"
 namespace physx {
 	class PxScene;
 }
@@ -53,7 +54,6 @@ namespace Pistachio {
 		unsigned int m_viewportWidth, m_ViewportHeight;
 		RenderTexture m_gBuffer;
 		RenderTexture m_finalRender;
-		
 	};
 
 }

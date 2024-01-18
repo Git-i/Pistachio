@@ -22,7 +22,7 @@ namespace Pistachio {
 		m_Window = Scope<Window>(Window::Create(info));
 		Pistachio::Log::Init();
 		RendererBase::Init(m_Window->pd.hwnd);
-		Renderer::Init("resources/textures/hdr/small_empty_room_1_4k.hdr");
+		Renderer::Init("resources/textures/hdr/panorama_image.png");
 		Renderer2D::Init();
 		std::cout << "phys time" << std::endl;
 		//Physics::Init();
@@ -50,7 +50,7 @@ namespace Pistachio {
 		m_Window = Scope<Window>(Window::Create(info, m_headless));
 		Pistachio::Log::Init();
 		RendererBase::Init(m_Window->pd.hwnd);
-		Renderer::Init("resources/textures/hdr/small_empty_room_1_4k.hdr");
+		Renderer::Init("resources/textures/hdr/paranoma_image.png");
 		Renderer2D::Init();
 		std::cout << "phys time" << std::endl;
 		//Physics::Init();

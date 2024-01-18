@@ -3,6 +3,7 @@
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Core/Error.h"
+#include "Instance.h"
 Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateNoCull = NULL;
 Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCWCull = NULL;
 Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCCWCull = NULL;
@@ -37,16 +38,10 @@ namespace Pistachio {
 	}
 	bool RendererBase::Init(HWND hwnd)
 	{
-		std::cout << "rbase " << std::endl;
 		PT_PROFILE_FUNCTION();
 	#ifdef PISTACHIO_RENDER_API_DX11
-		if (hwnd)
-		{
-			Error::LogErrorToConsole(DX11RendererBase::CreateDevice(hwnd, &g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext, &pDSV, &g_mainRenderTargetView));
-			RendererBase::Resize(((WindowData*)GetWindowDataPtr())->width, ((WindowData*)GetWindowDataPtr())->height);
-		}
-		else
-			Error::LogErrorToConsole(DX11RendererBase::CreateHeadlessDevice(&g_pd3dDevice, &g_pd3dDeviceContext, &pDSV, &g_mainRenderTargetView));
+		Error::LogErrorToConsole(DX11RendererBase::CreateDevice(hwnd, &g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext, &pDSV, &g_mainRenderTargetView));
+		RendererBase::Resize(((WindowData*)GetWindowDataPtr())->width, ((WindowData*)GetWindowDataPtr())->height);
 		PT_CORE_INFO("RendererBase Initialized with API: DirectX 11");
 		IsDeviceNull = false;
 		g_pd3dDeviceContext->IASetPrimitiveTopology(DX11Topology(PrimitiveTopology::TriangleList));

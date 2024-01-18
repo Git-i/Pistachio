@@ -234,6 +234,9 @@ namespace Pistachio {
 		fbo.BindResource(8);
 		shadowMapAtlas.Create(4096);
 		DefaultMaterial.Initialize();
+		DefaultMaterial.diffuseColor = Vector4(1);
+		DefaultMaterial.metallic = 0.f;
+		DefaultMaterial.roughness = 1.f;
 		DefaultMaterial.Update();
 
 	}
@@ -245,7 +248,6 @@ namespace Pistachio {
 	}
 	void Renderer::AddShadowCastingLight(const ShadowCastingLight& light)
 	{
-		//todo actually implement this
 		PT_PROFILE_FUNCTION();
 		ShadowLightData.push_back(light);
 		passConstants.numShadowlights++;

@@ -1331,6 +1331,9 @@
     <ClInclude Include="src\Pistachio\Renderer\com_ptr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Pistachio\Event\SceneGraphEvent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vendor\assimp\include\assimp\color4.inl">
