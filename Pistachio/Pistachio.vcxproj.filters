@@ -63,16 +63,7 @@
     <ClCompile Include="src\Pistachio\Renderer\RendererBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Pistachio\Renderer\Renderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Renderer\Camera.cpp">
@@ -84,19 +75,10 @@
     <ClCompile Include="vendor\stb_image\stb_image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Texture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Pistachio\Renderer\Sampler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Renderer\Mesh.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pistachio\Renderer\Renderer2D.cpp">
@@ -129,9 +111,6 @@
     <ClCompile Include="src\Pistachio\Renderer\MeshFactory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11ShadowMap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="vendor\SimpleMath\SimpleMath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -154,6 +133,24 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vendor\entt\include\entt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\RHI\Buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11RendererBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11RenderTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11Shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11ShadowMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -245,9 +242,6 @@
     <ClInclude Include="src\Pistachio\Renderer\Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Pistachio\Renderer\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -263,9 +257,6 @@
     <ClInclude Include="src\Pistachio\Renderer\Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Texture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Pistachio\Renderer\Sampler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -273,9 +264,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Renderer\RenderTexture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Renderer\Renderer2D.h">

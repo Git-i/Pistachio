@@ -1,7 +1,8 @@
 #pragma once
 #include "Pistachio/Core.h"
 #include "Buffer.h"
-#include "DirectX11/DX11RendererBase.h"
+//#include "DirectX11/DX11RendererBase.h"
+#include "../Core/Instance.h"
 namespace Pistachio {
 	enum class CullMode {
 		None, Front, Back
@@ -33,27 +34,22 @@ namespace Pistachio {
 		#ifdef PT_PLATFORM_WINDOWS
 			static bool Init(HWND hwnd);
 		#endif
-		#ifdef PISTACHIO_RENDER_API_DX11
-			static ID3D11Device* Getd3dDevice() {  return g_pd3dDevice.Get(); }
-			static ID3D11DeviceContext* Getd3dDeviceContext() { return g_pd3dDeviceContext.Get(); }
-			static IDXGISwapChain* GetSwapChain() { return g_pSwapChain.Get(); }
-			static ID3D11RenderTargetView* GetmainRenderTargetView() { return g_mainRenderTargetView.Get(); }
-			static ID3D11DepthStencilView* GetDepthStencilView(){ return pDSV.Get(); }
-		#endif
+		static RHI::Device* Getd3dDevice() {  return device; }
+		static RHI::CommandList* GetMainCommandList() { return mainCommandList; }
+		static RHI::SwapChain* GetSwapChain() { return swapChain; }
+		//static ID3D11RenderTargetView* GetmainRenderTargetView() { return g_mainRenderTargetView.Get(); }
+		//static ID3D11DepthStencilView* GetDepthStencilView(){ return pDSV.Get(); }
 	private:
-		#ifdef PISTACHIO_RENDER_API_DX11
-			static ComPtr<ID3D11Device> g_pd3dDevice;
-			static ComPtr<ID3D11DeviceContext> g_pd3dDeviceContext;
-			static ComPtr<IDXGISwapChain> g_pSwapChain;
-			static ComPtr<ID3D11RenderTargetView> g_mainRenderTargetView;
-			static ComPtr<ID3D11DepthStencilView> pDSV;
-			static ComPtr<ID3D11RasterizerState> pRasterizerStateNoCull;
-			static ComPtr<ID3D11RasterizerState> pShadowMapRasterizerState;
-			static ComPtr<ID3D11RasterizerState> pRasterizerStateCWCull;
-			static ComPtr<ID3D11RasterizerState> pRasterizerStateCCWCull;
-			static ComPtr<ID3D11DepthStencilState> pDSStateLess;
-			static ComPtr<ID3D11DepthStencilState> pDSStateLessEqual;
-		#endif
+		static RHI::Device* device;
+		static RHI::GraphicsCommandList* mainCommandList;
+		static RHI::CommandAllocator* commandAllocators[3];
+		static RHI::Instance* instance;
+		static RHI::SwapChain* swapChain;
+		static RHI::CommandQueue* directQueue;
+		static RHI::Texture* backBufferTextures[2]; //todo: tripebuffering support
+		static RHI::DescriptorHeap* rtvHeap;
+		static std::uint64_t fence_vals[3]; //managing sync across allocators
+		static RHI::Fence* mainFence;
 		static FLOAT m_ClearColor[4];
 	};
 }

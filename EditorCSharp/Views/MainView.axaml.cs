@@ -1,8 +1,4 @@
-﻿using Avalonia.Controls;
-using Avalonia.Media;
-using System.Diagnostics;
-
-namespace EditorCSharp.Views;
+﻿namespace EditorCSharp.Views;
 
 public partial class MainView : UserControl
 {

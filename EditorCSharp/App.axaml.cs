@@ -1,8 +1,4 @@
-﻿using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Markup.Xaml;
-
-using EditorCSharp.ViewModels;
+﻿using EditorCSharp.ViewModels;
 using EditorCSharp.Views;
 namespace EditorCSharp;
 
