@@ -60,7 +60,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;_CRT_SECURE_NO_WARNINGS;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS;PISTACHIO_BUILD_DLL;DYNAMICLINK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo;$(SolutionDir)Pistachio\vendor\physx\include;$(SolutionDir)Pistachio\vendor\SimpleMath;$(SolutionDir)Pistachio\vendor\tracy\tracy</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo;$(SolutionDir)Pistachio\vendor\physx\include;$(SolutionDir)Pistachio\vendor\SimpleMath;$(SolutionDir)Pistachio\vendor\tracy\tracy;$(SolutionDir)..\RenderHardwareInterface\RenderHardwareInterface\Core;$(SolutionDir)..\RenderHardwareInterface\RenderHardwareInterface</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
       <PreprocessToFile>false</PreprocessToFile>
@@ -72,7 +72,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>opengl32.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;yaml-cppd.lib;PhysXExtensions_static_64.lib;PhysXPvdSDK_static_64.lib;PhysXVehicle_static_64.lib;PhysXVehicle2_static_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCooking_64.lib;SnippetUtils_static_64.lib;PVDRuntime_64.lib;SnippetRender_static_64.lib;SceneQuery_static_64.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;$(SolutionDir)Pistachio\vendor\physx\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;$(SolutionDir)Pistachio\vendor\physx\lib;$(SolutionDir)\x64\Debug-Vulkan;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)bin\Debug-x64\Pistachio-Editor
@@ -129,12 +129,9 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClInclude Include="src\Pistachio\Event\SceneGraphEvent.h" />
     <ClInclude Include="src\Pistachio\Physics\Physics.h" />
     <ClInclude Include="src\Pistachio\Renderer\com_ptr.h" />
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.h" />
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11Texture.h" />
     <ClInclude Include="src\Pistachio\Core\Timestep.h" />
     <ClInclude Include="src\Pistachio\Core\Transform.h" />
     <ClInclude Include="src\Pistachio\Renderer\Camera.h" />
-    <ClInclude Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.h" />
     <ClInclude Include="src\Pistachio\Renderer\EditorCamera.h" />
     <ClInclude Include="src\Pistachio\Renderer\Material.h" />
     <ClInclude Include="src\Pistachio\Renderer\MeshFactory.h" />
@@ -516,14 +513,8 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClCompile Include="src\Pistachio\Core\UUID.cpp" />
     <ClCompile Include="src\Pistachio\Physics\Physics.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsPlatformUtils.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Cubemap.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RenderTexture.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11ShadowMap.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Texture.cpp" />
     <ClCompile Include="src\Pistachio\Core\Transform.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Camera.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11RendererBase.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Shader.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\EditorCamera.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Material.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\MeshFactory.cpp" />
@@ -531,6 +522,12 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClCompile Include="src\Pistachio\Renderer\Renderer2D.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Mesh.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Renderer.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\RHI\Buffer.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11RendererBase.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11RenderTexture.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11Shader.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11ShadowMap.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11Texture.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Sampler.cpp" />
     <ClCompile Include="src\Pistachio\Core\Layer.cpp" />
     <ClCompile Include="src\Pistachio\Core\LayerStack.cpp" />
@@ -538,7 +535,6 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClCompile Include="src\Pistachio\Core\Application.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputPoll.cpp" />
-    <ClCompile Include="src\Pistachio\Renderer\DirectX11\DX11Buffer.cpp" />
     <ClCompile Include="src\Pistachio\Scene\CullingManager.cpp" />
     <ClCompile Include="src\Pistachio\Scene\Entity.cpp" />
     <ClCompile Include="src\Pistachio\Scene\Scene.cpp" />

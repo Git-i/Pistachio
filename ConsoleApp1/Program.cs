@@ -1,6 +1,4 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using PistachioCS;
-
 class EditorLayer : PistachioCS.Layer
 {
     public override void OnAttach()
@@ -21,7 +19,7 @@ class EditorLayer : PistachioCS.Layer
     public override void OnDetach()
     {
         Console.WriteLine("Detach");
-        
+
     }
     public override void OnUpdate(float delta)
     {
@@ -38,8 +36,8 @@ class EditorLayer : PistachioCS.Layer
     }
     private PistachioCS.Scene scene;
     private PistachioCS.EditorCamera camera;
-    
-}  
+
+}
 class Program
 {
     public static void Main(string[] args)

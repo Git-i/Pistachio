@@ -1,15 +1,5 @@
-﻿
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Controls.Primitives;
-using Avalonia.Media;
-using Avalonia.Platform;
-using DynamicData;
-using PistachioCS;
-using ReactiveUI;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
-using System.Reactive;
 
 namespace EditorCSharp.ViewModels;
 public class EntityNode
@@ -29,9 +19,9 @@ public class EntityNode
         tag = entity.GetComponent<TagComponent>().Tag;
         children = new ObservableCollection<EntityNode>();
         var entityChildren = scene.GetEntityChildern(entity);
-        if(entityChildren != null) 
+        if (entityChildren != null)
         {
-            foreach(var child in entityChildren) 
+            foreach (var child in entityChildren)
             {
                 children.Add(new EntityNode(child, scene));
             }
@@ -43,7 +33,7 @@ class EditorLayer : PistachioCS.Layer
     public override void OnAttach()
     {
         Console.WriteLine("Attach");
-        
+
         IDComponent id = entity.GetComponent<IDComponent>();
         MeshRendererComponent mr = entity.AddComponent<MeshRendererComponent>();
         //EditorCamera a = entity.GetComponent<EditorCamera>(); // exception thrown
@@ -53,7 +43,7 @@ class EditorLayer : PistachioCS.Layer
 
         mr.Model = asset;
         Console.WriteLine(id.UUID.Id);
-        
+
     }
     public override void OnDetach()
     {
@@ -84,22 +74,22 @@ class EditorLayer : PistachioCS.Layer
         scene.ReParentEntity(e, entity);
         Entity b = scene.CreateEntity("asd's-grandchild?");
         scene.ReParentEntity(b, e);
-        
+
     }
     private void SceneUpdate(object? sender, SceneGraphChangedArgs args)
     {
         //entities.Clear();
         //Entity root = scene.GetRootEntity();
         //entities.Add(new EntityNode(root, scene));
-        if(args.op == SceneGraphOp.EntityCreated)
+        if (args.op == SceneGraphOp.EntityCreated)
         {
             ObservableCollection<EntityNode> currentCollection = entities[0].children;
-            for(int i = args.entityParentHierarchy.Count-1; i > 0; i--)
+            for (int i = args.entityParentHierarchy.Count - 1; i > 0; i--)
             {
                 //find index to append entity node
-                foreach(EntityNode node in currentCollection) 
+                foreach (EntityNode node in currentCollection)
                 {
-                    if(node.entity == args.entityParentHierarchy[i])
+                    if (node.entity == args.entityParentHierarchy[i])
                     {
                         currentCollection = currentCollection[currentCollection.IndexOf(node)].children;
                     }
@@ -107,7 +97,7 @@ class EditorLayer : PistachioCS.Layer
             }
             currentCollection.Add(new EntityNode(args.affectedEntity, scene));
         }
-        if(args.op == SceneGraphOp.EntityReparented)
+        if (args.op == SceneGraphOp.EntityReparented)
         {
             //add it to the new hierarchy
             ObservableCollection<EntityNode> currentCollection = entities[0].children;
@@ -147,7 +137,7 @@ class EditorLayer : PistachioCS.Layer
                 }
             }
         }
-        if(args.op == SceneGraphOp.EntityRemoved)
+        if (args.op == SceneGraphOp.EntityRemoved)
         {
             var currentCollection = entities[0].children;
             for (int i = args.entityParentHierarchy.Count - 1; i >= 0; i--)
