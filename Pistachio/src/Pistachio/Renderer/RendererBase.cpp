@@ -3,19 +3,19 @@
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Core/Error.h"
-Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateNoCull = NULL;
-Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCWCull = NULL;
-Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCCWCull = NULL;
-Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pShadowMapRasterizerState = NULL;
-Pistachio::ComPtr<ID3D11DepthStencilState> Pistachio::RendererBase::pDSStateLess = NULL;
-Pistachio::ComPtr<ID3D11DepthStencilState> Pistachio::RendererBase::pDSStateLessEqual = NULL;
-Pistachio::ComPtr<ID3D11Device> Pistachio::RendererBase::g_pd3dDevice = NULL;
-Pistachio::ComPtr<ID3D11DeviceContext> Pistachio::RendererBase::g_pd3dDeviceContext = NULL;
-Pistachio::ComPtr<IDXGISwapChain> Pistachio::RendererBase::g_pSwapChain = NULL;
-Pistachio::ComPtr<ID3D11RenderTargetView> Pistachio::RendererBase::g_mainRenderTargetView = NULL;
-Pistachio::ComPtr<ID3D11DepthStencilView> Pistachio::RendererBase::pDSV = NULL;
-bool Pistachio::RendererBase::IsDeviceNull = true;
-FLOAT Pistachio::RendererBase::m_ClearColor[4] = {0};
+
+#pragma comment(lib, "RenderHardwareInterface.lib")
+static RHI::Device*              device;
+static RHI::GraphicsCommandList* mainCommandList;
+static RHI::CommandAllocator*    commandAllocators[3];
+static RHI::Instance*            instance;
+static RHI::SwapChain*           swapChain;
+static RHI::CommandQueue*        directQueue;
+static RHI::Texture*             backBufferTextures[2]; //todo: tripebuffering support
+static RHI::DescriptorHeap*      rtvHeap;
+static std::uint64_t             fence_vals[3]; //managing sync across allocators
+static RHI::Fence*               mainFence;
+static FLOAT                     m_ClearColor[4];
 namespace Pistachio {
 	//General Pistachio RendererBase API calls
 	static D3D11_PRIMITIVE_TOPOLOGY DX11Topology(PrimitiveTopology Topology)
@@ -38,100 +38,99 @@ namespace Pistachio {
 	bool RendererBase::Init(HWND hwnd)
 	{
 		PT_PROFILE_FUNCTION();
-	#ifdef PISTACHIO_RENDER_API_DX11
-		Error::LogErrorToConsole(DX11RendererBase::CreateDevice(hwnd, &g_pSwapChain, &g_pd3dDevice, &g_pd3dDeviceContext, &pDSV, &g_mainRenderTargetView));
-		RendererBase::Resize(((WindowData*)GetWindowDataPtr())->width, ((WindowData*)GetWindowDataPtr())->height);
-		PT_CORE_INFO("RendererBase Initialized with API: DirectX 11");
-		IsDeviceNull = false;
-		g_pd3dDeviceContext->IASetPrimitiveTopology(DX11Topology(PrimitiveTopology::TriangleList));
-		D3D11_RASTERIZER_DESC desc = {};
-		D3D11_DEPTH_STENCIL_DESC dsc = {};
-		dsc.DepthEnable = TRUE;
-		dsc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		dsc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-		g_pd3dDevice->CreateDepthStencilState(&dsc, &pDSStateLessEqual);
-		dsc.DepthFunc = D3D11_COMPARISON_LESS;
-		g_pd3dDevice->CreateDepthStencilState(&dsc, &pDSStateLess);
-		desc.FillMode = D3D11_FILL_SOLID;
-		desc.CullMode = D3D11_CULL_NONE;
-		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateNoCull);
-		desc.CullMode = D3D11_CULL_BACK;
-		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateCWCull);
-		desc.CullMode = D3D11_CULL_FRONT;
-		g_pd3dDevice->CreateRasterizerState(&desc, &pRasterizerStateCCWCull);
-		desc.CullMode = D3D11_CULL_FRONT;
-		//desc.DepthBias = 100000;
-		//desc.DepthBiasClamp = 0.0f;
-		//desc.SlopeScaledDepthBias = 1.0f;
-		g_pd3dDevice->CreateRasterizerState(&desc, &pShadowMapRasterizerState);
+		RHICreateInstance(&instance);
+		//todo implement device selection
+		RHI::PhysicalDevice* physicalDevice;
+		RHI::PhysicalDeviceDesc physicalDeviceDesc;
+		instance->GetPhysicalDevice(0, &physicalDevice);
+		physicalDevice->GetDesc(&physicalDeviceDesc);
+		std::wcout << physicalDeviceDesc.Description << std::endl;
+
+		RHI::Surface surface;
+
+		RHI::CommandQueueDesc commandQueueDesc = {};
+		commandQueueDesc.CommandListType = RHI::CommandListType::Direct; // 1 direct cmd queue for now
+		commandQueueDesc.Priority = 1.f;//only really used in vulkan
+
+		RHICreateDevice(physicalDevice, &commandQueueDesc, 1, &directQueue, &device);
+		//todo handle multiplatform surface creation
+		surface.InitWin32(hwnd, instance->ID);
+
+		unsigned int height = ((WindowData*)GetWindowDataPtr())->height;
+		unsigned int width = ((WindowData*)GetWindowDataPtr())->width;
+		RHI::SwapChainDesc sDesc;
+		sDesc.BufferCount = 2; //todo probably allow triple buffering
+		sDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // abstract this away from dxgi todo
+		sDesc.Flags = 0;
+		sDesc.Height = height;
+		sDesc.Width = width;
+		sDesc.OutputSurface = surface;
+		sDesc.RefreshRate = {60,1};
+		sDesc.SampleCount = 1; //disable multisampling for now, because RHI doesnt fully support it
+		sDesc.SampleQuality = 0;
+		sDesc.SwapChainFormat = RHI::Format::B8G8R8A8_UNORM;//todo add functionality to get supported formats in the RHI
+		sDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // todo anbstract this away from dxgi
+		sDesc.Windowed = true;
+		instance->CreateSwapChain(&sDesc, physicalDevice, device, directQueue, &swapChain);
+		device->GetSwapChainImage(swapChain, 0, &backBufferTextures[0]);
+		device->GetSwapChainImage(swapChain, 1, &backBufferTextures[1]);
+
+		RHI::PoolSize pSize;
+		pSize.numDescriptors = 2;
+		pSize.type = RHI::DescriptorType::RTV;
+		RHI::DescriptorHeapDesc rtvHeapHesc;
+		rtvHeapHesc.maxDescriptorSets = 1;
+		rtvHeapHesc.numPoolSizes = 1;
+		rtvHeapHesc.poolSizes = &pSize;
+		//create render target views
+		device->CreateDescriptorHeap(&rtvHeapHesc, &rtvHeap);
+		// allocators are handled with a "frames in flight approach"
+		device->CreateCommandAllocators(RHI::CommandListType::Direct, 3, commandAllocators);
+
+		//create a main command list for now, multithreading will come later
+		device->CreateCommandList(RHI::CommandListType::Direct, commandAllocators[0], &mainCommandList);
+		device->CreateFence(&mainFence, 0);
+
+		// todo find a pso handling strategy, especially for custom shaders.
+		// since every pso can only hold a single shader set, probably have a bunch of
+		// must have pso's for every shader, where they all create it with thier own programs
+		// we can also implement custom pso's for certain shaders?? 
+		// for some that have nice requirements like line rendering (and depth off??) and different comparison functions
+		// meaning we'll have to have a set of static samplers globally in the rendererbase??
 		return 0;
-	#endif 
 	}
 	void RendererBase::ClearTarget()
 	{
-		#ifdef PISTACHIO_RENDER_API_DX11
-			DX11RendererBase::CleanupRenderTarget(g_mainRenderTargetView.Get(), g_pd3dDeviceContext.Get(), pDSV.Get());
-		#endif
+		//todo
 	}
 	void RendererBase::ChangeViewport(int width, int height, int x, int y)
 	{
-		D3D11_VIEWPORT vp;
-		vp.Width = width;
-		vp.Height = height;
-		vp.MinDepth = 0;
-		vp.MaxDepth = 1;
-		vp.TopLeftX = x;
-		vp.TopLeftY = y;
-		RendererBase::g_pd3dDeviceContext->RSSetViewports(1, &vp);
+		RHI::Viewport vp;
+		vp.width = width;
+		vp.height = height;
+		vp.minDepth = 0;
+		vp.maxDepth = 1;
+		vp.x = x;
+		vp.y = y;
+		mainCommandList->SetViewports(1, &vp);
 	}
 	void RendererBase::CreateTarget()
 	{
-		#ifdef PISTACHIO_RENDER_API_DX11
-		ID3D11Texture2D* pDepthStencil;
-		D3D11_TEXTURE2D_DESC depthTexDesc = {};
-		WindowData* data = (WindowData*)(GetWindowDataPtr());
-		depthTexDesc.Width = data->width;
-		depthTexDesc.Height = data->height;
-		depthTexDesc.MipLevels = 1;
-		depthTexDesc.ArraySize = 1;
-		depthTexDesc.Format = DXGI_FORMAT_D32_FLOAT;
-		depthTexDesc.SampleDesc.Count = 1;
-		depthTexDesc.SampleDesc.Quality = 0;
-		depthTexDesc.Usage = D3D11_USAGE_DEFAULT;
-		depthTexDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		(g_pd3dDevice)->CreateTexture2D(&depthTexDesc, nullptr, &pDepthStencil);
-		D3D11_DEPTH_STENCIL_VIEW_DESC dsv = {};
-		dsv.Format = DXGI_FORMAT_D32_FLOAT;
-		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-		dsv.Texture2D.MipSlice = 0;
-		(g_pd3dDevice)->CreateDepthStencilView(pDepthStencil, &dsv, pDSV.ReleaseAndGetAddressOf());
-		DX11RendererBase::CreateRenderTarget(g_pSwapChain.Get(), g_pd3dDevice.Get(), g_mainRenderTargetView.ReleaseAndGetAddressOf());
-		pDepthStencil->Release();
-		#endif
+		//todo
 	}
 	void RendererBase::ClearView()
 	{
-		#ifdef PISTACHIO_RENDER_API_DX11
-			g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView.Get(), m_ClearColor);
-			g_pd3dDeviceContext->ClearDepthStencilView(pDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-		#endif // PISTACHIO_RENDER_API_DX11
+		//todo remove and replace with Begin/End Rendering???
 	}
 
 	void RendererBase::Resize(int width, int height)
 	{
-		PT_PROFILE_FUNCTION()
-		ID3D11RenderTargetView* nullViews[] = { nullptr };
-		g_pd3dDeviceContext->OMSetRenderTargets(1, nullViews, nullptr);
-		pDSV = nullptr;
-		g_mainRenderTargetView = nullptr;
-		g_pSwapChain->ResizeBuffers(0, (UINT)width, (UINT)height, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
-		CreateTarget();
-		ChangeViewport(width, height);
+		//todo implement
 	}
 
 	void RendererBase::SetPrimitiveTopology(PrimitiveTopology Topology)
 	{
-		g_pd3dDeviceContext->IASetPrimitiveTopology(DX11Topology(Topology));
+		// todo replace with pso system??
 	}
 
 	void RendererBase::SetClearColor(float r, float g, float b, float a)
@@ -147,36 +146,23 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION()
 		unsigned int count = indexCount ? indexCount : buffer.ib->GetCount();
 		buffer.Bind();
-		g_pd3dDeviceContext->DrawIndexed(count, 0, 0);
+		mainCommandList->DrawIndexed(count,1, 0, 0,0);
 	}
 
 	void RendererBase::SetCullMode(CullMode cullmode)
 	{
-		switch (cullmode)
-		{
-		case Pistachio::CullMode::None: g_pd3dDeviceContext->RSSetState(pRasterizerStateNoCull.Get());
-			break;
-		case Pistachio::CullMode::Front: g_pd3dDeviceContext->RSSetState(pRasterizerStateCCWCull.Get());
-			break;
-		case Pistachio::CullMode::Back: g_pd3dDeviceContext->RSSetState(pRasterizerStateCWCull.Get());
-			break;
-		default:
-			break;
-		}
+		//todo replace with pso system
 	}
 	void RendererBase::EnableShadowMapRasetrizerState()
 	{
-		g_pd3dDeviceContext->RSSetState(pShadowMapRasterizerState.Get());
+		//todo replace with pso system
 	}
 	void RendererBase::SetDepthStencilOp(DepthStencilOp op)
 	{
-		if (op == DepthStencilOp::Less)
-			g_pd3dDeviceContext->OMSetDepthStencilState(pDSStateLess.Get(), 1);
-		else if (op == DepthStencilOp::Less_Equal)
-			g_pd3dDeviceContext->OMSetDepthStencilState(pDSStateLessEqual.Get(), 1);
+		//todo replace with pso system
 	}
 	void RendererBase::BindMainTarget()
 	{
-		g_pd3dDeviceContext->OMSetRenderTargets(1, g_mainRenderTargetView.GetAddressOf(), pDSV.Get());
+		//todo replace with begine/end calls??
 	}
 }

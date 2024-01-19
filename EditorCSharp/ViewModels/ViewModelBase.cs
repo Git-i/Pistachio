@@ -1,6 +1,4 @@
-﻿using ReactiveUI;
-
-namespace EditorCSharp.ViewModels;
+﻿namespace EditorCSharp.ViewModels;
 
 public class ViewModelBase : ReactiveObject
 {
