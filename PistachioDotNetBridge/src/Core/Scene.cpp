@@ -88,9 +88,9 @@ namespace PistachioCS
 	{
 		return gcnew Entity(m_ptr->GetRootEntity(), m_ptr);
 	}
-	System::Collections::ObjectModel::ObservableCollection<Entity^>^ PistachioCS::Scene::GetEntityChildern(Entity ^ entity)
+	System::Collections::ObjectModel::Collection<Entity^>^ PistachioCS::Scene::GetEntityChildern(Entity ^ entity)
 	{
-		System::Collections::ObjectModel::ObservableCollection<Entity^>^ children = gcnew System::Collections::ObjectModel::ObservableCollection<Entity^>();
+		System::Collections::ObjectModel::Collection<Entity^>^ children = gcnew System::Collections::ObjectModel::Collection<Entity^>();
 		auto id = entity->m_ptr->operator uint32_t();
 		auto view = m_ptr->GetAllComponents<Pistachio::ParentComponent>();
 		bool HasChildren = false;

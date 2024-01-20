@@ -3,7 +3,6 @@
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Core/Error.h"
-#include "Instance.h"
 Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateNoCull = NULL;
 Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCWCull = NULL;
 Pistachio::ComPtr<ID3D11RasterizerState> Pistachio::RendererBase::pRasterizerStateCCWCull = NULL;

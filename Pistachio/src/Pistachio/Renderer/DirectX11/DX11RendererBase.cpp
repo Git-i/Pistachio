@@ -55,39 +55,7 @@ namespace Pistachio {
 		return 0;
 	}
 
-	Error DX11RendererBase::CreateHeadlessDevice(ID3D11Device** pd3dDevice, ID3D11DeviceContext** pd3dDeviceContext, ID3D11DepthStencilView** pDSV, ID3D11RenderTargetView** pRenderTargetView)
-	{
-		PT_PROFILE_FUNCTION()
-			IDXGIAdapter* pAdapter;
-		IDXGIFactory* pFactory;
-		CreateDXGIFactory(IID_PPV_ARGS(&pFactory));
-		pFactory->EnumAdapters(0, &pAdapter);
-		DXGI_ADAPTER_DESC desc;
-		pAdapter->GetDesc(&desc);
-		std::wcout << desc.Description;
-
-		UINT createDeviceFlags = 0;
-#ifdef _DEBUG
-		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif // _DEBUG
-
-		D3D_FEATURE_LEVEL featureLevel;
-		const D3D_FEATURE_LEVEL featureLevelArray[3] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
-		if (D3D11CreateDevice(pAdapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, pd3dDevice, &featureLevel, pd3dDeviceContext) != S_OK)
-			return 1;
-		std::cout << "d3d initialized" << std::endl;
-		//(*pd3dDevice)->CreateDeferredContext(0,pd3dDeviceContext); 
-		D3D11_DEPTH_STENCIL_DESC dsc = {};
-		dsc.DepthEnable = TRUE;
-		dsc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		dsc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-		ID3D11DepthStencilState* pDSState;
-		(*pd3dDevice)->CreateDepthStencilState(&dsc, &pDSState);
-		(*pd3dDeviceContext)->OMSetDepthStencilState(pDSState, 1);
-
-		pDSState->Release();
-		return 0;
-	}
+	
 
 	void DX11RendererBase::CleanupDevice(IDXGISwapChain* pSwapChain, ID3D11Device* pd3dDevice, ID3D11DeviceContext* pd3dDeviceContext)
 	{
