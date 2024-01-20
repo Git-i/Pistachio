@@ -45,20 +45,18 @@
 			</TreeView.ItemTemplate>
 		</TreeView>
 		<Button DockPanel.Dock="Right" VerticalAlignment="Stretch" Width="200"></Button>
-		<Grid DockPanel.Dock="Bottom" ShowGridLines="True" 
-			  ColumnDefinitions="0.25*,0.25*,0.25*,0.25*" 
-			  RowDefinitions="Auto,Auto,Auto,Auto"
-			  HorizontalAlignment="Stretch"
-			  Height="120">
-			<Label Grid.Row="0" Grid.Column="0">File 1</Label>
-			<Label Grid.Row="0" Grid.Column="1">File 2</Label>
-			<Label Grid.Row="0" Grid.Column="2">File 3</Label>
-			<Label Grid.Row="1" Grid.Column="0">File 4</Label>
-			<Label Grid.Row="1" Grid.Column="1">File 5</Label>
-			<Label Grid.Row="1" Grid.Column="2">File 6</Label>
-			<Label Grid.Row="2" Grid.Column="0">File 7</Label>
-			<Label Grid.Row="3" Grid.Column="0">File 8</Label>
-		</Grid>
+		<ScrollViewer DockPanel.Dock="Bottom" Height="100">
+		<WrapPanel HorizontalAlignment="Stretch">
+			<Label Width="100" Height ="100">File 1</Label>
+			<Label Width="100" Height ="100">File 2</Label>
+			<Label Width="100" Height ="100">File 3</Label>
+			<Label Width="100" Height ="100">File 4</Label>
+			<Label Width="100" Height ="100">File 5</Label>
+			<Label Width="100" Height ="100">File 6</Label>
+			<Label Width="100" Height ="100">File 7</Label>
+			<Label Width="100" Height ="100">File 8</Label>
+		</WrapPanel>
+		</ScrollViewer>
 		<views:MainView DataContext="{Binding}"/>
 	</DockPanel>
 </Window>
