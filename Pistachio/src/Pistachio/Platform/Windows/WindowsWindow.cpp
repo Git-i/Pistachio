@@ -204,7 +204,7 @@ namespace Pistachio {
 	int WindowsWindow::Init(const WindowInfo& info, HINSTANCE hInstance, bool headless)
 	{
 		PT_PROFILE_FUNCTION();
-		SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+		//SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 		SetWindowDataPtr(&m_data);
 		m_data.title = info.title;
 		m_data.height = info.height;
@@ -239,7 +239,7 @@ namespace Pistachio {
 			CLASS_NAME,
 			(wchar_t*)info.title,
 			WS_OVERLAPPEDWINDOW,
-			CW_USEDEFAULT, CW_USEDEFAULT, (UINT)((wr.right - wr.left) * (float)GetDpiForSystem() / 96.f), (UINT)((wr.bottom - wr.top) * (float)GetDpiForSystem() / 96.f),
+			CW_USEDEFAULT, CW_USEDEFAULT, (UINT)((wr.right - wr.left)/* * (float)GetDpiForSystem() / 96.f*/), (UINT)((wr.bottom - wr.top) /** (float)GetDpiForSystem() / 96.f*/),
 			NULL,       
 			NULL,
 			hInstance,  
@@ -278,7 +278,7 @@ namespace Pistachio {
 
 		SetConsoleTitleW(L"Pistachio Application Debug Console");
 #endif
-		m_data.dpiscale = (float)GetDpiForWindow(pd.hwnd)/96.f;
+		m_data.dpiscale = 1;// (float)GetDpiForWindow(pd.hwnd) / 96.f;
 		ShowWindow(pd.hwnd, SW_SHOWDEFAULT);
 		if (headless) ShowWindow(pd.hwnd, SW_HIDE);
 		return 0;

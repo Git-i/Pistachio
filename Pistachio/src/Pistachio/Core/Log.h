@@ -4,6 +4,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
+#ifdef PISTACHIO_BUILD_DLL
 
 namespace Pistachio {
 	
@@ -18,6 +19,8 @@ namespace Pistachio {
 		static std::shared_ptr<spdlog::logger> s_ClientLogger;
 	};
 }
+#endif // PISTACHIO_BUILD_DLL
+
 
 #define PT_CORE_TRACE(...) Pistachio::Log::GetCoreLogger()->trace(__VA_ARGS__)
 #define PT_CORE_INFO(...)  Pistachio::Log::GetCoreLogger()->info(__VA_ARGS__)

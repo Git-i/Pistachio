@@ -65,11 +65,11 @@ namespace Pistachio {
 		sDesc.MinLOD = stateDesc.MinLOD;
 		sDesc.MaxLOD = stateDesc.MaxLOD;
 		sDesc.MaxAnisotropy = stateDesc.MaxAnisotropy;
-		RendererBase::Getd3dDevice()->CreateSamplerState(&sDesc, (ID3D11SamplerState**)(result->ImageSamplerState.ReleaseAndGetAddressOf()));
+		//RendererBase::Getd3dDevice()->CreateSamplerState(&sDesc, (ID3D11SamplerState**)(result->ImageSamplerState.ReleaseAndGetAddressOf()));
 		return result;
 	}
 	void SamplerState::Bind(int slot)
 	{
-		RendererBase::Getd3dDeviceContext()->PSSetSamplers(slot, 1, (ID3D11SamplerState*const*)ImageSamplerState.GetAddressOf());
+		//RendererBase::Getd3dDeviceContext()->PSSetSamplers(slot, 1, (ID3D11SamplerState*const*)ImageSamplerState.GetAddressOf());
 	}
 }

@@ -8,11 +8,11 @@ namespace Pistachio {
 	public:
 		ShadowMap(const ShadowMap& other);
 		ShadowMap() = default;
-		void Create(std::uint32_t size);
-		void UpdateSize(std::uint32_t size);
-		void Clear(const hRegion& region, float cval = 1.f);
-		void Bind(int slot = 0);
-		void BindResource(int slot = 0);
+		//void Create(std::uint32_t size);
+		//void UpdateSize(std::uint32_t size);
+		//void Clear(const hRegion& region, float cval = 1.f);
+		//void Bind(int slot = 0);
+		//void BindResource(int slot = 0);
 		std::uint32_t GetSize() const { return m_size; }
 	private:
 		friend class Scene;

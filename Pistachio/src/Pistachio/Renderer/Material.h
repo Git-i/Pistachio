@@ -4,6 +4,7 @@
 #include "Pistachio/Asset/RefCountedObject.h"
 #include "Pistachio/Core/Math.h"
 #include "../Renderer/Shader.h"
+#include "../Renderer/Buffer.h"
 namespace Pistachio
 {
 	class PISTACHIO_API Material : public RefCountedObject
