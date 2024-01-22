@@ -456,3 +456,5 @@ $RECYCLE.BIN/
 bin-int/
 Pistachio/vendor/assimp/assimp-vc143-mt-static.lib
 Pistachio/vendor/assimp/assimp-vc143-mtd-static.lib
+*.smproj
+Pistachio/ClassDiagram.cd

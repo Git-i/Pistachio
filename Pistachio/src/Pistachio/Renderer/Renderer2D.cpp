@@ -63,22 +63,20 @@ namespace Pistachio {
 		s_Data.quadIB.reset(Pistachio::IndexBuffer::Create(quadIndices, s_Data.MaxIndices * sizeof(unsigned int), sizeof(unsigned int)));
 		delete[] quadIndices;
 		unsigned char white[4] = { 255, 255, 255, 255 };
-		s_Data.whiteTexture.reset(Pistachio::Texture2D::Create(1, 1, TextureFormat::RGBA8U,white));
-		s_Data._2DShader = std::make_shared<Shader>(L"resources/shaders/vertex/2D_vs.cso", L"resources/shaders/pixel/2D_fs.cso");
+		//s_Data.whiteTexture.reset(Pistachio::Texture2D::Create(1, 1, TextureFormat::RGBA8U,white));
+		//s_Data._2DShader = std::make_shared<Shader>(L"resources/shaders/vertex/2D_vs.cso", L"resources/shaders/pixel/2D_fs.cso");
 		BufferLayout layout[5] = { {"POSITION", BufferLayoutFormat::FLOAT3, 0  }, 
 									{"UV",      BufferLayoutFormat::FLOAT2, 12 }, 
 									{"COLOR",   BufferLayoutFormat::FLOAT4, 20 }, 
 									{"TEXINDEX",BufferLayoutFormat::FLOAT,  36 },
 									{"ID", BufferLayoutFormat::INT, 40}
 								 };
-		s_Data._2DShader->CreateLayout(layout, 5);
 		s_Data.TextureSlots[0] = s_Data.whiteTexture;
 	}
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
 	{
-		s_Data._2DShader->Bind(ShaderType::Vertex);
-		s_Data._2DShader->Bind(ShaderType::Pixel);
+		s_Data._2DShader->Bind();
 		auto viewproj = camera.GetViewProjectionMatrix();
 		
 		s_Data.QuadVerticesPtr = s_Data.QuadVerticesBase;
@@ -88,8 +86,7 @@ namespace Pistachio {
 
 	void Renderer2D::BeginScene(const RuntimeCamera& camera, const DirectX::XMMATRIX& transform)
 	{
-		s_Data._2DShader->Bind(ShaderType::Vertex);
-		s_Data._2DShader->Bind(ShaderType::Pixel);
+		s_Data._2DShader->Bind();
 		auto viewproj = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, transform) * DirectX::XMMATRIX(camera.GetProjection()));
 		
 		s_Data.QuadVerticesPtr = s_Data.QuadVerticesBase;
@@ -100,8 +97,7 @@ namespace Pistachio {
 	void Renderer2D::BeginScene(const EditorCamera& camera)
 	{
 		PT_PROFILE_FUNCTION()
-		s_Data._2DShader->Bind(ShaderType::Vertex);
-		s_Data._2DShader->Bind(ShaderType::Pixel);
+		s_Data._2DShader->Bind();
 		auto viewproj = DirectX::XMMatrixTranspose(camera.GetViewProjection());
 		
 		s_Data.QuadVerticesPtr = s_Data.QuadVerticesBase;
@@ -124,7 +120,7 @@ namespace Pistachio {
 		{
 			s_Data.TextureSlots[i]->Bind(i);
 		}
-		RendererBase::DrawIndexed({ s_Data.quadVB.get(), s_Data.quadIB.get() }, s_Data.QuadIndexCount);
+		//RendererBase::DrawIndexed({ s_Data.quadVB.get(), s_Data.quadIB.get() }, s_Data.QuadIndexCount);
 	}
 
 	void Renderer2D::FlushAndReset()

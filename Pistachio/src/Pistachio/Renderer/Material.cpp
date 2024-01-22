@@ -97,7 +97,6 @@ namespace Pistachio
 	}
 	void Material::Bind()
 	{
-		Shader::SetPSBuffer(data, 1);
 		auto diff = GetAssetManager()->GetTexture2DResource(diffuseTex);
 		auto rough = GetAssetManager()->GetTexture2DResource(roughnessTex);
 		auto metal = GetAssetManager()->GetTexture2DResource(metallicTex);
@@ -118,7 +117,7 @@ namespace Pistachio
 		Mstruct.metallic = metallic;
 		Mstruct.roughness = roughness;
 		Mstruct.ID = -1;
-		data.Update(&Mstruct, sizeof(MaterialStruct));
+		data.Update(&Mstruct, sizeof(MaterialStruct),0);
 	}
 	Material* Material::Create(const char* filepath)
 	{

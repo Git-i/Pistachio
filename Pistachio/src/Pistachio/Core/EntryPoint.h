@@ -5,7 +5,7 @@
 extern Pistachio::Application* Pistachio::CreateApplication();
 
 #ifndef PT_CUSTOM_ENTRY
-int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+int APIENTRY wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
     PT_PROFILE_BEGIN_SESSION("Startup", "Pistachio-Startup-Profile.json");
     auto app = Pistachio::CreateApplication();

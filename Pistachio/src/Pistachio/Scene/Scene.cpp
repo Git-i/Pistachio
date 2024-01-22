@@ -105,8 +105,8 @@ namespace Pistachio {
 	static Shader* envshader;
 	Scene::Scene(SceneDesc desc) : sm_allocator({ 4096, 4096 }, {256, 256})
 	{
-		envshader = new Shader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso");
-		envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
+		//envshader = new Shader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso");
+		//envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		PT_PROFILE_FUNCTION();
 		CreateEntity("Root").GetComponent<ParentComponent>().parentID = -1;
 		vp[0].TopLeftX = 0;
@@ -124,13 +124,13 @@ namespace Pistachio {
 		rtDesc.height = desc.Resolution.y;
 		rtDesc.miplevels = 1;
 		rtDesc.Attachments = { TextureFormat::RGBA8U,  TextureFormat::RGBA16F,TextureFormat::RGBA16F, TextureFormat::RGBA16F, TextureFormat::D24S8 };
-		m_gBuffer.CreateStack(rtDesc);
+		//m_gBuffer.CreateStack(rtDesc);
 		RenderTextureDesc rtDesc2;
 		rtDesc2.width = desc.Resolution.x;
 		rtDesc2.height = desc.Resolution.y;
 		rtDesc2.miplevels = 1;
 		rtDesc2.Attachments = { TextureFormat::RGBA8U, TextureFormat::D24S8 };
-		m_finalRender.CreateStack(rtDesc2);
+		//m_finalRender.CreateStack(rtDesc2);
 		ScreenSpaceQuad = MeshFactory::CreatePlane();
 	}
 	Scene::~Scene()
@@ -362,8 +362,8 @@ namespace Pistachio {
 		}
 
 		float color[4] = { 1,0.5,0,0 };
-		m_gBuffer.ClearAll(color);
-		m_finalRender.Clear(color, 0);
+		//m_gBuffer.ClearAll(color);
+		//m_finalRender.Clear(color, 0);
 		
 		{
 			PT_PROFILE_SCOPE("Shadow Rendereing and Light Formation")
@@ -460,12 +460,10 @@ namespace Pistachio {
 		if (!shadowCastingLights.empty())
 		{
 			
-			Renderer::shadowMapAtlas.Bind();
+			//Renderer::shadowMapAtlas.Bind();
 			RendererBase::EnableShadowMapRasetrizerState();
 			auto shader = Renderer::GetShaderLibrary().Get("Shadow-Shader");
-			shader->Bind(ShaderType::Vertex);
-			shader->Bind(ShaderType::Geometry);
-			RendererBase::Getd3dDeviceContext()->PSSetShader(nullptr, nullptr, 0); //todo change this code
+			shader->Bind();
 			
 		}
 		//dirty shadow casting lights, and draw dirty ones, directional lights will be handles spearately
@@ -478,7 +476,7 @@ namespace Pistachio {
 				BoundingObject = BoundingSphere(light.light.position, light.light.exData.z);
 				if (true)
 				{
-					Renderer::shadowMapAtlas.Clear(light.shadowMap);
+					//Renderer::shadowMapAtlas.Clear(light.shadowMap);
 					if(light.light.type == LightType::Spot) RenderSpotLightShadows(transformMesh, light);
 					else if(light.light.type == LightType::Point) RenderPointLightShadows(transformMesh, light);
 					else if(light.light.type == LightType::Directional) RenderDirectionalLightShadows(transformMesh, light);
@@ -502,7 +500,7 @@ namespace Pistachio {
 							visible = CullingManager::SphereCull(aabb, BoundingObject);
 							if (visible)
 							{
-								Renderer::shadowMapAtlas.Clear(light.shadowMap);
+								//Renderer::shadowMapAtlas.Clear(light.shadowMap);
 								if (light.light.type == LightType::Spot) RenderSpotLightShadows(transformMesh, light);
 								else if (light.light.type == LightType::Point) RenderPointLightShadows(transformMesh, light);
 								else if (light.light.type == LightType::Directional) RenderDirectionalLightShadows(transformMesh, light);
@@ -518,13 +516,11 @@ namespace Pistachio {
 		{
 			RendererBase::SetCullMode(CullMode::Back);
 			auto shader = Renderer::GetShaderLibrary().Get("GBuffer-Shader");
-			shader->Bind(ShaderType::Pixel);
-			shader->Bind(ShaderType::Vertex);
-			RendererBase::Getd3dDeviceContext()->GSSetShader(nullptr, nullptr, 0); //todo change this code
+			shader->Bind();
 		}
 		
-		m_gBuffer.Bind(0, 4);
-		Renderer::shadowMapAtlas.BindResource(9);
+		//m_gBuffer.Bind(0, 4);
+		//Renderer::shadowMapAtlas.BindResource(9);
 		//proceed with normal shading
 		
 		{
@@ -539,7 +535,7 @@ namespace Pistachio {
 				auto model = GetAssetManager()->GetModelResource(mesh.Model);
 				
 				if (model) {
-					Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
+					//Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
 					if(!mat)
 						Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), &Renderer::DefaultMaterial, (uint32_t)entity);
 					else
@@ -547,21 +543,20 @@ namespace Pistachio {
 				}
 			}
 		}
-		m_finalRender.Bind(0, 1);
-		m_gBuffer.BindResource(3, 4);
-		Texture2D dst = m_finalRender.GetDepthTexture();
-		Texture2D src = m_gBuffer.GetDepthTexture();
+		//m_finalRender.Bind(0, 1);
+		//m_gBuffer.BindResource(3, 4);
+		//Texture2D dst = m_finalRender.GetDepthTexture();
+		//Texture2D src = m_gBuffer.GetDepthTexture();
 		auto& VB = ScreenSpaceQuad->GetVertexBuffer();
 		auto& IB = ScreenSpaceQuad->GetIndexBuffer();
-		Buffer buffer = { &VB,&IB };
-		Renderer::GetShaderLibrary().Get("PBR-Deffered-Shader").get()->Bind(ShaderType::Vertex);
-		Renderer::GetShaderLibrary().Get("PBR-Deffered-Shader").get()->Bind(ShaderType::Pixel);
-		RendererBase::DrawIndexed(buffer);
+		//Buffer buffer = { &VB,&IB };
+		Renderer::GetShaderLibrary().Get("PBR-Deffered-Shader").get()->Bind();
+		//RendererBase::DrawIndexed(buffer);
 		Renderer::whiteTexture.Bind(3);
 		Renderer::whiteTexture.Bind(4);
 		Renderer::whiteTexture.Bind(5);
 		Renderer::whiteTexture.Bind(6);
-		dst.CopyInto(src);
+		//dst.CopyInto(src);
 		//2D Rendering
 		Renderer2D::BeginScene(camera);
 		{
@@ -828,7 +823,7 @@ namespace Pistachio {
 				if (m_Registry.any_of<MeshRendererComponent>(entity))
 				{
 					auto& mesh = m_Registry.get<MeshRendererComponent>(entity);
-					Renderer::TransformationBuffer[mesh.cbIndex].Update(&td, sizeof(TransformData));
+					Renderer::TransformationBuffer[mesh.cbIndex].Update(&td, sizeof(TransformData),0);
 				}
 			}
 		}
@@ -868,11 +863,11 @@ namespace Pistachio {
 			auto [transform, mesh] = transformMesh.get(e);
 			if (mesh.Model.m_uuid)
 			{
-				Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
+				//Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
 				Model* model = GetAssetManager()->GetModelResource(mesh.Model);
 				Mesh _mesh = model->meshes[mesh.modelIndex];
-				Buffer buffer = { &_mesh.GetVertexBuffer(), &_mesh.GetIndexBuffer() };
-				RendererBase::DrawIndexed(buffer);
+				//Buffer buffer = { &_mesh.GetVertexBuffer(), &_mesh.GetIndexBuffer() };
+				//RendererBase::DrawIndexed(buffer);
 			}
 		}
 	}
@@ -886,7 +881,7 @@ namespace Pistachio {
 	void Scene::RenderDirectionalLightShadows(T& transformMesh, ShadowCastingLight& light)
 	{
 		ChangeVP(light.shadowMap.size.x / 2, light.shadowMap.offset);
-		RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
+		//RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
 
 		//todo make a new constant buffer for shadow code stuff
 		Renderer::passConstants.lightSpaceMatrix[0] = DirectX::XMLoadFloat4x4(&light.projection[0]);
@@ -899,11 +894,11 @@ namespace Pistachio {
 			auto [transform, mesh] = transformMesh.get(e);
 			if (mesh.Model.m_uuid)
 			{
-				Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
+				//Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
 				Model* model = GetAssetManager()->GetModelResource(mesh.Model);
 				Mesh _mesh = model->meshes[mesh.modelIndex];
-				Buffer buffer = { &_mesh.GetVertexBuffer(), &_mesh.GetIndexBuffer() };
-				RendererBase::DrawIndexed(buffer);
+				//Buffer buffer = { &_mesh.GetVertexBuffer(), &_mesh.GetIndexBuffer() };
+				//RendererBase::DrawIndexed(buffer);
 			}
 		}
 
@@ -941,7 +936,7 @@ namespace Pistachio {
 		TransformData td;
 		td.transform = DirectX::XMMatrixTranspose(transform.worldSpaceTransform);
 		td.normal = DirectX::XMMatrixInverse(nullptr, transform.worldSpaceTransform);
-		Renderer::TransformationBuffer[component.cbIndex].Update(&td, sizeof(TransformData));
+		Renderer::TransformationBuffer[component.cbIndex].Update(&td, sizeof(TransformData),0);
 	}
 	template<>
 	void PISTACHIO_API Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& component)
