@@ -2,8 +2,6 @@
 #include "../Buffer.h"
 #include "../RendererBase.h"
 
-#define BUFFER(ID) ((ID3D11Buffer*)ID.Get())
-#define BUFFER_PP(ID) ((ID3D11Buffer**)ID.GetAddressOf())
 namespace Pistachio {
 	VertexBuffer::VertexBuffer()
 	{
@@ -12,7 +10,7 @@ namespace Pistachio {
 	{
 		PT_PROFILE_FUNCTION();
 		UINT offset = 0;
-		RendererBase::Getd3dDeviceContext()->IASetVertexBuffers(0, 1, BUFFER_PP(ID), &stride, &offset);
+		RendererBase::GetMainCommandList()->BindVertexBuffers(0, 1, &ID->ID);//id->id is a little confusing
 	}
 	void VertexBuffer::UnBind()
 	{
@@ -28,22 +26,17 @@ namespace Pistachio {
 	{
 		PT_PROFILE_FUNCTION();
 		stride = Stride;
-		D3D11_BUFFER_DESC bd = {};
-		bd.Usage = D3D11_USAGE_DYNAMIC;
-		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bd.MiscFlags = 0;
-		bd.ByteWidth = size;
-		RendererBase::Getd3dDevice()->CreateBuffer(&bd, nullptr, BUFFER_PP(ID));
+		RHI::BufferDesc vbDesc;
+		vbDesc.size = size;
+		vbDesc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst;
+		RHI::AutomaticAllocationInfo info;
+		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
+		RendererBase::Getd3dDevice()->CreateBuffer(&vbDesc, &ID, nullptr, nullptr,&info, 0, RHI::ResourceType::Automatic);
 	}
 	void VertexBuffer::SetData(const void* data, unsigned int size)
 	{
 		PT_PROFILE_FUNCTION();
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-		RendererBase::GetMainCommandList()->Map(BUFFER(ID), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		memcpy(mappedResource.pData, data, size);
-		RendererBase::Getd3dDeviceContext()->Unmap(BUFFER(ID), 0);
+		RendererBase::PushBufferUpdate(ID, 0, data, size);
 	}
 	VertexBuffer* VertexBuffer::Create(const void* vertices, unsigned int size, unsigned int Stride)
 	{
@@ -55,16 +48,8 @@ namespace Pistachio {
 	void VertexBuffer::CreateStack(const void* vertices, unsigned int size, unsigned int Stride)
 	{
 		PT_PROFILE_FUNCTION()
-		stride = Stride;
-		D3D11_BUFFER_DESC bd = {};
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = 0;
-		bd.MiscFlags = 0;
-		bd.ByteWidth = size;
-		D3D11_SUBRESOURCE_DATA sd = {};
-		sd.pSysMem = vertices;
-		RendererBase::Getd3dDevice()->CreateBuffer(&bd, &sd, (ID3D11Buffer**)(ID.ReleaseAndGetAddressOf()));
+		CreateStack(size, Stride);
+		RendererBase::PushBufferUpdate(ID, 0, vertices, size);
 	}
 
 	IndexBuffer::IndexBuffer()
@@ -73,7 +58,7 @@ namespace Pistachio {
 	void IndexBuffer::Bind() const
 	{
 		PT_PROFILE_FUNCTION();
-		RendererBase::Getd3dDeviceContext()->IASetIndexBuffer(BUFFER(ID), DXGI_FORMAT_R32_UINT, 0);
+		RendererBase::GetMainCommandList()->BindIndexBuffer(ID, 0);
 	}
 	void IndexBuffer::UnBind()
 	{
@@ -82,15 +67,16 @@ namespace Pistachio {
 	{
 		PT_PROFILE_FUNCTION()
 		count = size / stride;
-		D3D11_BUFFER_DESC bd = {};
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		bd.CPUAccessFlags = 0;
-		bd.MiscFlags = 0;
-		bd.ByteWidth = size;
-		D3D11_SUBRESOURCE_DATA sd = {};
-		sd.pSysMem = indices;
-		RendererBase::Getd3dDevice()->CreateBuffer(&bd, &sd, (ID3D11Buffer**)(ID.ReleaseAndGetAddressOf()));
+		RHI::BufferDesc desc;
+		desc.size = size;
+		desc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst;
+		RHI::AutomaticAllocationInfo info;
+		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
+		RendererBase::Getd3dDevice()->CreateBuffer(&desc, &ID, nullptr, nullptr, &info,0, RHI::ResourceType::Automatic);
+		if (indices)
+		{
+			RendererBase::PushBufferUpdate(ID, 0, indices, size);
+		}
 	}
 	IndexBuffer* IndexBuffer::Create(const void* indices, unsigned int size, unsigned int stride)
 	{
@@ -102,42 +88,31 @@ namespace Pistachio {
 	void StructuredBuffer::CreateStack(const void* data, std::uint32_t size, std::uint32_t stride)
 	{
 		PT_PROFILE_FUNCTION();
-		ID3D11Buffer* buffer;
-		D3D11_BUFFER_DESC bd;
-		bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		bd.Usage = D3D11_USAGE_DYNAMIC;
-		bd.ByteWidth = size;
-		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-		bd.StructureByteStride = stride;
-		D3D11_SUBRESOURCE_DATA sd = {};
-		sd.pSysMem = data;
-		D3D11_SUBRESOURCE_DATA* sd_ptr = data ? &sd : nullptr;
-		RendererBase::Getd3dDevice()->CreateBuffer(&bd, sd_ptr, &buffer);
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		srvDesc.Buffer.ElementOffset = 0;
-		srvDesc.Buffer.ElementWidth = stride;
-		srvDesc.Buffer.NumElements = size / stride;
-		RendererBase::Getd3dDevice()->CreateShaderResourceView(buffer, &srvDesc, (ID3D11ShaderResourceView**)(ID.ReleaseAndGetAddressOf()));
-		buffer->Release();
+		RHI::BufferDesc bufferDesc;
+		bufferDesc.size = size;
+		bufferDesc.usage = RHI::BufferUsage::StructuredBuffer;
+		RHI::AutomaticAllocationInfo info;
+		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential; //to allow writing ??
+		RendererBase::Getd3dDevice()->CreateBuffer(&bufferDesc, &ID, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
+		if (data)
+		{
+			void* writePointer;
+			ID->Map(&writePointer);
+			memcpy(writePointer, data, size);
+			ID->UnMap();
+		}
+		
 	}
 	void StructuredBuffer::Bind(std::uint32_t slot) const
 	{
-		RendererBase::Getd3dDeviceContext()->PSSetShaderResources(slot, 1, (ID3D11ShaderResourceView**)ID.GetAddressOf());
+		//todo
 	}
-	void StructuredBuffer::Update(const void* data, std::uint32_t size)
+	void StructuredBuffer::Update(const void* data, std::uint32_t size, std::uint32_t offset)
 	{
-		ID3D11ShaderResourceView* srv = (ID3D11ShaderResourceView*)ID.Get();
-		ID3D11Resource* res;
-		srv->GetResource(&res);
-		D3D11_MAPPED_SUBRESOURCE sr;
-		RendererBase::Getd3dDeviceContext()->Map(res, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
-		memcpy(sr.pData, data, size);
-		RendererBase::Getd3dDeviceContext()->Unmap(res, 0);
-		res->Release();
+		void* writePointer;
+		ID->Map(&writePointer);
+		memcpy((((char*)writePointer) + offset), data, size);
+		ID->UnMap();
 	}
 	StructuredBuffer* StructuredBuffer::Create(const void* data, std::uint32_t size, std::uint32_t stride)
 	{
@@ -145,5 +120,38 @@ namespace Pistachio {
 		StructuredBuffer* result = new StructuredBuffer;
 		result->CreateStack(data, size, stride);
 		return result;
+	}
+	void ConstantBuffer::Update(void* data, std::uint32_t size, std::uint32_t offset)
+	{
+		PT_PROFILE_FUNCTION();
+		void* writePointer;
+		ID->Map(&writePointer);
+		memcpy((((char*)writePointer) + offset), data, size);
+		ID->UnMap();
+	}
+	void ConstantBuffer::CreateStack(void* data, std::uint32_t size)
+	{
+		PT_PROFILE_FUNCTION();
+		RHI::BufferDesc bufferDesc;
+		bufferDesc.size = size;
+		bufferDesc.usage = RHI::BufferUsage::ConstantBuffer;
+		RHI::AutomaticAllocationInfo info;
+		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential;
+		RendererBase::Getd3dDevice()->CreateBuffer(&bufferDesc, &ID, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
+		if (data)
+		{
+			void* writePointer;
+			ID->Map(&writePointer);
+			memcpy(writePointer, data, size);
+			ID->UnMap();
+		}
+
+	}
+	ConstantBuffer* ConstantBuffer::Create(void* data, std::uint32_t size)
+	{
+		PT_PROFILE_FUNCTION();
+		ConstantBuffer* retVal = new ConstantBuffer();
+		retVal->CreateStack(data, size);
+		return retVal;
 	}
 }

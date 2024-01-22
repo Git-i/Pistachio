@@ -37,10 +37,10 @@ namespace Pistachio {
 			}
 		};
 		inline static void LogErrorToConsole(const Error & e) {
-			if(e.GetSeverity() == 1)
-				PT_CORE_WARN(GetErrorString(e));
-			if(e.GetSeverity() == 2)
-				PT_CORE_ERROR(GetErrorString(e));
+			if (e.GetSeverity() == 1);
+				//PT_CORE_WARN(GetErrorString(e));
+			if (e.GetSeverity() == 2);
+				//PT_CORE_ERROR(GetErrorString(e));
 		};
 		inline static void AssertOnError(const Error & e) {
 			if(e.GetSeverity() == 2)

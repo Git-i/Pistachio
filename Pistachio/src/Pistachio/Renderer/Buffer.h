@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Buffer.h"
 #include "RendererID_t.h"
 namespace Pistachio {
 	class PISTACHIO_API VertexBuffer
@@ -15,7 +16,7 @@ namespace Pistachio {
 		
 	private:
 		unsigned int stride = 0;
-		PlatformRendererID_t ID;
+		RHI::Buffer* ID;
 	};
 	class PISTACHIO_API IndexBuffer
 	{
@@ -28,28 +29,24 @@ namespace Pistachio {
 		inline unsigned int GetCount() const{ return count; }
 	private:
 		unsigned int count;
-		PlatformRendererID_t ID;
-	};
-	struct PISTACHIO_API Buffer //todo rename this class
-	{
-	public:
-		const VertexBuffer* vb;
-		const IndexBuffer* ib;
-		Buffer(const VertexBuffer* Vb, const IndexBuffer* Ib) : vb(Vb), ib(Ib) {}
-		~Buffer(){}
-		inline const void Bind() const
-		{
-			vb->Bind();
-			ib->Bind();
-		}
+		RHI::Buffer* ID;
 	};
 	struct PISTACHIO_API StructuredBuffer
 	{
 		void Bind(std::uint32_t slot) const;
-		void Update(const void* data, std::uint32_t size);
+		void Update(const void* data, std::uint32_t size, std::uint32_t offset);
 		static StructuredBuffer* Create(const void* data, std::uint32_t size, std::uint32_t stride);
-		void CreateStack(const void* data, std::uint32_t size, std::uint32_t stride);
+		void CreateStack(const void* data, std::uint32_t size,std::uint32_t stride);
 	private:
-		PlatformRendererID_t ID;
+		RHI::Buffer* ID;
+	};
+	class PISTACHIO_API ConstantBuffer {
+	public:
+		void Bind(std::uint32_t slot) const;
+		void Update(void* data, std::uint32_t size, std::uint32_t offset);
+		void CreateStack(void* data, std::uint32_t size);
+		ConstantBuffer* Create(void* data, std::uint32_t size);
+	private:
+		RHI::Buffer* ID;
 	};
 }

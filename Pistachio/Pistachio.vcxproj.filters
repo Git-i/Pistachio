@@ -138,19 +138,13 @@
     <ClCompile Include="src\Pistachio\Renderer\RHI\Buffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11RendererBase.cpp">
+    <ClCompile Include="src\Pistachio\Renderer\RHI\Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11RenderTexture.cpp">
+    <ClCompile Include="src\Pistachio\Renderer\RHI\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11Shader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11ShadowMap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Pistachio\Renderer\RHI\DX11Texture.cpp">
+    <ClCompile Include="vendor\xxhash\xxhash.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1351,5 +1345,6 @@
     <None Include="vendor\SimpleMath\SimpleMath.inl">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>

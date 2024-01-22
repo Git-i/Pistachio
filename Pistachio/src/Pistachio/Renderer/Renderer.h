@@ -67,6 +67,7 @@ namespace Pistachio {
 	class PISTACHIO_API Renderer {
 	public:
 		static void Shutdown();
+		static void ChangeSkybox(const char* filename);
 		static void BeginScene(PerspectiveCamera* cam);
 		static void BeginScene(RuntimeCamera* cam, const DirectX::XMMATRIX& transform);
 		static void BeginScene(EditorCamera& cam);
@@ -76,10 +77,10 @@ namespace Pistachio {
 		static void AddShadowCastingLight(const ShadowCastingLight& light);
 		static void AddLight(const RegularLight& light);
 		inline static ShaderLibrary& GetShaderLibrary() { return shaderlib; }
-		inline static ID3D11ShaderResourceView* GetFrambufferSRV() { return (ID3D11ShaderResourceView*)fbo.GetID().ptr; };
-		inline static ID3D11ShaderResourceView* GetIrradianceFrambufferSRV() { return (ID3D11ShaderResourceView*)ifbo.GetID().ptr; };
-		inline static ID3D11ShaderResourceView* GetPrefilterFrambufferSRV(int level) { return (ID3D11ShaderResourceView*)prefilter.GetID().ptr; };
-		inline static ID3D11ShaderResourceView* GetBrdfSRV() { return (ID3D11ShaderResourceView*)BrdfTex.GetSRV().ptr; };
+		//inline static ID3D11ShaderResourceView* GetFrambufferSRV() { return (ID3D11ShaderResourceView*)fbo.GetID().ptr; };
+		//inline static ID3D11ShaderResourceView* GetIrradianceFrambufferSRV() { return (ID3D11ShaderResourceView*)ifbo.GetID().ptr; };
+		//inline static ID3D11ShaderResourceView* GetPrefilterFrambufferSRV(int level) { return (ID3D11ShaderResourceView*)prefilter.GetID().ptr; };
+		//inline static ID3D11ShaderResourceView* GetBrdfSRV() { return (ID3D11ShaderResourceView*)BrdfTex.GetSRV().ptr; };
 		static Material DefaultMaterial;
 		static void OnEvent(Event& e) {
 			if (e.GetEventType() == EventType::WindowResize)
@@ -115,5 +116,9 @@ namespace Pistachio {
 		static ShadowMap shadowMapAtlas;
 		friend class Scene;
 		friend class Material;
+		static Shader* eqShader;
+		static Shader* irradianceShader;
+		static Shader* brdfShader;
+		static Shader* prefilterShader;
 	};
 }
