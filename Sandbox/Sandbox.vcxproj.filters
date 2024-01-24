@@ -54,7 +54,6 @@
     <FxCompile Include="Shaders\prefilter_vs.hlsl" />
     <FxCompile Include="Shaders\brdf_fs.hlsl" />
     <FxCompile Include="Shaders\brdf_vs.hlsl" />
-    <FxCompile Include="Shaders\PBR_no_reflect_fs.hlsl" />
     <FxCompile Include="Shaders\PBR_no_reflect_vs.hlsl" />
     <FxCompile Include="Shaders\Renderer2D\2D_fs.hlsl" />
     <FxCompile Include="Shaders\Renderer2D\2D_vs.hlsl" />
