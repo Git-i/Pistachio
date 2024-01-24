@@ -39,9 +39,12 @@ namespace Pistachio {
 		#ifdef PT_PLATFORM_WINDOWS
 			static bool Init(HWND hwnd);
 		#endif
-		static RHI::Device* Getd3dDevice() {  return device; }
-		static RHI::GraphicsCommandList* GetMainCommandList() { return mainCommandList; }
-		static RHI::SwapChain* GetSwapChain() { return swapChain; }
+		static RHI::Device* Getd3dDevice();
+		static RHI::GraphicsCommandList* GetMainCommandList();
+		static RHI::SwapChain* GetSwapChain();
+		static RHI::DescriptorHeap* GetRTVDescriptorHeap();
+		static RHI::DescriptorHeap* GetDSVDescriptorHeap();
+		static uint32_t GetCurrentRTVIndex();
 		//static ID3D11RenderTargetView* GetmainRenderTargetView() { return g_mainRenderTargetView.Get(); }
 		//static ID3D11DepthStencilView* GetDepthStencilView(){ return pDSV.Get(); }
 	private:
@@ -56,7 +59,9 @@ namespace Pistachio {
 		static RHI::SwapChain* swapChain;
 		static RHI::CommandQueue* directQueue;
 		static RHI::Texture* backBufferTextures[2]; //todo: tripebuffering support
+		static RHI::Texture* depthTexture;
 		static RHI::DescriptorHeap* rtvHeap;
+		static RHI::DescriptorHeap* dsvHeap;
 		static std::uint64_t fence_vals[3]; //managing sync across allocators
 		static std::uint64_t currentFenceVal; //managing sync across allocators
 		static RHI::Fence* mainFence;

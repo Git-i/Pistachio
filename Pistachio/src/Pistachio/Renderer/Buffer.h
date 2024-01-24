@@ -45,7 +45,8 @@ namespace Pistachio {
 		void Bind(std::uint32_t slot) const;
 		void Update(void* data, std::uint32_t size, std::uint32_t offset);
 		void CreateStack(void* data, std::uint32_t size);
-		ConstantBuffer* Create(void* data, std::uint32_t size);
+		static ConstantBuffer* Create(void* data, std::uint32_t size);
+		RHI::Buffer* GetID() { return ID; }
 	private:
 		RHI::Buffer* ID;
 	};

@@ -42,6 +42,38 @@ static RHI::Format RHIFormat(Pistachio::BufferLayoutFormat format)
 }
 
 namespace Pistachio {
+	static RHI::Format ToRHIFormat(BufferLayoutFormat format)
+	{
+		switch (format)
+		{
+		case Pistachio::BufferLayoutFormat::FLOAT4: return RHI::Format::R32G32B32A32_FLOAT;
+			break;
+		case Pistachio::BufferLayoutFormat::UINT4:return RHI::Format::R32G32B32A32_UINT;
+			break;
+		case Pistachio::BufferLayoutFormat::INT4:return RHI::Format::R32G32B32A32_SINT;
+			break;
+		case Pistachio::BufferLayoutFormat::FLOAT3:return RHI::Format::R32G32B32_FLOAT;
+			break;
+		case Pistachio::BufferLayoutFormat::UINT3:return RHI::Format::R32G32B32_UINT;
+			break;
+		case Pistachio::BufferLayoutFormat::INT3:return RHI::Format::R32G32B32_SINT;
+			break;
+		case Pistachio::BufferLayoutFormat::FLOAT2:return RHI::Format::R32G32_FLOAT;
+			break;
+		case Pistachio::BufferLayoutFormat::UINT2:return RHI::Format::R32G32_UINT;
+			break;
+		case Pistachio::BufferLayoutFormat::INT2:return RHI::Format::R32G32_SINT;
+			break;
+		case Pistachio::BufferLayoutFormat::FLOAT:return RHI::Format::R32_FLOAT;
+			break;
+		case Pistachio::BufferLayoutFormat::UINT:return RHI::Format::R32_UINT;
+			break;
+		case Pistachio::BufferLayoutFormat::INT:return RHI::Format::R32_SINT;
+			break;
+		default:
+			break;
+		}
+	}
 	static void EncodePso(PSOHash& resultBuffer, RHI::PipelineStateObjectDesc* desc)
 	{
 		//todo if any setting is disabled zero all other settings related to avoid creating different variatons with that setting not
@@ -165,13 +197,14 @@ namespace Pistachio {
 		//make this dynamic enough to accomodate instancing
 		InputBindingDescription = new RHI::InputBindingDesc;
 		InputBindingDescription->inputRate = RHI::InputRate::Vertex;
+		InputBindingDescription->stride = desc->InputDescription[desc->numInputs - 1].Offset + BufferLayoutFormatSize(desc->InputDescription[desc->numInputs - 1].Format);
 		InputElementDescription = new RHI::InputElementDesc[desc->numInputs];
 		numInputBindings = 1;
 		numInputElements = desc->numInputs;
 		for (uint32_t i = 0; i < desc->numInputs; i++)
 		{
 			InputElementDescription[i].alignedByteOffset = desc->InputDescription[i].Offset; 
-			InputElementDescription[i].format = RHI::Format(desc->InputDescription[i].Format); 
+			InputElementDescription[i].format = ToRHIFormat(desc->InputDescription[i].Format); 
 			InputElementDescription[i].inputSlot = 0;
 			InputElementDescription[i].location = i;
 		}
@@ -194,6 +227,7 @@ namespace Pistachio {
 				}
 			}
 		}
+		currentPSO = PSOs.begin()->first;
 	}
 
 	void Shader::CreateRootSignature()
@@ -319,12 +353,12 @@ namespace Pistachio {
 
 
 
-	void ShaderBindingInfo::UpdateBinding(uint32_t setInfosIndex, uint32_t slot)
+	void ShaderBindingInfo::UpdateBufferBinding(uint32_t setInfosIndex, BufferBindingUpdateDesc* desc, uint32_t slot)
 	{
 		RHI::DescriptorBufferInfo info;
-		info.buffer = nullptr;
-		info.offset = 0;
-		info.range = 0;
+		info.buffer = desc->buffer;
+		info.offset = desc->offset;
+		info.range = desc->size;
 		RHI::DescriptorSetUpdateDesc updateDesc;
 		updateDesc.arrayIndex = 0;
 		updateDesc.binding = slot;

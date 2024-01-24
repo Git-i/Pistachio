@@ -15,11 +15,13 @@ RHI::SwapChain*           Pistachio::RendererBase::swapChain;
 RHI::CommandQueue*        Pistachio::RendererBase::directQueue;
 RHI::Texture*             Pistachio::RendererBase::backBufferTextures[2]; //todo: tripebuffering support
 RHI::DescriptorHeap*      Pistachio::RendererBase::rtvHeap;
+RHI::DescriptorHeap*      Pistachio::RendererBase::dsvHeap;
 std::uint64_t             Pistachio::RendererBase::fence_vals[3]; //managing sync across allocators
 std::uint64_t             Pistachio::RendererBase::currentFenceVal=0; //managing sync across allocators
 RHI::Fence*               Pistachio::RendererBase::mainFence;
 RHI::DescriptorHeap*      Pistachio::RendererBase::heap;
 RHI::Buffer*              Pistachio::RendererBase::stagingBuffer;
+RHI::Texture*			  Pistachio::RendererBase::depthTexture;
 uint32_t                  Pistachio::RendererBase::staginBufferPortionUsed = 0;
 uint32_t                  Pistachio::RendererBase::stagingBufferSize;
 bool                      Pistachio::RendererBase::outstandingResourceUpdate = 0;
@@ -82,10 +84,13 @@ namespace Pistachio {
 		commandQueueDesc.CommandListType = RHI::CommandListType::Direct; // 1 direct cmd queue for now
 		commandQueueDesc.Priority = 1.f;//only really used in vulkan
 
+		PT_CORE_INFO("Creating Device");
 		RHICreateDevice(physicalDevice, &commandQueueDesc, 1, &directQueue, instance->ID ,&device );
+		PT_CORE_INFO("Device Created ID:{0} Internal_ID:{1}", (void*)device, (void*)device->ID);
 		//todo handle multiplatform surface creation
+		PT_CORE_INFO("Creating Surface foe Win32");
 		surface.InitWin32(hwnd, instance->ID);
-
+		PT_CORE_INFO("Surface Initialized");
 		unsigned int height = ((WindowData*)GetWindowDataPtr())->height;
 		unsigned int width = ((WindowData*)GetWindowDataPtr())->width;
 		RHI::SwapChainDesc sDesc;
@@ -101,9 +106,11 @@ namespace Pistachio {
 		sDesc.SwapChainFormat = RHI::Format::B8G8R8A8_UNORM;//todo add functionality to get supported formats in the RHI
 		sDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // todo anbstract this away from dxgi
 		sDesc.Windowed = true;
+		PT_CORE_INFO("Creating Swapchain");
 		instance->CreateSwapChain(&sDesc, physicalDevice, device, directQueue, &swapChain);
 		device->GetSwapChainImage(swapChain, 0, &backBufferTextures[0]);
 		device->GetSwapChainImage(swapChain, 1, &backBufferTextures[1]);
+		PT_CORE_INFO("Swapchain Created ID:{0} Internal_ID:{1}", (void*)swapChain, (void*)swapChain->ID);
 
 		RHI::PoolSize pSize;
 		pSize.numDescriptors = 2;
@@ -112,16 +119,77 @@ namespace Pistachio {
 		rtvHeapHesc.maxDescriptorSets = 1;
 		rtvHeapHesc.numPoolSizes = 1;
 		rtvHeapHesc.poolSizes = &pSize;
+	
 		//create render target views
 		device->CreateDescriptorHeap(&rtvHeapHesc, &rtvHeap);
+		PT_CORE_INFO("Created RTV descriptor heaps");
+		for (int i = 0; i < 2; i++)
+		{
+			RHI::CPU_HANDLE handle;
+			handle.val = rtvHeap->GetCpuHandle().val + (i * device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV));
+			device->CreateRenderTargetView(backBufferTextures[i], nullptr, handle);
+		}
+		PT_CORE_INFO("Created Tender Target Views");
+		RHI::ClearValue depthVal;
+		depthVal.depthStencilValue.depth = 1;
+		depthVal.depthStencilValue.stecnil = 0;
+		depthVal.format = RHI::Format::D32_FLOAT;
+		RHI::TextureDesc depthTextureDsc;
+		depthTextureDsc.depthOrArraySize = 1;
+		depthTextureDsc.format = RHI::Format::D32_FLOAT;
+		depthTextureDsc.height = 720;
+		depthTextureDsc.mipLevels = 1;
+		depthTextureDsc.mode = RHI::TextureTilingMode::Optimal;
+		depthTextureDsc.sampleCount = 1;
+		depthTextureDsc.type = RHI::TextureType::Texture2D;
+		depthTextureDsc.usage = RHI::TextureUsage::DepthStencilAttachment;
+		depthTextureDsc.width = 1280;
+		depthTextureDsc.optimizedClearValue = &depthVal;
+
+		PT_CORE_INFO("Creating DSV Heap");
+		pSize.type = RHI::DescriptorType::DSV;
+		pSize.numDescriptors = 1;
+		device->CreateDescriptorHeap(&rtvHeapHesc, &dsvHeap);
+		PT_CORE_INFO("Created DSV Heap");
+
+		PT_CORE_INFO("Creating Default depth texture");
+		RHI::AutomaticAllocationInfo DAinfo;
+		DAinfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
+		device->CreateTexture(&depthTextureDsc, &depthTexture,0,0,&DAinfo, 0, RHI::ResourceType::Automatic);
+		PT_CORE_INFO("Created Default depth texture");
+
+		device->CreateDepthStencilView(depthTexture, nullptr, dsvHeap->GetCpuHandle());
 		// allocators are handled with a "frames in flight approach"
-		device->CreateCommandAllocators(RHI::CommandListType::Direct, 3, commandAllocators);
+		RESULT res = device->CreateCommandAllocators(RHI::CommandListType::Direct, 3, commandAllocators);
+		if (res != 0) PT_CORE_INFO("Main allocator creation failed with code :{0}", res);
+		else PT_CORE_INFO("Created main command allocators");
 		device->CreateCommandAllocators(RHI::CommandListType::Direct, 1, &stagingCommandAllocator);
+		PT_CORE_INFO("Created staging command allocator(s)");
 		device->CreateCommandList(RHI::CommandListType::Direct, stagingCommandAllocator, &stagingCommandList);
+		PT_CORE_INFO("Created staging command list");
 		stagingCommandList->Begin(stagingCommandAllocator);
+		PT_CORE_INFO("Began staging command list");
 		//create a main command list for now, multithreading will come later
 		device->CreateCommandList(RHI::CommandListType::Direct, commandAllocators[0], &mainCommandList);
+		PT_CORE_INFO("Created main command list");
 		device->CreateFence(&mainFence, 0);
+		PT_CORE_INFO("Created main fence");
+
+
+		RHI::PoolSize HeapSizes[2];
+		
+		HeapSizes[0].numDescriptors = 5;
+		HeapSizes[0].type = RHI::DescriptorType::CBV;
+
+		HeapSizes[1].numDescriptors = 5;
+		HeapSizes[1].type = RHI::DescriptorType::SRV;
+
+		RHI::DescriptorHeapDesc DHdesc;
+		DHdesc.maxDescriptorSets = 10;
+		DHdesc.numPoolSizes = 1;
+		DHdesc.poolSizes = HeapSizes;
+		device->CreateDescriptorHeap(&DHdesc, &heap);
+		PT_CORE_INFO("Created main descriptor heap");
 		
 
 		//initialize the staing buffer
@@ -148,7 +216,7 @@ namespace Pistachio {
 		barr.texture = backBufferTextures[0];
 
 		mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::COLOR_ATTACHMENT_OUTPUT_BIT, 0, nullptr, 1, &barr);
-
+		PT_CORE_INFO("done initializing rhi");
 		// todo find a pso handling strategy, especially for custom shaders.
 		// since every pso can only hold a single shader set, probably have a bunch of
 		// must have pso's for every shader, where they all create it with thier own programs
@@ -289,4 +357,16 @@ namespace Pistachio {
 	{
 		//todo replace with begine/end calls??
 	}
+	RHI::Device* RendererBase::Getd3dDevice()
+	{
+		return device; 
+	}
+	RHI::GraphicsCommandList* Pistachio::RendererBase::GetMainCommandList()
+	{
+		return mainCommandList; 
+	}
+	RHI::SwapChain*      RendererBase::GetSwapChain() { return swapChain; }
+	RHI::DescriptorHeap* RendererBase::GetRTVDescriptorHeap() { return rtvHeap; };
+	uint32_t             RendererBase::GetCurrentRTVIndex() { return currentRTVindex; }
+	RHI::DescriptorHeap* RendererBase::GetDSVDescriptorHeap(){return dsvHeap;}
 }
