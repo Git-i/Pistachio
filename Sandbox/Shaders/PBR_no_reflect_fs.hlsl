@@ -1,7 +1,3 @@
-Texture2D BRDFLUT : register(t0);
-TextureCube irradianceMap : register(t1);
-TextureCube prefilterMap : register(t2);
-SamplerState my_sampler;
 
 float DistributionGGX(float3 N, float3 H, float roughness);
 float GeometrySchlickGGX(float NdotV, float roughness);
@@ -28,12 +24,12 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
 
     // reflectance equation
     float3 Lo = float3(0.0, 0.0, 0.0);
-    float3 lightPosition = float3(0.0, 1.0, 1.0);
+    float3 lightPosition = float3(0.0, 1.0, -2.0);
     float3 lightColour = float3(1.0, 1.0, 1.0);
     // Directional Lighting
     {
         // calculate per-light radiance
-        float3 L = normalize(lightPosition.xyz);
+        float3 L = normalize(lightPosition.xyz - position);
         float3 H = normalize(V + L);
         float attenuation = 1.0;
         float3 radiance = lightColour.xyz * attenuation;
@@ -53,7 +49,7 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
 
         // add to outgoing radiance Lo
         float NdotL = max(dot(N, L), 0.0);
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * 2;
     }
 
     /*
@@ -93,14 +89,14 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
     kD *= 1.0 - metallic;
 
     // -------------IBL Lighting-----------------------//
-    float3 irradiance = irradianceMap.Sample(my_sampler, N).rgb;
-    float3 indirectDiffuse = irradiance * albedo;
-    const float MAX_REFLECTION_LOD = 4.0;   
-    float3 indirectSpecular = 0;
+    //float3 irradiance = irradianceMap.Sample(my_sampler, N).rgb;
+    //float3 indirectDiffuse = irradiance * albedo;
+    //const float MAX_REFLECTION_LOD = 4.0;   
+    //float3 indirectSpecular = 0;
    
     // ------------------------------------------------//
 
-    float3 ambient = (kD * indirectDiffuse + indirectSpecular) * ao;
+    float3 ambient = float3(0.3f, 0.3f, 0.3f); //(kD * indirectDiffuse + indirectSpecular) * ao;
    
     float3 color = ambient + Lo;
 	
@@ -111,7 +107,6 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
     float invGamma = 1.0f / 2.2f;
     color = pow(color, float3(invGamma, invGamma, invGamma));
     return float4(color, 1.0f);
-
 
 }
 

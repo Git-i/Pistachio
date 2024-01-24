@@ -186,11 +186,17 @@ namespace Pistachio {
 	*	you bind your resource to the set provided (note that resource type must correspond to the current bindings type of the set
 	*	then the set can be bound to the setIndex for rendering
 	*/
-	struct ShaderBindingInfo
+	struct BufferBindingUpdateDesc
+	{
+		RHI::Buffer* buffer;
+		uint32_t offset;
+		uint32_t size;
+	};
+	struct PISTACHIO_API ShaderBindingInfo
 	{
 		// we have a bunch of dsets from the shader, and info on how to populate them??
 		std::vector<SetInfo> sets;
-		void UpdateBinding(uint32_t setInfosIndex, uint32_t slot);
+		void UpdateBufferBinding(uint32_t setInfosIndex, BufferBindingUpdateDesc* desc, uint32_t slot);
 	};
 	class PISTACHIO_API Shader
 	{
@@ -204,6 +210,7 @@ namespace Pistachio {
 		uint32_t SetRasterizerMode(RHI::RasterizerMode* mode, ShaderModeSetFlags flags);
 		void GetBlendMode(RHI::BlendMode* mode);
 		void CreateShaderBinding(ShaderBindingInfo& info);
+		RHI::RootSignature* GetRootSignature() { return rootSig; };
 		uint32_t SetBlendMode(RHI::BlendMode* mode, ShaderModeSetFlags flags);
 		void CreateStack(ShaderCreateDesc* desc);
 	private:
