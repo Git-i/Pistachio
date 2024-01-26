@@ -19,7 +19,7 @@ public:
 		PT_PROFILE_FUNCTION();
 		RHI::Area2D area;
 		area.offset = { 0,0 };
-		area.size = {1280,720 };
+		area.size = {Pistachio::Application::Get().GetWindow().GetWidth(),Pistachio::Application::Get().GetWindow().GetHeight() };
 		RHI::RenderingAttachmentDesc rdesc;
 		cam.OnUpdate(delta);
 		auto mat = cam.GetViewProjection();
@@ -43,11 +43,13 @@ public:
 		Pistachio::RendererBase::GetMainCommandList()->SetViewports(1, &vp);
 		Pistachio::RendererBase::GetMainCommandList()->SetScissorRects(1, &area);
 		shad->Bind();
+		Pistachio::RendererBase::GetMainCommandList()->BindDescriptorSet(shad->GetRootSignature(), info.sets[0].set, 0);
 		mesh.meshes[0].GetVertexBuffer().Bind();
 		mesh.meshes[0].GetIndexBuffer().Bind();
-		
-		Pistachio::RendererBase::GetMainCommandList()->BindDescriptorSet(shad->GetRootSignature(), info.sets[0].set, 0);
 		Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(mesh.meshes[0].GetIndexBuffer().GetCount(), 1, 0, 0, 0);
+		cube.meshes[0].GetVertexBuffer().Bind();
+		cube.meshes[0].GetIndexBuffer().Bind();
+		//Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(cube.meshes[0].GetIndexBuffer().GetCount(), 1, 0, 0, 0);
 
 		Pistachio::RendererBase::GetMainCommandList()->EndRendering();
 		
@@ -59,11 +61,15 @@ public:
 		vp.height = 720;
 		vp.minDepth = 0.f;
 		vp.maxDepth = 1.f;
-		RHI::DepthStencilMode dsMode[1]{};
+		RHI::DepthStencilMode dsMode[2]{};
 		dsMode[0].DepthEnable = true;
 		dsMode[0].StencilEnable = false;
 		dsMode[0].DepthFunc = RHI::ComparisonFunc::LessEqual;
 		dsMode[0].DepthWriteMask = RHI::DepthWriteMask::All;
+		dsMode[0].BackFace.DepthfailOp = RHI::StencilOp::DecrSat;
+
+		dsMode[1] = dsMode[0];
+		dsMode[1].DepthEnable = false;
 		RHI::BlendMode blendMode{};
 		blendMode.IndependentBlend = true;
 		blendMode.blendDescs[0].blendEnable = false;
@@ -84,7 +90,7 @@ public:
 		ShaderCreateDesc desc{};
 		desc.VS = "C:/Dev/Repos/Pistachio/Sandbox/Shaders/PBR_no_reflect_vs";
 		desc.PS = "C:/Dev/Repos/Pistachio/Sandbox/Shaders/PBR_no_reflect_fs";
-		desc.numDepthStencilModes = 1;
+		desc.numDepthStencilModes = 2;
 		desc.DepthStencilModes = dsMode;
 		desc.DSVFormat = RHI::Format::D32_FLOAT;
 		desc.numBlendModes = 1;
@@ -99,7 +105,16 @@ public:
 
 		info = {};
 		shad = Shader::Create(&desc);
+		RHI::DepthStencilMode currMode{};
 		shad->CreateShaderBinding(info);
+		//dsMode->DepthFunc = RHI::ComparisonFunc::Always;
+		shad->SetDepthStencilMode(dsMode, ShaderModeSetFlags::AutomaticallyCreate);
+		currMode.DepthEnable = true;
+		currMode.DepthFunc = RHI::ComparisonFunc::LessEqual;
+		currMode.DepthWriteMask = RHI::DepthWriteMask::All;
+		currMode.StencilEnable = false;
+		shad->SetDepthStencilMode(&currMode, ShaderModeSetFlags::AutomaticallyCreate);
+		
 		struct
 		{
 			Matrix4 viewProjection;

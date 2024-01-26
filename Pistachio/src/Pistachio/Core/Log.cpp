@@ -17,4 +17,6 @@ namespace Pistachio
 		s_ClientLogger->set_level(spdlog::level::trace);
 		PT_CORE_INFO("Client Logger Initialized");
 	}
+	std::shared_ptr<spdlog::logger>& Log::GetCoreLogger() { return s_CoreLogger; }
+	std::shared_ptr<spdlog::logger>& Log::GetClientLogger() { return s_ClientLogger; }
 }

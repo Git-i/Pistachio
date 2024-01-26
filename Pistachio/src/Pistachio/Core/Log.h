@@ -4,22 +4,19 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
-#ifdef PISTACHIO_BUILD_DLL
-
 namespace Pistachio {
 	
 	class PISTACHIO_API Log
 	{
 	public:
 		static void Init();
-		inline static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
-		inline static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+		static std::shared_ptr<spdlog::logger>& GetCoreLogger();
+		static std::shared_ptr<spdlog::logger>& GetClientLogger();
 	private:
 		static std::shared_ptr<spdlog::logger> s_CoreLogger;
 		static std::shared_ptr<spdlog::logger> s_ClientLogger;
 	};
 }
-#endif // PISTACHIO_BUILD_DLL
 
 #if _DEBUG
 #define PT_CORE_TRACE(...) Pistachio::Log::GetCoreLogger()->trace(__VA_ARGS__)

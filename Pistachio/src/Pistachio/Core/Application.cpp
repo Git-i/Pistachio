@@ -108,6 +108,10 @@ namespace Pistachio {
 		}
 		return false;
 	}
+	inline Application& Application::Get()
+	{
+		return *s_Instance; 
+	}
 	void Application::SetImGuiContext(void* ctx)
 	{
 		ImGui::SetCurrentContext((ImGuiContext*)ctx);

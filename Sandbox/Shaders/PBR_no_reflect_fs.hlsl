@@ -49,7 +49,7 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
 
         // add to outgoing radiance Lo
         float NdotL = max(dot(N, L), 0.0);
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL * 2;
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
     /*
@@ -96,7 +96,7 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
    
     // ------------------------------------------------//
 
-    float3 ambient = float3(0.3f, 0.3f, 0.3f); //(kD * indirectDiffuse + indirectSpecular) * ao;
+    float3 ambient = float3(0.f, 0.f, 0.f); //(kD * indirectDiffuse + indirectSpecular) * ao;
    
     float3 color = ambient + Lo;
 	

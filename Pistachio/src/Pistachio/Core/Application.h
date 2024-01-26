@@ -27,7 +27,7 @@ namespace Pistachio {
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* overlay);
 		bool OnWindowResize(WindowResizeEvent& e);
-		inline static Application& Get() { return *s_Instance; }
+		inline static Application& Get();
 		inline Window& GetWindow() { return *m_Window; }
 		void SetImGuiContext(void* ctx);
 	private:
