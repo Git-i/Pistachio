@@ -13,7 +13,13 @@
 #include "Pistachio\Allocators\AtlasAllocator.h"
 #include "ShadowMap.h"
 namespace Pistachio {
-	
+	struct FrameResource
+	{
+		ConstantBuffer transformBuffer;
+		ConstantBuffer passCB; //updates every frame
+		ConstantBuffer materialCB;
+		StructuredBuffer LightCB;
+	};
 	struct PISTACHIO_API Light {
 		DirectX::XMFLOAT3 position;// for directional lights this is direction
 		LightType type;
@@ -77,10 +83,6 @@ namespace Pistachio {
 		static void AddShadowCastingLight(const ShadowCastingLight& light);
 		static void AddLight(const RegularLight& light);
 		inline static ShaderLibrary& GetShaderLibrary() { return shaderlib; }
-		//inline static ID3D11ShaderResourceView* GetFrambufferSRV() { return (ID3D11ShaderResourceView*)fbo.GetID().ptr; };
-		//inline static ID3D11ShaderResourceView* GetIrradianceFrambufferSRV() { return (ID3D11ShaderResourceView*)ifbo.GetID().ptr; };
-		//inline static ID3D11ShaderResourceView* GetPrefilterFrambufferSRV(int level) { return (ID3D11ShaderResourceView*)prefilter.GetID().ptr; };
-		//inline static ID3D11ShaderResourceView* GetBrdfSRV() { return (ID3D11ShaderResourceView*)BrdfTex.GetSRV().ptr; };
 		static Material DefaultMaterial;
 		static void OnEvent(Event& e) {
 			if (e.GetEventType() == EventType::WindowResize)
@@ -101,10 +103,11 @@ namespace Pistachio {
 		static DirectX::XMMATRIX viewproj;
 		static DirectX::XMVECTOR m_campos;
 		static ShaderLibrary shaderlib;
-		static ConstantBuffer MaterialCB;
-		static ConstantBuffer PassCB;
-		static StructuredBuffer LightSB;
-		static std::vector<ConstantBuffer> TransformationBuffer;
+		static FrameResource resources[3];
+		static ConstantBuffer MaterialCB;						//temporary todo: rework renderer
+		static ConstantBuffer PassCB;							//temporary todo: rework renderer
+		static StructuredBuffer LightSB;						//temporary todo: rework renderer
+		static std::vector<ConstantBuffer> TransformationBuffer;//temporary todo: rework renderer
 		static struct CamerData { DirectX::XMMATRIX viewProjection; DirectX::XMMATRIX view;  DirectX::XMFLOAT4 viewPos; }CameraData;
 		static Texture2D whiteTexture;
 		static PassConstants passConstants;

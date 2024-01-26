@@ -137,13 +137,13 @@ namespace Pistachio {
 		RHI::TextureDesc depthTextureDsc;
 		depthTextureDsc.depthOrArraySize = 1;
 		depthTextureDsc.format = RHI::Format::D32_FLOAT;
-		depthTextureDsc.height = 720;
+		depthTextureDsc.height = height;
 		depthTextureDsc.mipLevels = 1;
 		depthTextureDsc.mode = RHI::TextureTilingMode::Optimal;
 		depthTextureDsc.sampleCount = 1;
 		depthTextureDsc.type = RHI::TextureType::Texture2D;
 		depthTextureDsc.usage = RHI::TextureUsage::DepthStencilAttachment;
-		depthTextureDsc.width = 1280;
+		depthTextureDsc.width = width;
 		depthTextureDsc.optimizedClearValue = &depthVal;
 
 		PT_CORE_INFO("Creating DSV Heap");
