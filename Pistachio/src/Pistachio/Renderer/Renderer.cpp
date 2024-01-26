@@ -47,6 +47,7 @@ namespace Pistachio {
 	}
 	void Renderer::Init(const char* skybox)
 	{
+		//Create constant and structured buffers needed for each frame in flight
 		PT_PROFILE_FUNCTION();
 		std::cout << "renderer" << std::endl;
 		CreateConstantBuffers();

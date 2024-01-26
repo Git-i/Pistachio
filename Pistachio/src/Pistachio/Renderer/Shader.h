@@ -7,6 +7,9 @@
 #include "xxhash.h"
 namespace Pistachio
 {
+	struct PSOHash;
+	extern PSOHash PSOComparsionState(const PSOHash* pso);
+	
 	struct PSOHash
 	{
 		float depthBiasClamp;
@@ -57,10 +60,7 @@ namespace Pistachio
 			std::uint8_t alphaOp : 3;
 		};
 		RTBlend rtblends[6];
-		bool operator==(const PSOHash& hash) const
-		{
-			return XXH64(this, sizeof(PSOHash), 10) == XXH64(&hash, sizeof(PSOHash), 10);
-		}
+		bool operator==(const PSOHash& hash) const;
 	};
 }
 namespace std {
@@ -69,10 +69,16 @@ namespace std {
 	{
 		std::size_t operator()(const Pistachio::PSOHash& pso) const
 		{
+			Pistachio::PSOHash h1 = Pistachio::PSOComparsionState(&pso);
 			if constexpr (sizeof(size_t) == 8)
-				return XXH64(&pso, sizeof(Pistachio::PSOHash), 10);
+			{
+
+				return XXH64(&h1, sizeof(Pistachio::PSOHash), 10);
+			}
 			else
-				return XXH32(&pso, sizeof(Pistachio::PSOHash), 10);
+			{
+				return XXH32(&h1, sizeof(Pistachio::PSOHash), 10);
+			}
 		}
 	};
 }
@@ -221,7 +227,7 @@ namespace Pistachio {
 		RHI::RootSignature* rootSig;
 		RHI::DescriptorSetLayout** layouts;
 		uint32_t numLayouts;
-		RHI::Format rtvFormats[8];
+		RHI::Format rtvFormats[6];
 		RHI::Format dsvFormat;
 		uint32_t numRenderTargets;
 		std::string VS;
