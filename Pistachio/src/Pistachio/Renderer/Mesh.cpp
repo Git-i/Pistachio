@@ -6,6 +6,7 @@
 #include "assimp/Logger.hpp"
 #include "assimp/DefaultLogger.hpp"
 #include "../Core/Log.h"
+#include "Renderer.h"
 Pistachio::BufferLayout Pistachio::Mesh::layout[] = {
 			{"POSITION", Pistachio::BufferLayoutFormat::FLOAT3, 0},
 			{"NORMAL", Pistachio::BufferLayoutFormat::FLOAT3, 12},
@@ -55,8 +56,8 @@ namespace Pistachio {
 			));
 		}
 		worker.join();
-		m_VertexBuffer.CreateStack(m_vertices.data(), sizeof(Vertex) * pmeshes->mNumVertices, sizeof(Vertex));
-		m_IndexBuffer.CreateStack(m_indices.data(), sizeof(unsigned int) * pmeshes->mNumFaces * 3, sizeof(unsigned int));
+		m_VertexBuffer = Renderer::AllocateVertexBuffer(sizeof(Vertex) * pmeshes->mNumVertices, m_vertices.data());
+		m_IndexBuffer = Renderer::AllocateIndexBuffer(sizeof(unsigned int) * pmeshes->mNumFaces * 3, m_indices.data());
 		imp.FreeScene();
 		return Error(Pistachio::ErrorType::Success, "NO ERROR");
 	}
@@ -65,9 +66,16 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION()
 		m_vertices = vertices;
 		m_indices = indices;
-		
-		m_VertexBuffer.CreateStack(m_vertices.data(), sizeof(Vertex) * m_vertices.size(), sizeof(Vertex));
-		m_IndexBuffer.CreateStack(m_indices.data(), sizeof(unsigned int) * m_indices.size(), sizeof(unsigned int));
+		m_VertexBuffer = Renderer::AllocateVertexBuffer(sizeof(Vertex) * m_vertices.size(), m_vertices.data());
+		m_IndexBuffer = Renderer::AllocateIndexBuffer(sizeof(unsigned int) * m_indices.size(), m_indices.data());
+	}
+	Mesh::Mesh(const std::vector<Vertex>&& vertices, const std::vector<unsigned int>&& indices)
+	{
+		PT_PROFILE_FUNCTION()
+		m_vertices = vertices;
+		m_indices = indices;
+		m_VertexBuffer = Renderer::AllocateVertexBuffer(sizeof(Vertex) * m_vertices.size(), m_vertices.data());
+		m_IndexBuffer = Renderer::AllocateIndexBuffer(sizeof(unsigned int) * m_indices.size(), m_indices.data());
 	}
 	BufferLayout* Mesh::GetLayout()
 	{
