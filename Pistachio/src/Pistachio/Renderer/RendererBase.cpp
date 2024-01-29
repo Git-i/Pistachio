@@ -312,8 +312,8 @@ namespace Pistachio {
 	{
 		stagingCommandList->End();
 		directQueue->ExecuteCommandLists(&stagingCommandList->ID, 1); //todo look into dedicated transfer queue ??
-		directQueue->SignalFence(mainFence, 1); // 1 used here is an arbitrary value, hopefully we dont have to flush before frame 1?
-		mainFence->Wait(1); // consider doing this async perhaps;
+		directQueue->SignalFence(mainFence, 100); // 100 used here is an arbitrary value, hopefully we dont have to flush before frame 1?
+		mainFence->Wait(100); // consider doing this async perhaps;
 		directQueue->SignalFence(mainFence, currentFenceVal);
 		stagingCommandAllocator->Reset();
 		stagingCommandList->Begin(stagingCommandAllocator);

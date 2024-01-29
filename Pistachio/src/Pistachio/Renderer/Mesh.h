@@ -2,7 +2,9 @@
 #include "Buffer.h"
 #include "Shader.h"
 #include "../Core/Error.h"
+#include "BufferHandles.h"
 namespace Pistachio {
+	
 	struct PISTACHIO_API Vertex
 	{
 		struct {
@@ -31,15 +33,16 @@ namespace Pistachio {
 		static Mesh* Create(const char* filepath, std::uint32_t index = 0);
 		Error CreateStack(const char* filepath, std::uint32_t index = 0);
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
+		Mesh(const std::vector<Vertex>&& vertices, const std::vector<unsigned int>&& indices);
 		static BufferLayout* GetLayout();
 		inline static int GetLayoutSize() { return 3; }
-		inline const VertexBuffer& GetVertexBuffer() const { return m_VertexBuffer; }
-		inline const IndexBuffer& GetIndexBuffer() const { return m_IndexBuffer; }
+		inline const RendererVBHandle GetVBHandle() const { return m_VertexBuffer; }
+		inline const RendererIBHandle GetIBHandle() const { return m_IndexBuffer; }
 	private:
 		static BufferLayout layout[];
 		std::vector<Vertex> m_vertices;
 		std::vector<unsigned int> m_indices;
-		VertexBuffer m_VertexBuffer;
-		IndexBuffer m_IndexBuffer;
+		RendererVBHandle m_VertexBuffer;
+		RendererIBHandle m_IndexBuffer;
 	};
 }

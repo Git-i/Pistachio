@@ -12,7 +12,23 @@
 #include "Pistachio/Renderer/EditorCamera.h"
 #include "Pistachio\Allocators\AtlasAllocator.h"
 #include "ShadowMap.h"
+#include "Pistachio\Allocators\FreeList.h"
+#include "BufferHandles.h"
 namespace Pistachio {
+	/*
+	* The New Renderer would probably have a huge Vertex Buffer or Vertex Buffer Array, same for index buffer
+	* then on creation, we suballocate into it, so that we only call Bind() once or NUM_VERTEX_BUFFERS per frame (probably at the beginning),
+	* and this would be so even for multiple render passes (shadow maps), we could probably grow a singular buffer if we run out of space
+	* Having this system would also help if i ever consider using techniques like Multi-Draw Indirect later on to send virtually all
+	* geometry for each pass in about 1-2 calls, especially since the pipeline state would most likely not change per pass
+	* (except for transparency and similar stuff).
+	* The standard progression for a frame would be:
+	* Z-Prepass(Opaque) -> Shadow Map Pass(es) -> Clustered Forward Shading(Opaque) -> Sorting and Shading(Transparent)
+	* Post-processing (Compute??) -> 2D and UIx
+	* we would probably use entt to sort all meshes by Material first, then by transparency, although im unsure if they'll retain ordering
+	* 
+	*/
+	
 	struct FrameResource
 	{
 		ConstantBuffer transformBuffer;
@@ -84,18 +100,51 @@ namespace Pistachio {
 		static void AddLight(const RegularLight& light);
 		inline static ShaderLibrary& GetShaderLibrary() { return shaderlib; }
 		static Material DefaultMaterial;
+		static const RendererVBHandle AllocateVertexBuffer(uint32_t size, const void* initialData=nullptr);
+		static void FreeVertexBuffer(const RendererVBHandle handle);
+		static const RendererIBHandle AllocateIndexBuffer(uint32_t size,  const void* initialData=nullptr);
+		static const RHI::Buffer* GetVertexBuffer();
+		static const RHI::Buffer* GetIndexBuffer();
 		static void OnEvent(Event& e) {
 			if (e.GetEventType() == EventType::WindowResize)
 				OnWindowResize((WindowResizeEvent&)e);
 		}
 		static void OnWindowResize(WindowResizeEvent& e)
 		{
+			
 		}
 		
 	private:
 		static void CreateConstantBuffers();
 		static void UpdatePassConstants();
+		static void GrowMeshVertexBuffer(uint32_t minExtraSize);
+		static void GrowMeshIndexBuffer(uint32_t minExtraSize);
+		static void DefragmentMeshVertexBuffer();
+		static void DefragmentMeshIndexBuffer();
+		inline static RendererVBHandle AllocateBuffer(
+			FreeList& flist,
+			uint32_t& free_space,
+			uint32_t& fast_space,
+			uint32_t& capacity,
+			decltype(&Renderer::GrowMeshVertexBuffer) grow_fn,
+			decltype(&Renderer::DefragmentMeshVertexBuffer) defrag_fn,
+			RHI::Buffer** buffer,
+			uint32_t size, 
+			const void* initialData=nullptr);
 	private:
+		//New Renderer
+		static RHI::Buffer* meshVertices; // all meshes in the scene?
+		static RHI::Buffer*  meshIndices;
+		static uint32_t     vbFreeFastSpace;//free space for an immerdiate allocation
+		static uint32_t     vbFreeSpace;   //total free space to consider reordering
+		static uint32_t     vbCapacity;
+		static FreeList     vbFreeList;
+		static uint32_t     ibFreeFastSpace;
+		static uint32_t     ibFreeSpace;
+		static uint32_t     ibCapacity;
+		static FreeList     ibFreeList;
+		static FrameResource resources[3];
+		//Old Renderer
 		static RenderCubeMap fbo;
 		static RenderCubeMap ifbo;
 		static RenderCubeMap prefilter;
@@ -103,7 +152,6 @@ namespace Pistachio {
 		static DirectX::XMMATRIX viewproj;
 		static DirectX::XMVECTOR m_campos;
 		static ShaderLibrary shaderlib;
-		static FrameResource resources[3];
 		static ConstantBuffer MaterialCB;						//temporary todo: rework renderer
 		static ConstantBuffer PassCB;							//temporary todo: rework renderer
 		static StructuredBuffer LightSB;						//temporary todo: rework renderer

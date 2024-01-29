@@ -44,12 +44,18 @@ public:
 		Pistachio::RendererBase::GetMainCommandList()->SetScissorRects(1, &area);
 		shad->Bind();
 		Pistachio::RendererBase::GetMainCommandList()->BindDescriptorSet(shad->GetRootSignature(), info.sets[0].set, 0);
-		mesh.meshes[0].GetVertexBuffer().Bind();
-		mesh.meshes[0].GetIndexBuffer().Bind();
-		Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(mesh.meshes[0].GetIndexBuffer().GetCount(), 1, 0, 0, 0);
-		cube.meshes[0].GetVertexBuffer().Bind();
-		cube.meshes[0].GetIndexBuffer().Bind();
-		//Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(cube.meshes[0].GetIndexBuffer().GetCount(), 1, 0, 0, 0);
+		Pistachio::RendererBase::GetMainCommandList()->BindVertexBuffers(0, 1, &Pistachio::Renderer::GetVertexBuffer()->ID);
+		Pistachio::RendererBase::GetMainCommandList()->BindIndexBuffer(Pistachio::Renderer::GetIndexBuffer(), 0);
+
+		Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(mesh.meshes[0].GetIBHandle().size/sizeof(uint32_t),
+			1,
+			mesh.meshes[0].GetIBHandle().handle,
+			mesh.meshes[0].GetVBHandle().handle, 0);
+		Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(cube.meshes[0].GetIBHandle().size/sizeof(uint32_t),
+			1,
+			cube.meshes[0].GetIBHandle().handle / sizeof(uint32_t),
+			cube.meshes[0].GetVBHandle().handle/sizeof(Pistachio::Vertex), 0);
+		
 
 		Pistachio::RendererBase::GetMainCommandList()->EndRendering();
 		

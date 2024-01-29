@@ -206,7 +206,7 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\%(Directory)%(Filename).cso</ObjectFileOutput>
     </FxCompile>
-    <FxCompile Include="resources\shaders\pixel\DefferedShading_ps.hlsl">
+    <FxCompile Include="resources\shaders\pixel\DefferedShading_fs.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
