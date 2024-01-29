@@ -547,8 +547,8 @@ namespace Pistachio {
 		//m_gBuffer.BindResource(3, 4);
 		//Texture2D dst = m_finalRender.GetDepthTexture();
 		//Texture2D src = m_gBuffer.GetDepthTexture();
-		auto& VB = ScreenSpaceQuad->GetVertexBuffer();
-		auto& IB = ScreenSpaceQuad->GetIndexBuffer();
+		//auto& VB = ScreenSpaceQuad->GetVertexBuffer();
+		//auto& IB = ScreenSpaceQuad->GetIndexBuffer();
 		//Buffer buffer = { &VB,&IB };
 		Renderer::GetShaderLibrary().Get("PBR-Deffered-Shader").get()->Bind();
 		//RendererBase::DrawIndexed(buffer);

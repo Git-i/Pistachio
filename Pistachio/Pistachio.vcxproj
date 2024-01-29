@@ -118,6 +118,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Pistachio\Allocators\AtlasAllocator.h" />
+    <ClInclude Include="src\Pistachio\Allocators\FreeList.h" />
     <ClInclude Include="src\Pistachio\Asset\Asset.h" />
     <ClInclude Include="src\Pistachio\Asset\AssetManager.h" />
     <ClInclude Include="src\Pistachio\Asset\RefCountedObject.h" />
@@ -128,6 +129,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClInclude Include="src\Pistachio\Debug\Instrumentor.h" />
     <ClInclude Include="src\Pistachio\Event\SceneGraphEvent.h" />
     <ClInclude Include="src\Pistachio\Physics\Physics.h" />
+    <ClInclude Include="src\Pistachio\Renderer\BufferHandles.h" />
     <ClInclude Include="src\Pistachio\Renderer\com_ptr.h" />
     <ClInclude Include="src\Pistachio\Core\Timestep.h" />
     <ClInclude Include="src\Pistachio\Core\Transform.h" />
@@ -509,6 +511,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Pistachio\Allocators\AtlasAllocator.cpp" />
+    <ClCompile Include="src\Pistachio\Allocators\FreeList.cpp" />
     <ClCompile Include="src\Pistachio\Asset\AssetManager.cpp" />
     <ClCompile Include="src\Pistachio\Core\UUID.cpp" />
     <ClCompile Include="src\Pistachio\Physics\Physics.cpp" />

@@ -31,10 +31,28 @@ Pistachio::Shader* Pistachio::Renderer::irradianceShader;
 Pistachio::Shader* Pistachio::Renderer::brdfShader;
 Pistachio::Shader* Pistachio::Renderer::prefilterShader;
 
+RHI::Buffer*            Pistachio::Renderer::meshVertices; // all meshes in the scene?
+RHI::Buffer*            Pistachio::Renderer::meshIndices;
+uint32_t                Pistachio::Renderer::vbFreeFastSpace;//free space for an immerdiate allocation
+uint32_t                Pistachio::Renderer::vbFreeSpace;   //total free space to consider reordering
+uint32_t                Pistachio::Renderer::vbCapacity;
+Pistachio::FreeList     Pistachio::Renderer::vbFreeList;
+uint32_t                Pistachio::Renderer::ibFreeFastSpace;
+uint32_t                Pistachio::Renderer::ibFreeSpace;
+uint32_t                Pistachio::Renderer::ibCapacity;
+Pistachio::FreeList     Pistachio::Renderer::ibFreeList;
+
+static const uint32_t VB_INITIAL_SIZE = 1024;
+static const uint32_t IB_INITIAL_SIZE = 1024;
+
 namespace Pistachio {
 	void Renderer::CreateConstantBuffers()
 	{
 		PT_PROFILE_FUNCTION();
+		for (uint32_t i = 0; i < 3; i++)
+		{
+
+		}
 		MaterialStruct cb;
 		MaterialCB.Create(nullptr, sizeof(MaterialStruct));
 		LightSB.CreateStack(nullptr, sizeof(ShadowCastingLight) * 256,16); //todo : make light buffer dynamic
@@ -49,7 +67,34 @@ namespace Pistachio {
 	{
 		//Create constant and structured buffers needed for each frame in flight
 		PT_PROFILE_FUNCTION();
-		std::cout << "renderer" << std::endl;
+		PT_CORE_INFO("Initializing Renderer");
+
+		//vertex buffer
+		PT_CORE_INFO("Creating Vertex Buffer");
+		RHI::BufferDesc bufferDesc;
+		bufferDesc.size = VB_INITIAL_SIZE;
+		bufferDesc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
+		RHI::AutomaticAllocationInfo bufferAllocInfo;
+		bufferAllocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
+		RendererBase::device->CreateBuffer(&bufferDesc, &meshVertices, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic);
+		//index buffer
+		PT_CORE_INFO("Creating Index Buffer");
+		bufferDesc.size = IB_INITIAL_SIZE;
+		bufferDesc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
+		RendererBase::device->CreateBuffer(&bufferDesc, &meshIndices, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic);
+		//set constants for vb and ib
+		vbCapacity = VB_INITIAL_SIZE;
+		vbFreeFastSpace = VB_INITIAL_SIZE;
+		vbFreeSpace = VB_INITIAL_SIZE;
+		//---------------------------
+		ibCapacity = IB_INITIAL_SIZE;
+		ibFreeFastSpace = IB_INITIAL_SIZE;
+		ibFreeSpace = IB_INITIAL_SIZE;
+		//Create Free lists
+		vbFreeList = FreeList(VB_INITIAL_SIZE);
+		ibFreeList = FreeList(IB_INITIAL_SIZE);
+		
+
 		CreateConstantBuffers();
 		
 		brdfSampler = SamplerState::Create(SamplerStateDesc::Default);
@@ -120,10 +165,10 @@ namespace Pistachio {
 		cube.CreateStack("cube.obj");
 		plane.CreateStack("plane.obj");
 
-		auto& cubeVB = cube.GetVertexBuffer();
-		auto& cubeIB = cube.GetIndexBuffer();
-		auto& planeVB = plane.GetVertexBuffer();
-		auto& planeIB = plane.GetIndexBuffer();
+		//auto& cubeVB = cube.GetVertexBuffer();
+		//auto& cubeIB = cube.GetIndexBuffer();
+		//auto& planeVB = plane.GetVertexBuffer();
+		//auto& planeIB = plane.GetIndexBuffer();
 
 		//probably remove this
 		struct CameraStruct {
@@ -350,8 +395,8 @@ namespace Pistachio {
 	void Renderer::Submit(Mesh* mesh, Shader* shader, Material* mat, int ID)
 	{
 		PT_PROFILE_FUNCTION();
-		auto& VB = mesh->GetVertexBuffer(); 
-		auto& IB = mesh->GetIndexBuffer();
+		//auto& VB = mesh->GetVertexBuffer(); 
+		//auto& IB = mesh->GetIndexBuffer();
 		//Buffer buffer = { &VB,&IB };
 		if ((mat == currentMat));
 		else
@@ -377,5 +422,182 @@ namespace Pistachio {
 		DirectX::XMStoreFloat4x4(&passConstants.View, CameraData.view);
 		DirectX::XMStoreFloat4x4(&passConstants.ViewProj, CameraData.viewProjection);
 		PassCB.Update(&passConstants, sizeof(PassConstants),0);
+	}
+	const RendererVBHandle Renderer::AllocateVertexBuffer(uint32_t size,const void* initialData)
+	{
+		return AllocateBuffer(vbFreeList, vbFreeSpace, vbFreeFastSpace, vbCapacity, &Renderer::GrowMeshVertexBuffer,&Renderer::DefragmentMeshVertexBuffer, &meshVertices, size, initialData);
+	}
+	const RendererIBHandle Renderer::AllocateIndexBuffer(uint32_t size, const void* initialData)
+	{
+		auto [a,b] = AllocateBuffer(ibFreeList, ibFreeSpace, ibFreeFastSpace, ibCapacity, &Renderer::GrowMeshIndexBuffer, &Renderer::DefragmentMeshIndexBuffer,&meshIndices, size, initialData);
+		return { a,b };
+	}
+	inline RendererVBHandle Renderer::AllocateBuffer(
+		FreeList& flist, uint32_t& free_space, 
+		uint32_t& fast_space, 
+		uint32_t& capacity,
+		decltype(&Renderer::GrowMeshVertexBuffer) grow_fn,
+		decltype(&Renderer::DefragmentMeshVertexBuffer) defrag_fn,
+		RHI::Buffer** buffer, 
+		uint32_t size,
+		const void* initialData)
+	{
+		RendererVBHandle handle;
+		//check if we have immediate space available
+		if (size < fast_space)
+		{
+			//allocate to buffer end
+			//fast space is always at the end
+			PT_CORE_ASSERT(flist.Allocate(capacity - fast_space, size) == 0);
+			if (initialData) RendererBase::PushBufferUpdate(*buffer, capacity - fast_space, initialData, size);
+			RendererBase::FlushStagingBuffer();
+			handle.handle = capacity - fast_space;
+			handle.size = size;
+			fast_space -= size;
+			free_space -= size;
+			return handle;
+		}
+		//if not, check if we have space at all
+		else if (size < vbFreeSpace)
+		{
+			//if we have space, check the free list to see if space is continuos
+			if (auto space = vbFreeList.Find(size); space != UINT32_MAX)
+			{
+				//allocate
+				PT_CORE_ASSERT(vbFreeList.Allocate(space, size) == 0);
+				if (initialData) RendererBase::PushBufferUpdate(*buffer, space, initialData, size);
+				handle.handle = space;
+				handle.size = size;
+				free_space -= size;
+				return handle;
+			}
+			PT_CORE_WARN("Defragmenting Buffer");
+			defrag_fn();
+			if (initialData) RendererBase::PushBufferUpdate(*buffer, capacity - fast_space, initialData, size);
+			handle.handle = capacity - fast_space;
+			handle.size = size;
+			vbFreeFastSpace -= size;
+			vbFreeSpace -= size;
+			return handle;
+			//allocate to buffer end
+		}
+		else
+		{
+			PT_CORE_WARN("Growing Buffer");
+			grow_fn(size);
+			//growth doesnt guarantee that the free space is "Fast" it just guarantees we'll have enough space for the op
+			return AllocateBuffer(flist, free_space, fast_space, capacity,grow_fn,defrag_fn,buffer,size, initialData);
+			//allocate to buffer end
+		}
+		return handle;
+	}
+	void Renderer::GrowMeshVertexBuffer(uint32_t minSize)
+	{
+		const uint32_t GROW_FACTOR = 20; //probably use a better, more size dependent method to determing this
+		uint32_t new_size = vbCapacity + minSize + GROW_FACTOR;
+		RHI::BufferDesc desc;
+		desc.size = new_size;
+		desc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
+		RHI::Buffer* newVB;
+		RHI::AutomaticAllocationInfo allocInfo;
+		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
+		RendererBase::device->CreateBuffer(&desc, &newVB, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic);
+		//Queue it with staging stuff
+		RendererBase::stagingCommandList->CopyBufferRegion(0, 0, vbCapacity, meshVertices, newVB);
+		//wait until copy is finished?
+		RendererBase::FlushStagingBuffer();
+		//before destroying old buffer, wait for old frames to render
+		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
+		meshVertices->Destroy();
+		meshVertices = newVB;
+		vbFreeSpace += minSize + GROW_FACTOR;
+		vbFreeFastSpace += minSize + GROW_FACTOR;
+		vbCapacity = new_size;
+		vbFreeList.Grow(new_size);
+	}
+	void Renderer::GrowMeshIndexBuffer(uint32_t minSize)
+	{
+		const uint32_t GROW_FACTOR = 20; //probably use a better, more size dependent method to determing this
+		uint32_t new_size = ibCapacity + minSize + GROW_FACTOR;
+		RHI::BufferDesc desc;
+		desc.size = new_size;
+		desc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
+		RHI::Buffer* newIB;
+		RHI::AutomaticAllocationInfo allocInfo;
+		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
+		RendererBase::device->CreateBuffer(&desc, &newIB, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic);
+		//Queue it with staging stuff
+		RendererBase::stagingCommandList->CopyBufferRegion(0, 0, ibCapacity, meshIndices, newIB);
+		//wait until copy is finished?
+		RendererBase::FlushStagingBuffer();
+		//before destroying old buffer, wait for old frames to render
+		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
+		meshIndices->Destroy();
+		meshIndices = newIB;
+		ibFreeSpace += minSize + GROW_FACTOR;
+		ibFreeFastSpace += minSize + GROW_FACTOR;
+		ibCapacity = new_size;
+		ibFreeList.Grow(new_size);
+	}
+	void Pistachio::Renderer::FreeVertexBuffer(const RendererVBHandle handle)
+	{
+		vbFreeSpace += handle.size;
+		vbFreeList.DeAllocate(handle.handle, handle.size);
+	}
+	const RHI::Buffer* Renderer::GetVertexBuffer()
+	{
+		return meshVertices;
+	}
+	const RHI::Buffer* Renderer::GetIndexBuffer()
+	{
+		return meshIndices;
+	}
+	void Renderer::DefragmentMeshVertexBuffer()
+	{
+		auto block = vbFreeList.GetBlockPtr();
+		uint32_t nextFreeOffset = 0;
+		while (block)
+		{
+			if (block->offset > nextFreeOffset)
+			{
+				RendererBase::stagingCommandList->CopyBufferRegion(block->offset, nextFreeOffset, block->size, meshVertices, meshVertices);
+				nextFreeOffset += block->size;
+			}
+			block = block->next;
+		}
+		vbFreeList.Reset();
+		//fill up the beginning of the free list with the memory size we just copied
+		vbFreeList.Allocate(0, nextFreeOffset);
+		vbFreeFastSpace = vbFreeSpace;//after defrag all free space is fast space
+		/*
+		 *Is that a safe assumptions;
+		 *we dont flush for every copy, because we asssume copies are done in order, so memory won't get overritten
+		 */
+		RendererBase::FlushStagingBuffer();
+		
+	}
+	void Renderer::DefragmentMeshIndexBuffer()
+	{
+		auto block = ibFreeList.GetBlockPtr();
+		uint32_t nextFreeOffset = 0;
+		while (block)
+		{
+			if (block->offset > nextFreeOffset)
+			{
+				RendererBase::stagingCommandList->CopyBufferRegion(block->offset, nextFreeOffset, block->size, meshIndices, meshIndices);
+				nextFreeOffset += block->size;
+			}
+			block = block->next;
+		}
+		ibFreeList.Reset();
+		//fill up the beginning of the free list with the memory size we just copied
+		ibFreeList.Allocate(0, nextFreeOffset);
+		ibFreeFastSpace = vbFreeSpace;//after defrag all free space is fast space
+		/*
+		 *Is that a safe assumptions;
+		 *we dont flush for every copy, because we asssume copies are done in order, so memory won't get overritten
+		 */
+		RendererBase::FlushStagingBuffer();
+
 	}
 }
