@@ -77,6 +77,11 @@ namespace Pistachio {
 		m_VertexBuffer = Renderer::AllocateVertexBuffer(sizeof(Vertex) * m_vertices.size(), m_vertices.data());
 		m_IndexBuffer = Renderer::AllocateIndexBuffer(sizeof(unsigned int) * m_indices.size(), m_indices.data());
 	}
+	Mesh::~Mesh()
+	{
+		Renderer::FreeVertexBuffer(m_VertexBuffer);
+		Renderer::FreeIndexBuffer(m_IndexBuffer);
+	}
 	BufferLayout* Mesh::GetLayout()
 	{
 		return layout;

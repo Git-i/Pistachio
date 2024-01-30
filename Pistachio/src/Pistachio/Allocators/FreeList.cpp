@@ -66,6 +66,12 @@ namespace Pistachio
 					block->size = block->size - size;
 					return 0;
 				}
+				if (offset == block->offset)//they start at same byte
+				{
+					block->offset += size;
+					block->size -= size;
+					return 0;
+				}
 				else 
 				{
 					//make a new block
@@ -91,10 +97,44 @@ namespace Pistachio
 		FreeBlock* block = &firstBlock;
 		while (block)
 		{
-			if (offset <= block->offset)
+			if (offset < block->offset)
 			{
-				PT_CORE_ASSERT(offset + size < block->offset);
-				block->offset -= offset;
+				PT_CORE_ASSERT(offset + size <= block->offset);
+				if (offset + size == block->offset)//the blocks are joined
+				{
+					block->offset -= size;
+					block->size += size;
+					break;
+				}
+				//in the case we are replacing the first block
+				if (block == &firstBlock)
+				{
+					FreeBlock* newBlock = new FreeBlock();
+					newBlock->next = nullptr;
+					newBlock->offset = block->offset;
+					newBlock->size = block->size;
+
+					block->next = newBlock;
+					block->offset = offset;
+					block->size = size;
+					break;
+				}
+				//the blocks are not joined
+				FreeBlock* newBlock = new FreeBlock();
+				newBlock->next = block;
+				newBlock->offset = offset;
+				newBlock->size = size;
+				//retraverse the list and assign the former predecessor's next to newBlock
+				FreeBlock* traversalBlock = &firstBlock;
+				while (traversalBlock)
+				{
+					if (traversalBlock->next == block)
+					{
+						traversalBlock->next = newBlock;
+						break;
+					}
+					traversalBlock = traversalBlock->next;
+				}
 				break;
 			}
 			block = block->next;

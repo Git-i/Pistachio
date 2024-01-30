@@ -1,12 +1,14 @@
 #pragma once
+#include <stdfloat>
 #include "Buffer.h"
 #include "Shader.h"
 #include "../Core/Error.h"
 #include "BufferHandles.h"
 namespace Pistachio {
-	
+	//ptobably have different Vertex structs
 	struct PISTACHIO_API Vertex
 	{
+		
 		struct {
 			float x, y, z;
 		} position = {0,0,0};
@@ -25,15 +27,17 @@ namespace Pistachio {
 	};
 	struct PISTACHIO_API Face
 	{
-		unsigned int i0, i1, i2;
+		uint32_t i0, i1, i2;
 	};
 	class PISTACHIO_API Mesh {
 	public:
 		Mesh(){}
 		static Mesh* Create(const char* filepath, std::uint32_t index = 0);
 		Error CreateStack(const char* filepath, std::uint32_t index = 0);
+		//Don't use the copy constructor, no reason to, keeping it for backward compatibility
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 		Mesh(const std::vector<Vertex>&& vertices, const std::vector<unsigned int>&& indices);
+		~Mesh();
 		static BufferLayout* GetLayout();
 		inline static int GetLayoutSize() { return 3; }
 		inline const RendererVBHandle GetVBHandle() const { return m_VertexBuffer; }
