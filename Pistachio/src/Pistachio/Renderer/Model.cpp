@@ -4,7 +4,11 @@
 #include "../Core/Log.h"
 #include "assimp/DefaultLogger.hpp"
 #include "../Core/Error.h"
-
+/*
+ * Most of the code here is from https://www.learnopengl.com
+ * It's not that i can't write it, i just didnt feel like
+ * Ill probably get to optimize/potentially rewrite it later on
+*/
 namespace Pistachio {
     Model* Model::Create(const char* path)
     {
@@ -98,6 +102,6 @@ namespace Pistachio {
                 indices.push_back(face.mIndices[j]);
             }
         }
-        meshes.emplace_back(vertices, indices);
+        meshes.emplace_back(std::move(vertices), std::move(indices));
     }
 }

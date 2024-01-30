@@ -11,12 +11,16 @@ public:
 	ExampleLayer(const char* name) : 
 		Layer(name), cam(45.f, 16.f/9.f, 0.1, 100.f),
 		mesh("sphere.obj"), 
-		cube("cube.obj"), ocam(-10.f, 10.f, 10.f, -10.f, 1.6)
+		cube("cube.obj"), 
+		sphere(new Pistachio::Model("circle.obj")),
+		ocam(-10.f, 10.f, 10.f, -10.f, 1.6)
 	{
 	}
 	void OnUpdate(float delta) override
 	{
 		PT_PROFILE_FUNCTION();
+		static int frame = 0;
+		frame++;
 		RHI::Area2D area;
 		area.offset = { 0,0 };
 		area.size = {Pistachio::Application::Get().GetWindow().GetWidth(),Pistachio::Application::Get().GetWindow().GetHeight() };
@@ -49,12 +53,26 @@ public:
 
 		Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(mesh.meshes[0].GetIBHandle().size/sizeof(uint32_t),
 			1,
-			mesh.meshes[0].GetIBHandle().handle,
-			mesh.meshes[0].GetVBHandle().handle, 0);
-		Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(cube.meshes[0].GetIBHandle().size/sizeof(uint32_t),
-			1,
-			cube.meshes[0].GetIBHandle().handle / sizeof(uint32_t),
-			cube.meshes[0].GetVBHandle().handle/sizeof(Pistachio::Vertex), 0);
+			Pistachio::Renderer::GetIBOffset(mesh.meshes[0].GetIBHandle()),
+			Pistachio::Renderer::GetVBOffset(mesh.meshes[0].GetVBHandle()), 0);
+		if (frame < 3000 || frame > 5000)
+		{
+			Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(sphere->meshes[0].GetIBHandle().size / sizeof(uint32_t),
+				1,
+				Pistachio::Renderer::GetIBOffset(sphere->meshes[0].GetIBHandle()) / sizeof(uint32_t),
+				Pistachio::Renderer::GetVBOffset(sphere->meshes[0].GetVBHandle()) / sizeof(Pistachio::Vertex), 0);
+		}
+		else
+		{
+			if (frame == 3002)
+				delete sphere;
+			if (frame == 3004)
+				sphere = new Pistachio::Model("circle.obj");
+			Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(cube.meshes[0].GetIBHandle().size / sizeof(uint32_t),
+				1,
+				Pistachio::Renderer::GetIBOffset(cube.meshes[0].GetIBHandle()) / sizeof(uint32_t),
+				Pistachio::Renderer::GetVBOffset(cube.meshes[0].GetVBHandle()) / sizeof(Pistachio::Vertex), 0);
+		}
 		
 
 		Pistachio::RendererBase::GetMainCommandList()->EndRendering();
@@ -177,6 +195,7 @@ public:
 private:
 	Pistachio::ConstantBuffer* cBuf;
 	Pistachio::Model mesh;
+	Pistachio::Model* sphere;
 	Pistachio::Model cube;
 	Pistachio::Shader* shader;
 	Pistachio::Shader* noreflect;

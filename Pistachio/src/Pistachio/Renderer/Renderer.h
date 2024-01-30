@@ -103,8 +103,12 @@ namespace Pistachio {
 		static const RendererVBHandle AllocateVertexBuffer(uint32_t size, const void* initialData=nullptr);
 		static void FreeVertexBuffer(const RendererVBHandle handle);
 		static const RendererIBHandle AllocateIndexBuffer(uint32_t size,  const void* initialData=nullptr);
+		static void FreeIndexBuffer(const RendererIBHandle handle);
 		static const RHI::Buffer* GetVertexBuffer();
 		static const RHI::Buffer* GetIndexBuffer();
+		//todo: remove these
+		static const uint32_t GetIBOffset(const RendererIBHandle handle);
+		static const uint32_t GetVBOffset(const RendererVBHandle handle);
 		static void OnEvent(Event& e) {
 			if (e.GetEventType() == EventType::WindowResize)
 				OnWindowResize((WindowResizeEvent&)e);
@@ -115,6 +119,10 @@ namespace Pistachio {
 		}
 		
 	private:
+		static uint32_t AssignHandle(
+			std::vector<uint32_t>& offsetsVector,
+			std::vector<uint32_t>& freeHandlesVector,
+			std::uint32_t offset);
 		static void CreateConstantBuffers();
 		static void UpdatePassConstants();
 		static void GrowMeshVertexBuffer(uint32_t minExtraSize);
@@ -128,6 +136,8 @@ namespace Pistachio {
 			uint32_t& capacity,
 			decltype(&Renderer::GrowMeshVertexBuffer) grow_fn,
 			decltype(&Renderer::DefragmentMeshVertexBuffer) defrag_fn,
+			std::vector<uint32_t>& offsetsVector,
+			std::vector<uint32_t>& freeHandlesVector,
 			RHI::Buffer** buffer,
 			uint32_t size, 
 			const void* initialData=nullptr);
@@ -139,10 +149,19 @@ namespace Pistachio {
 		static uint32_t     vbFreeSpace;   //total free space to consider reordering
 		static uint32_t     vbCapacity;
 		static FreeList     vbFreeList;
+		/*
+		 * handles map buffer handles to thier actual offsets, in case defragmentation moves them around
+		 * each handle is just an offset into this vector
+		 */
+		static std::vector<uint32_t> vbHandleOffsets;
+		// in the case we free a vertex buffer, we dont want to have to resize the offset vector even when there are unused spaces
+		static std::vector<uint32_t> vbUnusedHandles;
 		static uint32_t     ibFreeFastSpace;
 		static uint32_t     ibFreeSpace;
 		static uint32_t     ibCapacity;
 		static FreeList     ibFreeList;
+		static std::vector<uint32_t> ibHandleOffsets;
+		static std::vector<uint32_t> ibUnusedHandles;
 		static FrameResource resources[3];
 		//Old Renderer
 		static RenderCubeMap fbo;

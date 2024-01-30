@@ -42,6 +42,10 @@ uint32_t                Pistachio::Renderer::ibFreeSpace;
 uint32_t                Pistachio::Renderer::ibCapacity;
 Pistachio::FreeList     Pistachio::Renderer::ibFreeList;
 
+std::vector<uint32_t> Pistachio::Renderer::ibHandleOffsets;
+std::vector<uint32_t> Pistachio::Renderer::ibUnusedHandles;
+std::vector<uint32_t> Pistachio::Renderer::vbHandleOffsets;
+std::vector<uint32_t> Pistachio::Renderer::vbUnusedHandles;
 static const uint32_t VB_INITIAL_SIZE = 1024;
 static const uint32_t IB_INITIAL_SIZE = 1024;
 
@@ -425,11 +429,11 @@ namespace Pistachio {
 	}
 	const RendererVBHandle Renderer::AllocateVertexBuffer(uint32_t size,const void* initialData)
 	{
-		return AllocateBuffer(vbFreeList, vbFreeSpace, vbFreeFastSpace, vbCapacity, &Renderer::GrowMeshVertexBuffer,&Renderer::DefragmentMeshVertexBuffer, &meshVertices, size, initialData);
+		return AllocateBuffer(vbFreeList, vbFreeSpace, vbFreeFastSpace, vbCapacity, &Renderer::GrowMeshVertexBuffer,&Renderer::DefragmentMeshVertexBuffer, vbHandleOffsets,vbUnusedHandles,&meshVertices, size, initialData);
 	}
 	const RendererIBHandle Renderer::AllocateIndexBuffer(uint32_t size, const void* initialData)
 	{
-		auto [a,b] = AllocateBuffer(ibFreeList, ibFreeSpace, ibFreeFastSpace, ibCapacity, &Renderer::GrowMeshIndexBuffer, &Renderer::DefragmentMeshIndexBuffer,&meshIndices, size, initialData);
+		auto [a,b] = AllocateBuffer(ibFreeList, ibFreeSpace, ibFreeFastSpace, ibCapacity, &Renderer::GrowMeshIndexBuffer, &Renderer::DefragmentMeshIndexBuffer,ibHandleOffsets,ibUnusedHandles,&meshIndices, size, initialData);
 		return { a,b };
 	}
 	inline RendererVBHandle Renderer::AllocateBuffer(
@@ -438,6 +442,8 @@ namespace Pistachio {
 		uint32_t& capacity,
 		decltype(&Renderer::GrowMeshVertexBuffer) grow_fn,
 		decltype(&Renderer::DefragmentMeshVertexBuffer) defrag_fn,
+		std::vector<uint32_t>& offsetsVector,
+		std::vector<uint32_t>& freeHandlesVector,
 		RHI::Buffer** buffer, 
 		uint32_t size,
 		const void* initialData)
@@ -451,22 +457,23 @@ namespace Pistachio {
 			PT_CORE_ASSERT(flist.Allocate(capacity - fast_space, size) == 0);
 			if (initialData) RendererBase::PushBufferUpdate(*buffer, capacity - fast_space, initialData, size);
 			RendererBase::FlushStagingBuffer();
-			handle.handle = capacity - fast_space;
+			handle.handle = AssignHandle(offsetsVector,freeHandlesVector,capacity - fast_space);
 			handle.size = size;
 			fast_space -= size;
 			free_space -= size;
 			return handle;
 		}
 		//if not, check if we have space at all
-		else if (size < vbFreeSpace)
+		else if (size < free_space)
 		{
 			//if we have space, check the free list to see if space is continuos
-			if (auto space = vbFreeList.Find(size); space != UINT32_MAX)
+			if (auto space = flist.Find(size); space != UINT32_MAX)
 			{
 				//allocate
-				PT_CORE_ASSERT(vbFreeList.Allocate(space, size) == 0);
+				PT_CORE_ASSERT(flist.Allocate(space, size) == 0);
 				if (initialData) RendererBase::PushBufferUpdate(*buffer, space, initialData, size);
-				handle.handle = space;
+				RendererBase::FlushStagingBuffer();
+				handle.handle = AssignHandle(offsetsVector, freeHandlesVector, space);
 				handle.size = size;
 				free_space -= size;
 				return handle;
@@ -474,10 +481,10 @@ namespace Pistachio {
 			PT_CORE_WARN("Defragmenting Buffer");
 			defrag_fn();
 			if (initialData) RendererBase::PushBufferUpdate(*buffer, capacity - fast_space, initialData, size);
-			handle.handle = capacity - fast_space;
+			handle.handle = AssignHandle(offsetsVector,freeHandlesVector,capacity - fast_space);
 			handle.size = size;
-			vbFreeFastSpace -= size;
-			vbFreeSpace -= size;
+			fast_space -= size;
+			free_space -= size;
 			return handle;
 			//allocate to buffer end
 		}
@@ -486,9 +493,21 @@ namespace Pistachio {
 			PT_CORE_WARN("Growing Buffer");
 			grow_fn(size);
 			//growth doesnt guarantee that the free space is "Fast" it just guarantees we'll have enough space for the op
-			return AllocateBuffer(flist, free_space, fast_space, capacity,grow_fn,defrag_fn,buffer,size, initialData);
+			return AllocateBuffer(flist, free_space, fast_space, capacity,grow_fn,defrag_fn,offsetsVector,freeHandlesVector,buffer,size, initialData);
 			//allocate to buffer end
 		}
+		return handle;
+	}
+	uint32_t Renderer::AssignHandle(std::vector<uint32_t>& offsetsVector, std::vector<uint32_t>& freeHandlesVector, std::uint32_t offset)
+	{
+		if (freeHandlesVector.empty())
+		{
+			offsetsVector.push_back(offset);
+			return offsetsVector.size() - 1;
+		}
+		uint32_t handle = freeHandlesVector[freeHandlesVector.size()-1];
+		offsetsVector[handle] = offset;
+		freeHandlesVector.pop_back();
 		return handle;
 	}
 	void Renderer::GrowMeshVertexBuffer(uint32_t minSize)
@@ -542,7 +561,14 @@ namespace Pistachio {
 	void Pistachio::Renderer::FreeVertexBuffer(const RendererVBHandle handle)
 	{
 		vbFreeSpace += handle.size;
-		vbFreeList.DeAllocate(handle.handle, handle.size);
+		vbFreeList.DeAllocate(vbHandleOffsets[handle.handle], handle.size);
+		vbUnusedHandles.push_back(handle.handle);
+	}
+	void Renderer::FreeIndexBuffer(const RendererIBHandle handle)
+	{
+		ibFreeSpace += handle.size;
+		ibFreeList.DeAllocate(ibHandleOffsets[handle.handle], handle.size);
+		ibUnusedHandles.push_back(handle.handle);
 	}
 	const RHI::Buffer* Renderer::GetVertexBuffer()
 	{
@@ -599,5 +625,13 @@ namespace Pistachio {
 		 */
 		RendererBase::FlushStagingBuffer();
 
+	}
+	const uint32_t Pistachio::Renderer::GetIBOffset(const RendererIBHandle handle)
+	{
+		return ibHandleOffsets[handle.handle];
+	}
+	const uint32_t Pistachio::Renderer::GetVBOffset(const RendererVBHandle handle)
+	{
+		return vbHandleOffsets[handle.handle];
 	}
 }
