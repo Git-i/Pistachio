@@ -126,7 +126,7 @@ namespace Pistachio {
 		for (int i = 0; i < 2; i++)
 		{
 			RHI::CPU_HANDLE handle;
-			handle.val = rtvHeap->GetCpuHandle().val + (i * device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV));
+			handle.val = rtvHeap->GetCpuHandle().val + (i * device->GetDescriptorHeapIncrementSize(RHI::DescriptorClass::RTV));
 			device->CreateRenderTargetView(backBufferTextures[i], nullptr, handle);
 		}
 		PT_CORE_INFO("Created Tender Target Views");
@@ -179,10 +179,10 @@ namespace Pistachio {
 		RHI::PoolSize HeapSizes[2];
 		
 		HeapSizes[0].numDescriptors = 5;
-		HeapSizes[0].type = RHI::DescriptorType::CBV;
+		HeapSizes[0].type = RHI::DescriptorType::ConstantBuffer;
 
 		HeapSizes[1].numDescriptors = 5;
-		HeapSizes[1].type = RHI::DescriptorType::SRV;
+		HeapSizes[1].type = RHI::DescriptorType::SampledTexture;
 
 		RHI::DescriptorHeapDesc DHdesc;
 		DHdesc.maxDescriptorSets = 10;
