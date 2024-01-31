@@ -60,5 +60,9 @@ namespace Pistachio {
 				break;
 			}
 		}
+		static uint32_t ConstantBufferElementSize(uint32_t byteSize)
+		{
+			return (byteSize + 255) & ~255;
+		}
 	}
 }

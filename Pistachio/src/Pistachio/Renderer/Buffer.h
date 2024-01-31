@@ -15,6 +15,8 @@ namespace Pistachio {
 		void CreateStack(const void* vertices, unsigned int size, unsigned int stride);
 		
 	private:
+		//we want fast direct acess in the renderer
+		friend class Renderer;
 		unsigned int stride = 0;
 		RHI::Buffer* ID;
 	};
@@ -28,6 +30,7 @@ namespace Pistachio {
 		void CreateStack(const void* indices, unsigned int size, unsigned int stride);
 		inline unsigned int GetCount() const{ return count; }
 	private:
+		friend class Renderer;
 		unsigned int count;
 		RHI::Buffer* ID;
 	};
@@ -35,9 +38,10 @@ namespace Pistachio {
 	{
 		void Bind(std::uint32_t slot) const;
 		void Update(const void* data, std::uint32_t size, std::uint32_t offset);
-		static StructuredBuffer* Create(const void* data, std::uint32_t size, std::uint32_t stride);
-		void CreateStack(const void* data, std::uint32_t size,std::uint32_t stride);
+		static StructuredBuffer* Create(const void* data, std::uint32_t size);
+		void CreateStack(const void* data, std::uint32_t size);
 	private:
+		friend class Renderer;
 		RHI::Buffer* ID;
 	};
 	class PISTACHIO_API ConstantBuffer {
@@ -48,6 +52,7 @@ namespace Pistachio {
 		static ConstantBuffer* Create(void* data, std::uint32_t size);
 		RHI::Buffer* GetID() { return ID; }
 	private:
+		friend class Renderer;
 		RHI::Buffer* ID;
 	};
 }
