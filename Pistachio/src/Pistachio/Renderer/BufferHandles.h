@@ -12,4 +12,9 @@ namespace Pistachio
 		uint32_t handle;
 		uint32_t size;
 	};
+	struct RendererCBHandle
+	{
+		uint32_t handle;
+		uint32_t size;
+	};
 }

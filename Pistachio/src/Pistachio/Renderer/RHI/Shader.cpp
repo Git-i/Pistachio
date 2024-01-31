@@ -269,6 +269,13 @@ namespace Pistachio {
 		return shader;
 	}
 
+	Shader* Shader::CreateWithRs(ShaderCreateDesc* desc, RHI::RootSignature* rs)
+	{
+		Shader* shader = new Shader;
+		shader->CreateStackRs(desc, rs);
+		return shader;
+	}
+
 	void Shader::Bind()
 	{
 		RendererBase::GetMainCommandList()->SetRootSignature(rootSig);
@@ -358,6 +365,7 @@ namespace Pistachio {
 
 	void Shader::CreateShaderBinding(ShaderBindingInfo& info)
 	{
+		PT_CORE_ASSERT(m_info.sets.size() > 0 && "Shader has no bindings, or was created with custom RootSig");
 		for (uint32_t i = 0; i < m_info.sets.size(); i++)
 		{
 			auto& setinfo = info.sets.emplace_back();
@@ -367,8 +375,7 @@ namespace Pistachio {
 		}
 		
 	}
-
-	void Shader::CreateStack(ShaderCreateDesc* desc)
+	void Shader::CreateStackRs(ShaderCreateDesc* desc, RHI::RootSignature* signature)
 	{
 		RHI::PipelineStateObjectDesc PSOdesc;
 		//intialize state that doesn't change
@@ -377,11 +384,11 @@ namespace Pistachio {
 		PSOdesc.HS = desc->HS;
 		PSOdesc.GS = desc->GS;
 		PSOdesc.DS = desc->DS;
-		if(desc->VS) VS = desc->VS;
-		if(desc->PS) PS = desc->PS;
-		if(desc->HS) HS = desc->HS;
-		if(desc->GS) GS = desc->GS;
-		if(desc->DS) DS = desc->DS;
+		if (desc->VS) VS = desc->VS;
+		if (desc->PS) PS = desc->PS;
+		if (desc->HS) HS = desc->HS;
+		if (desc->GS) GS = desc->GS;
+		if (desc->DS) DS = desc->DS;
 		//only suppport 6 rtvs
 		PSOdesc.RTVFormats[0] = desc->RTVFormats[0];
 		PSOdesc.RTVFormats[1] = desc->RTVFormats[1];
@@ -399,9 +406,10 @@ namespace Pistachio {
 		numRenderTargets = desc->NumRenderTargets;
 		PSOdesc.DSVFormat = desc->DSVFormat;
 		dsvFormat = desc->DSVFormat;
-		CreateRootSignature();
-		PSOdesc.rootSig = rootSig;
-		//make this dynamic enough to accomodate instancing
+		PSOdesc.rootSig = signature;
+		signature->Hold();//ensure that user cannot destory object when its out of view
+		rootSig = signature;
+		//make this dynamic enough to accommodate instancing
 		InputBindingDescription = new RHI::InputBindingDesc;
 		InputBindingDescription->inputRate = RHI::InputRate::Vertex;
 		InputBindingDescription->stride = desc->InputDescription[desc->numInputs - 1].Offset + BufferLayoutFormatSize(desc->InputDescription[desc->numInputs - 1].Format);
@@ -410,8 +418,8 @@ namespace Pistachio {
 		numInputElements = desc->numInputs;
 		for (uint32_t i = 0; i < desc->numInputs; i++)
 		{
-			InputElementDescription[i].alignedByteOffset = desc->InputDescription[i].Offset; 
-			InputElementDescription[i].format = ToRHIFormat(desc->InputDescription[i].Format); 
+			InputElementDescription[i].alignedByteOffset = desc->InputDescription[i].Offset;
+			InputElementDescription[i].format = ToRHIFormat(desc->InputDescription[i].Format);
 			InputElementDescription[i].inputSlot = 0;
 			InputElementDescription[i].location = i;
 		}
@@ -444,6 +452,17 @@ namespace Pistachio {
 			}
 		}
 		currentPSO = PSOs.begin()->first;
+	}
+	void Shader::CreateStack(ShaderCreateDesc* desc)
+	{
+		if (desc->VS) VS = desc->VS;
+		if (desc->PS) PS = desc->PS;
+		if (desc->HS) HS = desc->HS;
+		if (desc->GS) GS = desc->GS;
+		if (desc->DS) DS = desc->DS;
+		CreateRootSignature();
+		CreateStackRs(desc, rootSig);
+		rootSig->Release();//we can safely release this reference to the RS because CreateStackRs holds one
 	}
 
 	void Shader::CreateRootSignature()
@@ -494,6 +513,7 @@ namespace Pistachio {
 				}
 				rootParams.push_back(desc);
 			}
+			VSreflection->Destroy();
 		}
 		if (!PS.empty())
 		{
@@ -533,6 +553,7 @@ namespace Pistachio {
 				}
 				rootParams.push_back(desc);
 			}
+			PSreflection->Destroy();
 		}
 		for (auto& param : rootParams)
 		{
@@ -579,7 +600,7 @@ namespace Pistachio {
 		updateDesc.arrayIndex = 0;
 		updateDesc.binding = slot;
 		updateDesc.numDescriptors = 1;
-		updateDesc.type = RHI::DescriptorType::CBV;
+		updateDesc.type = desc->type;
 		updateDesc.bufferInfos = &info;
 		RendererBase::Getd3dDevice()->UpdateDescriptorSets(1, &updateDesc, sets[setInfosIndex].set);
 	}

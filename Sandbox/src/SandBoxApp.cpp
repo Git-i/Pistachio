@@ -4,7 +4,17 @@
 
 #include "Pistachio/Core/EntryPoint.h"
 RHI::Viewport vp;
-
+struct
+{
+	Pistachio::Matrix4 viewProjection;
+	Pistachio::Matrix4 transform = Pistachio::Matrix4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+	Pistachio::Vector4 viewPos =   Pistachio::Vector4(0, 10, -20, 1);
+	Pistachio::Vector4 albedo =    Pistachio::Vector4(0.4, 0, 3.5, 1);
+	float metallic = 0.f;
+	float roughness = 1.f;
+	float ao = 1.f;
+}CBData;
+decltype(CBData) CBData2;
 class ExampleLayer : public Pistachio::Layer
 {
 public:
@@ -28,9 +38,14 @@ public:
 		cam.OnUpdate(delta);
 		auto mat = cam.GetViewProjection();
 		mat = mat.Transpose();
-		cBuf->Update(&mat, sizeof(Pistachio::Matrix4), 0);
+		CBData.viewProjection = mat;
+		CBData2 = CBData;
+		CBData2.albedo = Pistachio::Vector4(1, 0, 0, 1);
+		CBData2.transform = Pistachio::Matrix4::CreateTranslation(sinf((float)frame / 50.f)*3, 0, 0).Transpose();
+		Pistachio::Renderer::FullCBUpdate(cBuf1, &CBData);
+		Pistachio::Renderer::FullCBUpdate(cBuf2, &CBData2);
 		rdesc.clearColor = { 0.34,0.34,0.34,0.34 };
-		rdesc.ImageView.val = Pistachio::RendererBase::GetRTVDescriptorHeap()->GetCpuHandle().val + (Pistachio::RendererBase::GetCurrentRTVIndex() * Pistachio::RendererBase::Getd3dDevice()->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV));
+		rdesc.ImageView.val = Pistachio::RendererBase::GetRTVDescriptorHeap()->GetCpuHandle().val + (Pistachio::RendererBase::GetCurrentRTVIndex() * Pistachio::RendererBase::Getd3dDevice()->GetDescriptorHeapIncrementSize(RHI::DescriptorClass::RTV));
 		rdesc.loadOp = RHI::LoadOp::Clear;
 		rdesc.storeOp = RHI::StoreOp::Store;
 		RHI::RenderingAttachmentDesc depthDesc;
@@ -47,14 +62,14 @@ public:
 		Pistachio::RendererBase::GetMainCommandList()->SetViewports(1, &vp);
 		Pistachio::RendererBase::GetMainCommandList()->SetScissorRects(1, &area);
 		shad->Bind();
-		Pistachio::RendererBase::GetMainCommandList()->BindDescriptorSet(shad->GetRootSignature(), info.sets[0].set, 0);
 		Pistachio::RendererBase::GetMainCommandList()->BindVertexBuffers(0, 1, &Pistachio::Renderer::GetVertexBuffer()->ID);
 		Pistachio::RendererBase::GetMainCommandList()->BindIndexBuffer(Pistachio::Renderer::GetIndexBuffer(), 0);
-
+		Pistachio::RendererBase::GetMainCommandList()->BindDynamicDescriptor(shad->GetRootSignature(), Pistachio::Renderer::GetCBDesc(), 0, Pistachio::Renderer::GetCBOffset(cBuf1));
 		Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(mesh.meshes[0].GetIBHandle().size/sizeof(uint32_t),
 			1,
 			Pistachio::Renderer::GetIBOffset(mesh.meshes[0].GetIBHandle()),
 			Pistachio::Renderer::GetVBOffset(mesh.meshes[0].GetVBHandle()), 0);
+		Pistachio::RendererBase::GetMainCommandList()->BindDynamicDescriptor(shad->GetRootSignature(), Pistachio::Renderer::GetCBDesc(), 0, Pistachio::Renderer::GetCBOffset(cBuf2));
 		if (frame < 3000 || frame > 5000)
 		{
 			Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(sphere->meshes[0].GetIBHandle().size / sizeof(uint32_t),
@@ -127,10 +142,19 @@ public:
 		desc.InputDescription = layout;
 		desc.BlendModes = &blendMode;
 
-		info = {};
-		shad = Shader::Create(&desc);
+		RHI::RootParameterDesc rpDesc;
+		rpDesc.type = RHI::RootParameterType::DynamicDescriptor;
+		rpDesc.dynamicDescriptor.stage = RHI::ShaderStage::Vertex;
+		rpDesc.dynamicDescriptor.type = RHI::DescriptorType::ConstantBufferDynamic;
+		RHI::RootSignatureDesc rsDesc;
+		rsDesc.numRootParameters = 1;
+		rsDesc.rootParameters = &rpDesc;
+		RHI::RootSignature* rs;
+		RendererBase::Getd3dDevice()->CreateRootSignature(&rsDesc, &rs, nullptr);
+		shad = Shader::CreateWithRs(&desc, rs);
+		rs->Release();
 		RHI::DepthStencilMode currMode{};
-		shad->CreateShaderBinding(info);
+		
 		//dsMode->DepthFunc = RHI::ComparisonFunc::Always;
 		shad->SetDepthStencilMode(dsMode, ShaderModeSetFlags::AutomaticallyCreate);
 		currMode.DepthEnable = true;
@@ -139,23 +163,16 @@ public:
 		currMode.StencilEnable = false;
 		shad->SetDepthStencilMode(&currMode, ShaderModeSetFlags::AutomaticallyCreate);
 		
-		struct
-		{
-			Matrix4 viewProjection;
-			Matrix4 transform = Matrix4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-			Vector4 viewPos = Vector4(0,10,-20,1);
-			Vector4 albedo = Vector4(0.4,0,3.5,1);
-			float metallic = 0.f;
-			float roughness = 1.f;
-			float ao = 1.f;
-		}CBData;
-		CBData.viewProjection = cam.GetViewProjection();
-		cBuf = ConstantBuffer::Create(&CBData, sizeof(CBData));
+		
+		CBData.viewProjection = cam.GetViewProjection().Transpose();
+		cBuf1 = Renderer::AllocateConstantBuffer(sizeof(CBData));
+		cBuf2 = Renderer::AllocateConstantBuffer(sizeof(CBData));
+		
 		BufferBindingUpdateDesc bindingUpdate;
-		bindingUpdate.buffer = cBuf->GetID();
+		bindingUpdate.buffer = NULL;
 		bindingUpdate.offset = 0;
 		bindingUpdate.size = sizeof(CBData);
-		info.UpdateBufferBinding(0, &bindingUpdate, 0);
+		bindingUpdate.type = RHI::DescriptorType::ConstantBuffer;
 		RendererBase::FlushStagingBuffer();
 		int a = 9;
 	}
@@ -193,7 +210,8 @@ public:
 		//delete cam;
 	}
 private:
-	Pistachio::ConstantBuffer* cBuf;
+	Pistachio::RendererCBHandle cBuf1;
+	Pistachio::RendererCBHandle cBuf2;
 	Pistachio::Model mesh;
 	Pistachio::Model* sphere;
 	Pistachio::Model cube;

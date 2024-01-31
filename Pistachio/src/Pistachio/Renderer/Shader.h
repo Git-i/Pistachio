@@ -194,6 +194,7 @@ namespace Pistachio {
 	*/
 	struct BufferBindingUpdateDesc
 	{
+		RHI::DescriptorType type;
 		RHI::Buffer* buffer;
 		uint32_t offset;
 		uint32_t size;
@@ -209,6 +210,7 @@ namespace Pistachio {
 	public:
 		Shader();
 		static Shader* Create(ShaderCreateDesc* desc);
+		static Shader* CreateWithRs(ShaderCreateDesc* desc, RHI::RootSignature* rs);
 		void Bind();
 		void GetDepthStencilMode(RHI::DepthStencilMode* mode);
 		uint32_t SetDepthStencilMode(RHI::DepthStencilMode* mode, ShaderModeSetFlags flags);
@@ -218,6 +220,7 @@ namespace Pistachio {
 		void CreateShaderBinding(ShaderBindingInfo& info);
 		RHI::RootSignature* GetRootSignature() { return rootSig; };
 		uint32_t SetBlendMode(RHI::BlendMode* mode, ShaderModeSetFlags flags);
+		void CreateStackRs(ShaderCreateDesc* desc,RHI::RootSignature* rs);
 		void CreateStack(ShaderCreateDesc* desc);
 	private:
 		void CreateRootSignature();

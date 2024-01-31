@@ -78,14 +78,14 @@ namespace Pistachio {
 			RendererBase::PushBufferUpdate(ID, 0, indices, size);
 		}
 	}
-	IndexBuffer* IndexBuffer::Create(const void* indices, unsigned int size, unsigned int stride)
+	IndexBuffer* IndexBuffer::Create(const void* indices, std::uint32_t size, std::uint32_t stride)
 	{
 		PT_PROFILE_FUNCTION();
 		IndexBuffer* result = new IndexBuffer;
-		result->CreateStack(indices, size, stride);
+		result->CreateStack(indices, size,stride);
 		return result;
 	}
-	void StructuredBuffer::CreateStack(const void* data, std::uint32_t size, std::uint32_t stride)
+	void StructuredBuffer::CreateStack(const void* data, std::uint32_t size)
 	{
 		PT_PROFILE_FUNCTION();
 		RHI::BufferDesc bufferDesc;
@@ -114,11 +114,11 @@ namespace Pistachio {
 		memcpy((((char*)writePointer) + offset), data, size);
 		ID->UnMap();
 	}
-	StructuredBuffer* StructuredBuffer::Create(const void* data, std::uint32_t size, std::uint32_t stride)
+	StructuredBuffer* StructuredBuffer::Create(const void* data, std::uint32_t size)
 	{
 		PT_PROFILE_FUNCTION();
 		StructuredBuffer* result = new StructuredBuffer;
-		result->CreateStack(data, size, stride);
+		result->CreateStack(data, size);
 		return result;
 	}
 	void ConstantBuffer::Update(void* data, std::uint32_t size, std::uint32_t offset)

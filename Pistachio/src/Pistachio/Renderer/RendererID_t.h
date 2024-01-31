@@ -1,4 +1,5 @@
 #pragma once
+#include "Pistachio\Core.h"
 #include <type_traits>
 #include "d3d11.h"
 #include "com_ptr.h"

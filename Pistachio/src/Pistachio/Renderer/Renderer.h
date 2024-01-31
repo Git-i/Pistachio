@@ -34,7 +34,8 @@ namespace Pistachio {
 		ConstantBuffer transformBuffer;
 		ConstantBuffer passCB; //updates every frame
 		ConstantBuffer materialCB;
-		StructuredBuffer LightCB;
+		StructuredBuffer LightSB;
+		RHI::DynamicDescriptor* transformBufferDesc;
 	};
 	struct PISTACHIO_API Light {
 		DirectX::XMFLOAT3 position;// for directional lights this is direction
@@ -104,11 +105,17 @@ namespace Pistachio {
 		static void FreeVertexBuffer(const RendererVBHandle handle);
 		static const RendererIBHandle AllocateIndexBuffer(uint32_t size,  const void* initialData=nullptr);
 		static void FreeIndexBuffer(const RendererIBHandle handle);
-		static const RHI::Buffer* GetVertexBuffer();
-		static const RHI::Buffer* GetIndexBuffer();
+		static const RendererCBHandle AllocateConstantBuffer(uint32_t size);
+		static void PartialCBUpdate(RendererCBHandle, void* data,uint32_t offset, uint32_t size);
+		static void FullCBUpdate(RendererCBHandle handle,void* data);
 		//todo: remove these
 		static const uint32_t GetIBOffset(const RendererIBHandle handle);
 		static const uint32_t GetVBOffset(const RendererVBHandle handle);
+		static const uint32_t GetCBOffset(const RendererCBHandle handle);
+		static const RHI::DynamicDescriptor* GetCBDesc();
+		static const RHI::Buffer* GetVertexBuffer();
+		static const RHI::Buffer* GetIndexBuffer();
+		static const RHI::Buffer* GetConstantBuffer();
 		static void OnEvent(Event& e) {
 			if (e.GetEventType() == EventType::WindowResize)
 				OnWindowResize((WindowResizeEvent&)e);
@@ -127,8 +134,12 @@ namespace Pistachio {
 		static void UpdatePassConstants();
 		static void GrowMeshVertexBuffer(uint32_t minExtraSize);
 		static void GrowMeshIndexBuffer(uint32_t minExtraSize);
+		static void GrowConstantBuffer(uint32_t minExtraSize);
+
+
 		static void DefragmentMeshVertexBuffer();
 		static void DefragmentMeshIndexBuffer();
+		static void DefragmentConstantBuffer();
 		inline static RendererVBHandle AllocateBuffer(
 			FreeList& flist,
 			uint32_t& free_space,
@@ -142,6 +153,7 @@ namespace Pistachio {
 			uint32_t size, 
 			const void* initialData=nullptr);
 	private:
+		static void (*CBInvalidated)();
 		//New Renderer
 		static RHI::Buffer* meshVertices; // all meshes in the scene?
 		static RHI::Buffer*  meshIndices;
@@ -162,6 +174,29 @@ namespace Pistachio {
 		static FreeList     ibFreeList;
 		static std::vector<uint32_t> ibHandleOffsets;
 		static std::vector<uint32_t> ibUnusedHandles;
+		/*
+		 * Constant Buffers are a little bit tricky
+		 * Handling updates to all buffers is the job of the caller
+		 * but handling allocations and defragments is the job of the renderer
+		 * An option would be to keep a uint for every frame that needs an op
+		 * eg uint32_t numDirtyAllocs; OnUpdate(){if(numDirtyAllocs){}}
+		 * but then we'd have to store op's order and details.
+		 * We'd probably wait for the gpu to get to the current frame, before doing any op's except updating
+		 * since updating is handled by the scene, it'll have the data needed to recreate the update event
+		 * 
+		 * Im leaving the above comment, but i might just have found a better way.
+		 * Allocate wouldn't update just give you a handle, and you update for all three buffers
+		 * Deallocate would just update the free list
+		 * Grow and Defrag would however block
+		 */
+		
+		static uint32_t     cbCapacity;
+		static uint32_t     cbFreeSpace;
+		static uint32_t     cbFreeFastSpace;
+		static FreeList     cbFreeList;
+		static uint32_t     numDirtyCBFrames;
+		static std::vector<uint32_t> cbHandleOffsets;
+		static std::vector<uint32_t> cbUnusedHandles;
 		static FrameResource resources[3];
 		//Old Renderer
 		static RenderCubeMap fbo;

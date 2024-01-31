@@ -31,42 +31,36 @@ Pistachio::Shader* Pistachio::Renderer::irradianceShader;
 Pistachio::Shader* Pistachio::Renderer::brdfShader;
 Pistachio::Shader* Pistachio::Renderer::prefilterShader;
 
-RHI::Buffer*            Pistachio::Renderer::meshVertices; // all meshes in the scene?
-RHI::Buffer*            Pistachio::Renderer::meshIndices;
-uint32_t                Pistachio::Renderer::vbFreeFastSpace;//free space for an immerdiate allocation
-uint32_t                Pistachio::Renderer::vbFreeSpace;   //total free space to consider reordering
-uint32_t                Pistachio::Renderer::vbCapacity;
-Pistachio::FreeList     Pistachio::Renderer::vbFreeList;
-uint32_t                Pistachio::Renderer::ibFreeFastSpace;
-uint32_t                Pistachio::Renderer::ibFreeSpace;
-uint32_t                Pistachio::Renderer::ibCapacity;
-Pistachio::FreeList     Pistachio::Renderer::ibFreeList;
+RHI::Buffer*             Pistachio::Renderer::meshVertices; // all meshes in the scene?
+RHI::Buffer*             Pistachio::Renderer::meshIndices;
+uint32_t                 Pistachio::Renderer::vbFreeFastSpace;//free space for an immerdiate allocation
+uint32_t                 Pistachio::Renderer::vbFreeSpace;   //total free space to consider reordering
+uint32_t                 Pistachio::Renderer::vbCapacity;
+Pistachio::FreeList      Pistachio::Renderer::vbFreeList;
+uint32_t                 Pistachio::Renderer::ibFreeFastSpace;
+uint32_t                 Pistachio::Renderer::ibFreeSpace;
+uint32_t                 Pistachio::Renderer::ibCapacity;
+uint32_t                 Pistachio::Renderer::cbCapacity;
+uint32_t                 Pistachio::Renderer::cbFreeSpace;
+uint32_t                 Pistachio::Renderer::cbFreeFastSpace;
+Pistachio::FreeList      Pistachio::Renderer::cbFreeList;
+Pistachio::FreeList      Pistachio::Renderer::ibFreeList;
+Pistachio::FrameResource Pistachio::Renderer::resources[3];
+std::vector<uint32_t>    Pistachio::Renderer::ibHandleOffsets;
+std::vector<uint32_t>    Pistachio::Renderer::ibUnusedHandles;
+std::vector<uint32_t>    Pistachio::Renderer::vbHandleOffsets;
+std::vector<uint32_t>    Pistachio::Renderer::vbUnusedHandles;
+std::vector<uint32_t>    Pistachio::Renderer::cbHandleOffsets;
+std::vector<uint32_t>    Pistachio::Renderer::cbUnusedHandles; 
 
-std::vector<uint32_t> Pistachio::Renderer::ibHandleOffsets;
-std::vector<uint32_t> Pistachio::Renderer::ibUnusedHandles;
-std::vector<uint32_t> Pistachio::Renderer::vbHandleOffsets;
-std::vector<uint32_t> Pistachio::Renderer::vbUnusedHandles;
+static uint32_t     numDirtyCBFrames;
+ void (*Pistachio::Renderer::CBInvalidated)() = nullptr;
 static const uint32_t VB_INITIAL_SIZE = 1024;
 static const uint32_t IB_INITIAL_SIZE = 1024;
+static const uint32_t INITIAL_NUM_LIGHTS = 20;
+static const uint32_t INITIAL_NUM_OBJECTS = 20;
 
 namespace Pistachio {
-	void Renderer::CreateConstantBuffers()
-	{
-		PT_PROFILE_FUNCTION();
-		for (uint32_t i = 0; i < 3; i++)
-		{
-
-		}
-		MaterialStruct cb;
-		MaterialCB.Create(nullptr, sizeof(MaterialStruct));
-		LightSB.CreateStack(nullptr, sizeof(ShadowCastingLight) * 256,16); //todo : make light buffer dynamic
-		struct CameraStruct {
-			DirectX::XMMATRIX viewproj;
-			DirectX::XMMATRIX view;
-			DirectX::XMFLOAT4 viewPos;
-		} camerabufferData;
-		PassCB.Create(nullptr, sizeof(PassConstants));
-	}
 	void Renderer::Init(const char* skybox)
 	{
 		//Create constant and structured buffers needed for each frame in flight
@@ -97,9 +91,28 @@ namespace Pistachio {
 		//Create Free lists
 		vbFreeList = FreeList(VB_INITIAL_SIZE);
 		ibFreeList = FreeList(IB_INITIAL_SIZE);
-		
+		cbFreeList = FreeList(RendererUtils::ConstantBufferElementSize(sizeof(TransformData)) * INITIAL_NUM_OBJECTS);
 
-		CreateConstantBuffers();
+		cbCapacity = RendererUtils::ConstantBufferElementSize(sizeof(TransformData)) * INITIAL_NUM_OBJECTS;
+		cbFreeFastSpace = cbCapacity;
+		cbFreeSpace = cbCapacity;
+		for (uint32_t i = 0; i < 3; i++)
+		{
+			PT_CORE_INFO("Initializing Frame Resources {0} of 3", i+1);
+			PT_CORE_INFO("Creating Constant Buffer(s)");
+			resources[i].transformBuffer.CreateStack(nullptr, cbCapacity);//better utilise the free 256 bytes
+			resources[i].passCB.CreateStack(nullptr, RendererUtils::ConstantBufferElementSize(sizeof(PassConstants)));//we should still have about 50 free bytes
+			PT_CORE_INFO("Creating Structured Buffer(s)");
+			resources[i].LightSB.CreateStack(nullptr, sizeof(ShadowCastingLight) * INITIAL_NUM_LIGHTS);
+			RendererBase::device->CreateDynamicDescriptor(
+				RendererBase::heap, 
+				&resources[i].transformBufferDesc, 
+				RHI::DescriptorType::ConstantBufferDynamic, 
+				RHI::ShaderStage::Vertex, 
+				resources[i].transformBuffer.ID,
+				0,
+				256);
+		}
 		
 		brdfSampler = SamplerState::Create(SamplerStateDesc::Default);
 		SamplerStateDesc sDesc = SamplerStateDesc::Default;
@@ -436,6 +449,11 @@ namespace Pistachio {
 		auto [a,b] = AllocateBuffer(ibFreeList, ibFreeSpace, ibFreeFastSpace, ibCapacity, &Renderer::GrowMeshIndexBuffer, &Renderer::DefragmentMeshIndexBuffer,ibHandleOffsets,ibUnusedHandles,&meshIndices, size, initialData);
 		return { a,b };
 	}
+	const RendererCBHandle Renderer::AllocateConstantBuffer(uint32_t size)
+	{
+		auto [a,b] = AllocateBuffer(cbFreeList, cbFreeSpace, cbFreeFastSpace, cbCapacity, &Renderer::GrowConstantBuffer, &Renderer::DefragmentConstantBuffer, cbHandleOffsets, cbUnusedHandles, nullptr, RendererUtils::ConstantBufferElementSize(size), nullptr);
+		return { a,b };
+	}
 	inline RendererVBHandle Renderer::AllocateBuffer(
 		FreeList& flist, uint32_t& free_space, 
 		uint32_t& fast_space, 
@@ -455,8 +473,11 @@ namespace Pistachio {
 			//allocate to buffer end
 			//fast space is always at the end
 			PT_CORE_ASSERT(flist.Allocate(capacity - fast_space, size) == 0);
-			if (initialData) RendererBase::PushBufferUpdate(*buffer, capacity - fast_space, initialData, size);
-			RendererBase::FlushStagingBuffer();
+			if (initialData)
+			{
+				RendererBase::PushBufferUpdate(*buffer, capacity - fast_space, initialData, size);
+				RendererBase::FlushStagingBuffer();
+			}
 			handle.handle = AssignHandle(offsetsVector,freeHandlesVector,capacity - fast_space);
 			handle.size = size;
 			fast_space -= size;
@@ -471,8 +492,11 @@ namespace Pistachio {
 			{
 				//allocate
 				PT_CORE_ASSERT(flist.Allocate(space, size) == 0);
-				if (initialData) RendererBase::PushBufferUpdate(*buffer, space, initialData, size);
-				RendererBase::FlushStagingBuffer();
+				if (initialData)
+				{
+					RendererBase::PushBufferUpdate(*buffer, space, initialData, size);
+					RendererBase::FlushStagingBuffer();
+				}
 				handle.handle = AssignHandle(offsetsVector, freeHandlesVector, space);
 				handle.size = size;
 				free_space -= size;
@@ -480,7 +504,11 @@ namespace Pistachio {
 			}
 			PT_CORE_WARN("Defragmenting Buffer");
 			defrag_fn();
-			if (initialData) RendererBase::PushBufferUpdate(*buffer, capacity - fast_space, initialData, size);
+			if (initialData)
+			{
+				RendererBase::PushBufferUpdate(*buffer, capacity - fast_space, initialData, size);
+				RendererBase::FlushStagingBuffer();
+			}
 			handle.handle = AssignHandle(offsetsVector,freeHandlesVector,capacity - fast_space);
 			handle.size = size;
 			fast_space -= size;
@@ -527,7 +555,7 @@ namespace Pistachio {
 		RendererBase::FlushStagingBuffer();
 		//before destroying old buffer, wait for old frames to render
 		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
-		meshVertices->Destroy();
+		meshVertices->Release();
 		meshVertices = newVB;
 		vbFreeSpace += minSize + GROW_FACTOR;
 		vbFreeFastSpace += minSize + GROW_FACTOR;
@@ -551,12 +579,37 @@ namespace Pistachio {
 		RendererBase::FlushStagingBuffer();
 		//before destroying old buffer, wait for old frames to render
 		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
-		meshIndices->Destroy();
+		meshIndices->Release();
 		meshIndices = newIB;
 		ibFreeSpace += minSize + GROW_FACTOR;
 		ibFreeFastSpace += minSize + GROW_FACTOR;
 		ibCapacity = new_size;
 		ibFreeList.Grow(new_size);
+	}
+	void Pistachio::Renderer::GrowConstantBuffer(uint32_t minExtraSize)
+	{
+		const uint32_t GROW_FACTOR = 20; //probably use a better, more size dependent method to determing this
+		uint32_t new_size = cbCapacity + minExtraSize + GROW_FACTOR;
+		RHI::BufferDesc desc;
+		desc.size = new_size;
+		desc.usage = RHI::BufferUsage::ConstantBuffer;
+		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
+		for (uint32_t i = 0; i < 3; i++)
+		{
+			RHI::Buffer* newCB;
+			RHI::AutomaticAllocationInfo allocInfo;
+			allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential;
+			RendererBase::device->CreateBuffer(&desc, &newCB, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic);
+			void* writePtr;
+			void* readPtr;
+			newCB->Map(&writePtr);
+			resources[i].transformBuffer.ID->Map(&readPtr);
+			memcpy(writePtr, readPtr, cbCapacity);
+			resources[i].transformBuffer.ID->UnMap();
+			newCB->UnMap();
+			resources[i].transformBuffer.ID->Release();
+			resources[i].transformBuffer.ID = newCB;
+		}
 	}
 	void Pistachio::Renderer::FreeVertexBuffer(const RendererVBHandle handle)
 	{
@@ -626,6 +679,34 @@ namespace Pistachio {
 		RendererBase::FlushStagingBuffer();
 
 	}
+	void Renderer::DefragmentConstantBuffer()
+	{
+		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
+		auto block = cbFreeList.GetBlockPtr();
+		uint32_t nextFreeOffset = 0;
+		void *ptr1, *ptr2, *ptr3;
+		resources[0].transformBuffer.ID->Map(&ptr1);
+		resources[1].transformBuffer.ID->Map(&ptr2);
+		resources[2].transformBuffer.ID->Map(&ptr3);
+		while (block)
+		{
+			//if block has gap from last block
+			if (block->offset > nextFreeOffset)
+			{
+				//we use memmove to handle overlap possibility
+				memmove((uint8_t*)ptr1 + nextFreeOffset, (uint8_t*)ptr1 + block->offset, block->size);
+				memmove((uint8_t*)ptr2 + nextFreeOffset, (uint8_t*)ptr2 + block->offset, block->size);
+				memmove((uint8_t*)ptr3 + nextFreeOffset, (uint8_t*)ptr3 + block->offset, block->size);
+				nextFreeOffset += block->size;
+			}
+			block = block->next;
+		}
+		resources[0].transformBuffer.ID->UnMap();
+		resources[1].transformBuffer.ID->UnMap();
+		resources[2].transformBuffer.ID->UnMap();
+		if(CBInvalidated)
+			CBInvalidated(); // the scene would bind a function here to update all descriptor sets
+	}
 	const uint32_t Pistachio::Renderer::GetIBOffset(const RendererIBHandle handle)
 	{
 		return ibHandleOffsets[handle.handle];
@@ -633,5 +714,26 @@ namespace Pistachio {
 	const uint32_t Pistachio::Renderer::GetVBOffset(const RendererVBHandle handle)
 	{
 		return vbHandleOffsets[handle.handle];
+	}
+	void Pistachio::Renderer::PartialCBUpdate(RendererCBHandle handle, void* data, uint32_t offset, uint32_t size)
+	{
+		PT_CORE_ASSERT(offset+size <= handle.size);
+		resources[RendererBase::currentFrameIndex].transformBuffer.Update(data, size, cbHandleOffsets[handle.handle] + offset);
+	}
+	void Pistachio::Renderer::FullCBUpdate(RendererCBHandle handle, void* data)
+	{
+		resources[RendererBase::currentFrameIndex].transformBuffer.Update(data, handle.size, cbHandleOffsets[handle.handle]);
+	}
+	const RHI::Buffer* Pistachio::Renderer::GetConstantBuffer()
+	{
+		return resources[RendererBase::currentFrameIndex].transformBuffer.ID;
+	}
+	const RHI::DynamicDescriptor* Pistachio::Renderer::GetCBDesc()
+	{
+		return resources[RendererBase::currentFrameIndex].transformBufferDesc;
+	}
+	const uint32_t Pistachio::Renderer::GetCBOffset(const RendererCBHandle handle)
+	{
+		return cbHandleOffsets[handle.handle];
 	}
 }
