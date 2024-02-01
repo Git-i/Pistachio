@@ -736,4 +736,11 @@ namespace Pistachio {
 	{
 		return cbHandleOffsets[handle.handle];
 	}
+	void Pistachio::Renderer::Submit(const RendererVBHandle vb, const RendererIBHandle ib, uint32_t vertexStride)
+	{
+		Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(ib.size / sizeof(uint32_t),
+			1,
+			ibHandleOffsets[ib.handle] / sizeof(uint32_t),
+			vbHandleOffsets[vb.handle] / vertexStride, 0);
+	}
 }
