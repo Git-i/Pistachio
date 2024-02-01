@@ -51,7 +51,7 @@ public:
 		Pistachio::Renderer::FullCBUpdate(cBuf1, &CBData);
 		Pistachio::Renderer::FullCBUpdate(cBuf2, &CBData2);
 		rdesc.clearColor = { 0.34,0.34,0.34,0.34 };
-		rdesc.ImageView.val = Pistachio::RendererBase::GetRTVDescriptorHeap()->GetCpuHandle().val + (Pistachio::RendererBase::GetCurrentRTVIndex() * Pistachio::RendererBase::Getd3dDevice()->GetDescriptorHeapIncrementSize(RHI::DescriptorClass::RTV));
+		rdesc.ImageView.val = Pistachio::RendererBase::GetRTVDescriptorHeap()->GetCpuHandle().val + (Pistachio::RendererBase::GetCurrentRTVIndex() * Pistachio::RendererBase::Getd3dDevice()->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV));
 		rdesc.loadOp = RHI::LoadOp::Clear;
 		rdesc.storeOp = RHI::StoreOp::Store;
 		RHI::RenderingAttachmentDesc depthDesc;
@@ -67,21 +67,16 @@ public:
 		Pistachio::RendererBase::GetMainCommandList()->BeginRendering(&desc);
 		Pistachio::RendererBase::GetMainCommandList()->SetViewports(1, &vp);
 		Pistachio::RendererBase::GetMainCommandList()->SetScissorRects(1, &area);
+		
 		shad->Bind();
 		Pistachio::RendererBase::GetMainCommandList()->BindVertexBuffers(0, 1, &Pistachio::Renderer::GetVertexBuffer()->ID);
 		Pistachio::RendererBase::GetMainCommandList()->BindIndexBuffer(Pistachio::Renderer::GetIndexBuffer(), 0);
 		Pistachio::RendererBase::GetMainCommandList()->BindDynamicDescriptor(shad->GetRootSignature(), Pistachio::Renderer::GetCBDesc(), 0, Pistachio::Renderer::GetCBOffset(cBuf1));
-		Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(mesh.meshes[0].GetIBHandle().size/sizeof(uint32_t),
-			1,
-			Pistachio::Renderer::GetIBOffset(mesh.meshes[0].GetIBHandle()),
-			Pistachio::Renderer::GetVBOffset(mesh.meshes[0].GetVBHandle()), 0);
+		Pistachio::Renderer::Submit(mesh.meshes[0].GetVBHandle(), mesh.meshes[0].GetIBHandle(), sizeof(Pistachio::Vertex));
 		Pistachio::RendererBase::GetMainCommandList()->BindDynamicDescriptor(shad->GetRootSignature(), Pistachio::Renderer::GetCBDesc(), 0, Pistachio::Renderer::GetCBOffset(cBuf2));
 		if (frame < 3000 || frame > 5000)
 		{
-			Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(sphere->meshes[0].GetIBHandle().size / sizeof(uint32_t),
-				1,
-				Pistachio::Renderer::GetIBOffset(sphere->meshes[0].GetIBHandle()) / sizeof(uint32_t),
-				Pistachio::Renderer::GetVBOffset(sphere->meshes[0].GetVBHandle()) / sizeof(Pistachio::Vertex), 0);
+			Pistachio::Renderer::Submit(sphere->meshes[0].GetVBHandle(), sphere->meshes[0].GetIBHandle(), sizeof(Pistachio::Vertex));
 		}
 		else
 		{
@@ -89,10 +84,7 @@ public:
 				delete sphere;
 			if (frame == 3004)
 				sphere = new Pistachio::Model("circle.obj");
-			Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(cube.meshes[0].GetIBHandle().size / sizeof(uint32_t),
-				1,
-				Pistachio::Renderer::GetIBOffset(cube.meshes[0].GetIBHandle()) / sizeof(uint32_t),
-				Pistachio::Renderer::GetVBOffset(cube.meshes[0].GetVBHandle()) / sizeof(Pistachio::Vertex), 0);
+			Pistachio::Renderer::Submit(cube.meshes[0].GetVBHandle(), cube.meshes[0].GetIBHandle(), sizeof(Pistachio::Vertex));
 		}
 		
 
@@ -147,6 +139,7 @@ public:
 		desc.numInputs = 3;
 		desc.InputDescription = layout;
 		desc.BlendModes = &blendMode;
+		
 
 		RHI::RootParameterDesc rpDesc;
 		rpDesc.type = RHI::RootParameterType::DynamicDescriptor;

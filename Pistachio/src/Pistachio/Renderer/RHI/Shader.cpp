@@ -427,6 +427,7 @@ namespace Pistachio {
 		PSOdesc.numInputBindings = 1;
 		PSOdesc.inputElements = InputElementDescription;
 		PSOdesc.numInputElements = desc->numInputs;
+		PSOdesc.sampleCount = RHI::SampleMode::x2;
 		for (uint32_t depthMode = 0; depthMode < desc->numDepthStencilModes; depthMode++)
 		{
 			PSOdesc.depthStencilMode = desc->DepthStencilModes[depthMode];

@@ -30,7 +30,28 @@ namespace Pistachio
             range.IndexOrFirstMipLevel = 0;
             range.NumArraySlices = 1;
             range.NumMipLevels = 1;
+            RHI::TextureMemoryBarrier barrier;
+            barrier.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+            barrier.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
+            barrier.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
+            barrier.oldLayout = RHI::ResourceLayout::UNDEFINED;
+            barrier.subresourceRange = range;
+            barrier.texture = m_ID;
+            RendererBase::stagingCommandList->PipelineBarrier(
+                RHI::PipelineStage::TOP_OF_PIPE_BIT,
+                RHI::PipelineStage::TRANSFER_BIT,
+                0, nullptr,
+                1, &barrier);
             RendererBase::PushTextureUpdate(m_ID, m_Width * m_Height * 4, data, &range, { m_Width, m_Height,1 }, {0,0,0}); //todo image sizes
+            barrier.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+            barrier.AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
+            barrier.newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
+            barrier.oldLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
+            RendererBase::stagingCommandList->PipelineBarrier(
+                RHI::PipelineStage::TRANSFER_BIT,
+                RHI::PipelineStage::FRAGMENT_SHADER_BIT,
+                0, nullptr,
+                1, &barrier);
         }
         if (!(((int)flags & (int)TextureFlags::NO_SHADER_USAGE) || ((int)flags & (int)TextureFlags::USAGE_STAGING)))
         {
