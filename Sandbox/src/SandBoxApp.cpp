@@ -41,7 +41,13 @@ public:
 		CBData.viewProjection = mat;
 		CBData2 = CBData;
 		CBData2.albedo = Pistachio::Vector4(1, 0, 0, 1);
-		CBData2.transform = Pistachio::Matrix4::CreateTranslation(sinf((float)frame / 50.f)*3, 0, 0).Transpose();
+		static float x = sinf((float)frame / 50.f) * 3;
+		float old_x = x;
+		x = sinf((float)frame / 50.f) * 3;
+		float up = -1;
+		if (old_x - x < 0) up = 1;
+		CBData2.transform = Pistachio::Matrix4::CreateTranslation(x, sqrtf(9-x*x)*up, 0).Transpose();
+		CBData.transform = Pistachio::Matrix4::CreateTranslation(0, x, 0).Transpose();
 		Pistachio::Renderer::FullCBUpdate(cBuf1, &CBData);
 		Pistachio::Renderer::FullCBUpdate(cBuf2, &CBData2);
 		rdesc.clearColor = { 0.34,0.34,0.34,0.34 };
@@ -146,6 +152,7 @@ public:
 		rpDesc.type = RHI::RootParameterType::DynamicDescriptor;
 		rpDesc.dynamicDescriptor.stage = RHI::ShaderStage::Vertex;
 		rpDesc.dynamicDescriptor.type = RHI::DescriptorType::ConstantBufferDynamic;
+		rpDesc.dynamicDescriptor.setIndex = 0;
 		RHI::RootSignatureDesc rsDesc;
 		rsDesc.numRootParameters = 1;
 		rsDesc.rootParameters = &rpDesc;
