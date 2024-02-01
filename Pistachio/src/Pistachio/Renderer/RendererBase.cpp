@@ -19,6 +19,7 @@ RHI::DescriptorHeap*      Pistachio::RendererBase::dsvHeap;
 std::uint64_t             Pistachio::RendererBase::fence_vals[3]; //managing sync across allocators
 std::uint64_t             Pistachio::RendererBase::currentFenceVal=0; //managing sync across allocators
 RHI::Fence*               Pistachio::RendererBase::mainFence;
+RHI::Fence*               Pistachio::RendererBase::stagingFence;
 RHI::DescriptorHeap*      Pistachio::RendererBase::heap;
 RHI::Buffer*              Pistachio::RendererBase::stagingBuffer;
 RHI::Texture*			  Pistachio::RendererBase::depthTexture;
@@ -49,8 +50,8 @@ namespace Pistachio {
 		mainCommandList->PipelineBarrier(RHI::PipelineStage::COLOR_ATTACHMENT_OUTPUT_BIT, RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 0, 0, 1, &barr);
 		//execute main command list
 		mainCommandList->End();
-		fence_vals[currentFrameIndex] = ++currentFenceVal;
 		directQueue->ExecuteCommandLists(&mainCommandList->ID, 1);
+		fence_vals[currentFrameIndex] = ++currentFenceVal;
 		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
 		swapChain->Present(currentRTVindex);
 		currentRTVindex = (currentRTVindex + 1) % 2;
@@ -173,7 +174,8 @@ namespace Pistachio {
 		device->CreateCommandList(RHI::CommandListType::Direct, commandAllocators[0], &mainCommandList);
 		PT_CORE_INFO("Created main command list");
 		device->CreateFence(&mainFence, 0);
-		PT_CORE_INFO("Created main fence");
+		device->CreateFence(&stagingFence, 0);
+		PT_CORE_INFO("Created fence(s)");
 
 
 		RHI::PoolSize HeapSizes[2];
@@ -310,11 +312,12 @@ namespace Pistachio {
 
 	void RendererBase::FlushStagingBuffer()
 	{
+		static uint64_t stagingFenceVal = 0;
+		stagingFenceVal++;
 		stagingCommandList->End();
 		directQueue->ExecuteCommandLists(&stagingCommandList->ID, 1); //todo look into dedicated transfer queue ??
-		directQueue->SignalFence(mainFence, 100); // 100 used here is an arbitrary value, hopefully we dont have to flush before frame 1?
-		mainFence->Wait(100); // consider doing this async perhaps;
-		directQueue->SignalFence(mainFence, currentFenceVal);
+		directQueue->SignalFence(stagingFence, stagingFenceVal); 
+		stagingFence->Wait(stagingFenceVal); // consider doing this async perhaps;
 		stagingCommandAllocator->Reset();
 		stagingCommandList->Begin(stagingCommandAllocator);
 		staginBufferPortionUsed = 0;

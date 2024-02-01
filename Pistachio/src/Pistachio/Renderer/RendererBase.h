@@ -66,6 +66,7 @@ namespace Pistachio {
 		static std::uint64_t fence_vals[3]; //managing sync across allocators
 		static std::uint64_t currentFenceVal; //managing sync across allocators
 		static RHI::Fence* mainFence;
+		static RHI::Fence* stagingFence;
 		static RHI::DescriptorHeap* heap;
 		//Staging buffer to manage GPU resource updates, default size probably 2mb
 		static RHI::Buffer* stagingBuffer;
