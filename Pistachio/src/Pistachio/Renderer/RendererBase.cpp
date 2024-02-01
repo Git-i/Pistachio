@@ -89,7 +89,7 @@ namespace Pistachio {
 		RHICreateDevice(physicalDevice, &commandQueueDesc, 1, &directQueue, instance->ID ,&device );
 		PT_CORE_INFO("Device Created ID:{0} Internal_ID:{1}", (void*)device, (void*)device->ID);
 		//todo handle multiplatform surface creation
-		PT_CORE_INFO("Creating Surface foe Win32");
+		PT_CORE_INFO("Creating Surface for Win32");
 		surface.InitWin32(hwnd, instance->ID);
 		PT_CORE_INFO("Surface Initialized");
 		unsigned int height = ((WindowData*)GetWindowDataPtr())->height;
@@ -127,7 +127,7 @@ namespace Pistachio {
 		for (int i = 0; i < 2; i++)
 		{
 			RHI::CPU_HANDLE handle;
-			handle.val = rtvHeap->GetCpuHandle().val + (i * device->GetDescriptorHeapIncrementSize(RHI::DescriptorClass::RTV));
+			handle.val = rtvHeap->GetCpuHandle().val + (i * device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV));
 			device->CreateRenderTargetView(backBufferTextures[i], nullptr, handle);
 		}
 		PT_CORE_INFO("Created Tender Target Views");

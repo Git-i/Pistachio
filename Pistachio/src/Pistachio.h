@@ -20,3 +20,7 @@
 #include "Pistachio/Scene/Components.h"
 #include "Pistachio/Scene/Entity.h"
 #include "Pistachio/Scene/ScriptableComponent.h"
+//necessary for agility sdk
+extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 611; }
+
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }

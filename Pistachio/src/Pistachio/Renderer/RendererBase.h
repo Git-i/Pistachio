@@ -49,6 +49,7 @@ namespace Pistachio {
 		//static ID3D11DepthStencilView* GetDepthStencilView(){ return pDSV.Get(); }
 	private:
 		friend class Renderer; //easy access to avoid fn calls
+		friend class Texture2D;
 		static RHI::Device* device;
 		static RHI::GraphicsCommandList* mainCommandList;
 		static RHI::GraphicsCommandList* stagingCommandList;

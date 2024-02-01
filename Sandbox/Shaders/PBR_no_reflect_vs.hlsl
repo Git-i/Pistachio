@@ -22,7 +22,7 @@ cbuffer CBuf
     float ao;
 };
 
-VS_OUT main(float3 pos : POSITION, float3 normal : NORMAL, float2 UV : UV)
+VS_OUT main(float3 pos : SEM0, float3 normal : SEM1, float2 UV : SEM2)
 {
     VS_OUT vso;
     vso.worldpos = mul(float4(pos, 1.0f), transform);
