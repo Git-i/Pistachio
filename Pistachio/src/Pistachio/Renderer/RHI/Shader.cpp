@@ -527,7 +527,7 @@ namespace Pistachio {
 				auto& setInfo = m_info.sets.emplace_back();
 				setInfo.setIndex = sets[i].setIndex;
 				RHI::RootParameterDesc desc;
-
+				desc.descriptorTable.setIndex = sets[i].setIndex;
 				desc.type = RHI::RootParameterType::DescriptorTable;
 				desc.descriptorTable.numDescriptorRanges = sets[i].bindingCount;
 				desc.descriptorTable.ranges = (RHI::DescriptorRange*)rangeOffset;
