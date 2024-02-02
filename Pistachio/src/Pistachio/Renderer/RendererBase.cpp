@@ -29,6 +29,7 @@ bool                      Pistachio::RendererBase::outstandingResourceUpdate = 0
 uint32_t                  Pistachio::RendererBase::currentFrameIndex =0;
 uint32_t                  Pistachio::RendererBase::currentRTVindex =0;
 FLOAT                     Pistachio::RendererBase::m_ClearColor[4];
+static const uint32_t STAGING_BUFFER_INITIAL_SIZE = 80 * 1024 * 1024; //todo: reduce this
 namespace Pistachio {
 	
 	void RendererBase::Shutdown()
@@ -195,7 +196,7 @@ namespace Pistachio {
 		
 
 		//initialize the staing buffer
-		stagingBufferSize = 2 * 1024 * 1024;//2mb stagin buffer ???
+		stagingBufferSize = STAGING_BUFFER_INITIAL_SIZE;
 		RHI::BufferDesc stagingBufferDesc;
 		stagingBufferDesc.size = stagingBufferSize;
 		stagingBufferDesc.usage = RHI::BufferUsage::CopySrc;
@@ -372,4 +373,5 @@ namespace Pistachio {
 	RHI::DescriptorHeap* RendererBase::GetRTVDescriptorHeap() { return rtvHeap; };
 	uint32_t             RendererBase::GetCurrentRTVIndex() { return currentRTVindex; }
 	RHI::DescriptorHeap* RendererBase::GetDSVDescriptorHeap(){return dsvHeap;}
+	RHI::DescriptorHeap* Pistachio::RendererBase::GetMainDescriptorHeap() { return heap; }
 }

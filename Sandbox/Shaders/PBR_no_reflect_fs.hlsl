@@ -1,4 +1,4 @@
-
+Texture2D diffuse : register(t0, space1);
 float DistributionGGX(float3 N, float3 H, float roughness);
 float GeometrySchlickGGX(float NdotV, float roughness);
 float GeometrySmith(float3 N, float3 V, float3 L, float roughness);
@@ -14,7 +14,9 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
     
     roughness = clamp(roughness, 0.0, 1.0);
     //ao = 1.0;
-
+    int3 loc = int3(4096.f * uv.x, 4096.f * uv.y, 0);
+    float3 texture = diffuse.Load(loc).xyz;
+    albedo = albedo * texture;
     float3 N = normalize(Normal);
     float3 V = normalize(viewPos.xyz - WorldPos);
     float3 R = reflect(-V, N);
@@ -49,7 +51,9 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
 
         // add to outgoing radiance Lo
         float NdotL = max(dot(N, L), 0.0);
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+        
+        
+        Lo += (kD * albedo  / PI + specular) * radiance * NdotL;
     }
 
     /*
@@ -102,7 +106,7 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
 	
     // Tonemap
     color = color / (color + float3(1.0f, 1.0f, 1.0f));
-
+    
     // Gamma Inverse Correct
     float invGamma = 1.0f / 2.2f;
     color = pow(color, float3(invGamma, invGamma, invGamma));
