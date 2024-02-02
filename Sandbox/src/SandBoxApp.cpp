@@ -72,6 +72,7 @@ public:
 		Pistachio::RendererBase::GetMainCommandList()->BindVertexBuffers(0, 1, &Pistachio::Renderer::GetVertexBuffer()->ID);
 		Pistachio::RendererBase::GetMainCommandList()->BindIndexBuffer(Pistachio::Renderer::GetIndexBuffer(), 0);
 		Pistachio::RendererBase::GetMainCommandList()->BindDynamicDescriptor(shad->GetRootSignature(), Pistachio::Renderer::GetCBDesc(), 0, Pistachio::Renderer::GetCBOffset(cBuf1));
+		Pistachio::RendererBase::GetMainCommandList()->BindDescriptorSet(shad->GetRootSignature(), set, 1);
 		Pistachio::Renderer::Submit(mesh.meshes[0].GetVBHandle(), mesh.meshes[0].GetIBHandle(), sizeof(Pistachio::Vertex));
 		Pistachio::RendererBase::GetMainCommandList()->BindDynamicDescriptor(shad->GetRootSignature(), Pistachio::Renderer::GetCBDesc(), 0, Pistachio::Renderer::GetCBOffset(cBuf2));
 		if (frame < 3000 || frame > 5000)
@@ -141,16 +142,28 @@ public:
 		desc.BlendModes = &blendMode;
 		
 
-		RHI::RootParameterDesc rpDesc;
-		rpDesc.type = RHI::RootParameterType::DynamicDescriptor;
-		rpDesc.dynamicDescriptor.stage = RHI::ShaderStage::Vertex;
-		rpDesc.dynamicDescriptor.type = RHI::DescriptorType::ConstantBufferDynamic;
-		rpDesc.dynamicDescriptor.setIndex = 0;
+		RHI::RootParameterDesc rpDesc[2];
+		rpDesc[0].type = RHI::RootParameterType::DynamicDescriptor;
+		rpDesc[0].dynamicDescriptor.stage = RHI::ShaderStage::Vertex;
+		rpDesc[0].dynamicDescriptor.type = RHI::DescriptorType::ConstantBufferDynamic;
+		rpDesc[0].dynamicDescriptor.setIndex = 0;
+		RHI::DescriptorRange range;
+		range.BaseShaderRegister = 0;
+		range.numDescriptors = 1;
+		range.stage = RHI::ShaderStage::Pixel;
+		range.type = RHI::DescriptorType::SampledTexture;
+		rpDesc[1].type = RHI::RootParameterType::DescriptorTable;
+		rpDesc[1].descriptorTable.numDescriptorRanges = 1;
+		rpDesc[1].descriptorTable.setIndex = 1;
+		rpDesc[1].descriptorTable.ranges = &range;
+
+		RHI::DescriptorSetLayout* setlayout[2];
+
 		RHI::RootSignatureDesc rsDesc;
-		rsDesc.numRootParameters = 1;
-		rsDesc.rootParameters = &rpDesc;
+		rsDesc.numRootParameters = 2;
+		rsDesc.rootParameters = rpDesc;
 		RHI::RootSignature* rs;
-		RendererBase::Getd3dDevice()->CreateRootSignature(&rsDesc, &rs, nullptr);
+		RendererBase::Getd3dDevice()->CreateRootSignature(&rsDesc, &rs, setlayout);
 		shad = Shader::CreateWithRs(&desc, rs);
 		rs->Release();
 		RHI::DepthStencilMode currMode{};
@@ -168,11 +181,18 @@ public:
 		cBuf1 = Renderer::AllocateConstantBuffer(sizeof(CBData));
 		cBuf2 = Renderer::AllocateConstantBuffer(sizeof(CBData));
 		
-		BufferBindingUpdateDesc bindingUpdate;
-		bindingUpdate.buffer = NULL;
-		bindingUpdate.offset = 0;
-		bindingUpdate.size = sizeof(CBData);
-		bindingUpdate.type = RHI::DescriptorType::ConstantBuffer;
+		RendererBase::Getd3dDevice()->CreateDescriptorSets(RendererBase::GetMainDescriptorHeap(), 1, setlayout[1], &set);
+		RHI::DescriptorTextureInfo tinfo;
+		tinfo.dimension = RHI::ShaderResourceViewDimension::Texture2D;
+		tinfo.texture = Renderer::GetWhiteTexture().GetView();
+		RHI::DescriptorSetUpdateDesc updateDesc;
+		updateDesc.arrayIndex = 0;
+		updateDesc.binding = 0;
+		updateDesc.bufferInfos = 0;
+		updateDesc.numDescriptors = 1;
+		updateDesc.type = RHI::DescriptorType::SampledTexture;
+		updateDesc.textureInfos = &tinfo;
+		RendererBase::Getd3dDevice()->UpdateDescriptorSets(1, &updateDesc, set);
 		RendererBase::FlushStagingBuffer();
 		int a = 9;
 	}
@@ -217,6 +237,7 @@ private:
 	Pistachio::Model cube;
 	Pistachio::Shader* shader;
 	Pistachio::Shader* noreflect;
+	RHI::DescriptorSet* set;
 	bool vsync = true;
 	Pistachio::Shader* envshader;
 	Pistachio::RenderTexture rtx;

@@ -123,7 +123,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>C:\Dev\Repos\Pistachio\bin\Debug-x64\Pistachio\Pistachio.lib;RenderHardwareInterface.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;C:\Dev\Repos\Pistachio\x64\Debug-Direct3D12</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;C:\Dev\Repos\Pistachio\x64\Debug-Vulkan</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>

@@ -44,6 +44,7 @@ namespace Pistachio {
 		static RHI::SwapChain* GetSwapChain();
 		static RHI::DescriptorHeap* GetRTVDescriptorHeap();
 		static RHI::DescriptorHeap* GetDSVDescriptorHeap();
+		static RHI::DescriptorHeap* GetMainDescriptorHeap();
 		static uint32_t GetCurrentRTVIndex();
 		//static ID3D11RenderTargetView* GetmainRenderTargetView() { return g_mainRenderTargetView.Get(); }
 		//static ID3D11DepthStencilView* GetDepthStencilView(){ return pDSV.Get(); }

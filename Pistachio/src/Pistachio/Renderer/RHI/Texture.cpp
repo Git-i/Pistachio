@@ -1,5 +1,6 @@
 #include "ptpch.h"
 #include "../Texture.h"
+#include "Util\FormatUtils.h"
 #include "stb_image.h"
 #include "../RendererBase.h"
 namespace Pistachio
@@ -21,15 +22,15 @@ namespace Pistachio
         RHI::AutomaticAllocationInfo allocInfo;
         allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
         RendererBase::Getd3dDevice()->CreateTexture(&desc, &m_ID, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic);
+        RHI::SubResourceRange range;
+        range.FirstArraySlice = 0;
+        range.imageAspect = RHI::Aspect::COLOR_BIT;
+        range.IndexOrFirstMipLevel = 0;
+        range.NumArraySlices = 1;
+        range.NumMipLevels = 1;
         
         if (data)
         {
-            RHI::SubResourceRange range;
-            range.FirstArraySlice = 0;
-            range.imageAspect = RHI::Aspect::COLOR_BIT;
-            range.IndexOrFirstMipLevel = 0;
-            range.NumArraySlices = 1;
-            range.NumMipLevels = 1;
             RHI::TextureMemoryBarrier barrier;
             barrier.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
             barrier.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
@@ -42,7 +43,7 @@ namespace Pistachio
                 RHI::PipelineStage::TRANSFER_BIT,
                 0, nullptr,
                 1, &barrier);
-            RendererBase::PushTextureUpdate(m_ID, m_Width * m_Height * 4, data, &range, { m_Width, m_Height,1 }, {0,0,0}); //todo image sizes
+            RendererBase::PushTextureUpdate(m_ID, m_Width * m_Height * RHI::Util::GetFormatBPP(m_format), data, &range, {m_Width, m_Height,1}, {0,0,0}); //todo image sizes
             barrier.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
             barrier.AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
             barrier.newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
@@ -53,16 +54,12 @@ namespace Pistachio
                 0, nullptr,
                 1, &barrier);
         }
-        if (!(((int)flags & (int)TextureFlags::NO_SHADER_USAGE) || ((int)flags & (int)TextureFlags::USAGE_STAGING)))
-        {
-            //D3D11_SHADER_RESOURCE_VIEW_DESC srvdesc = {};
-            //srvdesc.Format = ImageTextureDesc.Format;
-            //srvdesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-            //srvdesc.Texture2D.MostDetailedMip = 0;
-            //srvdesc.Texture2D.MipLevels = 1;
-            //RendererBase::Getd3dDevice()->CreateShaderResourceView(ImageTexture, &srvdesc, (ID3D11ShaderResourceView**)m_ID.ReleaseAndGetAddressOf());
-        }
-        m_bHasView = false;
+        RHI::TextureViewDesc viewDesc;
+        viewDesc.format = m_format;
+        viewDesc.range = range;
+        viewDesc.texture = m_ID;
+        viewDesc.type = RHI::TextureViewType::Texture2D;
+        RendererBase::device->CreateTextureView(&viewDesc, &m_view);
     }
     unsigned int Texture2D::GetHeight() const
     {

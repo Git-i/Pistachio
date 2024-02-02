@@ -153,7 +153,8 @@ namespace Pistachio {
 		//shaderlib.Add("Shadow-Shader", shadowShader);
 		//shaderlib.Add("Post-Shader", postprocess_Shader);
 		BYTE data[4] = { 255,255,255,255 };
-		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
+		whiteTexture.CreateStack("Cerberus_A.tga", RHI::Format::R8G8B8A8_UNORM);
+		//whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
 		LightSB.Bind(7);
 		//Shader::SetVSBuffer(PassCB, 0);
 		//Shader::SetPSBuffer(MaterialCB, 1);
@@ -742,5 +743,9 @@ namespace Pistachio {
 			1,
 			ibHandleOffsets[ib.handle] / sizeof(uint32_t),
 			vbHandleOffsets[vb.handle] / vertexStride, 0);
+	}
+	const Texture2D& Pistachio::Renderer::GetWhiteTexture()
+	{
+		return whiteTexture;
 	}
 }
