@@ -112,7 +112,7 @@ namespace Pistachio {
 		static const uint32_t GetIBOffset(const RendererIBHandle handle);
 		static const uint32_t GetVBOffset(const RendererVBHandle handle);
 		static const uint32_t GetCBOffset(const RendererCBHandle handle);
-		static void  Submit(const RendererVBHandle vb,const RendererIBHandle ib, uint32_t vertexStride);
+		static void  Submit(RHI::GraphicsCommandList* lsit, const RendererVBHandle vb, const RendererIBHandle ib, uint32_t vertexStride);
 		static const Texture2D& GetWhiteTexture();
 		static const RHI::DynamicDescriptor* GetCBDesc();
 		static const RHI::Buffer* GetVertexBuffer();

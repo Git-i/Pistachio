@@ -76,7 +76,7 @@ namespace Pistachio {
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
 	{
-		s_Data._2DShader->Bind();
+		//s_Data._2DShader->Bind();
 		auto viewproj = camera.GetViewProjectionMatrix();
 		
 		s_Data.QuadVerticesPtr = s_Data.QuadVerticesBase;
@@ -86,7 +86,7 @@ namespace Pistachio {
 
 	void Renderer2D::BeginScene(const RuntimeCamera& camera, const DirectX::XMMATRIX& transform)
 	{
-		s_Data._2DShader->Bind();
+		//s_Data._2DShader->Bind();
 		auto viewproj = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, transform) * DirectX::XMMATRIX(camera.GetProjection()));
 		
 		s_Data.QuadVerticesPtr = s_Data.QuadVerticesBase;
@@ -97,7 +97,7 @@ namespace Pistachio {
 	void Renderer2D::BeginScene(const EditorCamera& camera)
 	{
 		PT_PROFILE_FUNCTION()
-		s_Data._2DShader->Bind();
+		//s_Data._2DShader->Bind();
 		auto viewproj = DirectX::XMMatrixTranspose(camera.GetViewProjection());
 		
 		s_Data.QuadVerticesPtr = s_Data.QuadVerticesBase;

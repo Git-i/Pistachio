@@ -8,6 +8,11 @@
 namespace Pistachio {
 	class PISTACHIO_API Texture : public RefCountedObject
 	{
+	protected:
+		Texture() = default;
+		friend class Renderer;
+		friend class RenderGraph;
+		RHI::Texture* m_ID;
 	public:
 		virtual uint32_t GetHeight() const = 0;
 		virtual uint32_t GetWidth() const = 0;
@@ -17,7 +22,7 @@ namespace Pistachio {
 	public:
 		uint32_t GetHeight() const override;
 		uint32_t GetWidth() const override;
-		Texture2D() : m_ID(0), m_Width(0), m_Height(0), m_format(RHI::Format::R8G8B8A8_UNORM){};
+		Texture2D() : m_Width(0), m_Height(0), m_format(RHI::Format::R8G8B8A8_UNORM){};
 		void Bind(int slot = 0) const;
 		static Texture2D* Create(const char* path, RHI::Format format = RHI::Format::R8G8B8A8_UNORM, TextureFlags flags = TextureFlags::NONE);
 		static Texture2D* Create(int width, int height, RHI::Format format,void* data, TextureFlags flags = TextureFlags::NONE);
@@ -32,7 +37,7 @@ namespace Pistachio {
 		friend class RenderTexture;
 		friend class RenderCubeMap;
 	private:
-		RHI::Texture* m_ID;
+		
 		unsigned int m_Width, m_Height, m_MipLevels;
 		RHI::Format m_format;
 		RHI::TextureView* m_view;
