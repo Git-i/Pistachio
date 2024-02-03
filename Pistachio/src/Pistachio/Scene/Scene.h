@@ -7,6 +7,7 @@
 #include "Pistachio\Allocators\AtlasAllocator.h"
 #include "Pistachio/Renderer/Renderer.h"
 #include "Pistachio\Event\SceneGraphEvent.h"
+#include "Pistachio\Renderer\RenderGraph.h"
 namespace physx {
 	class PxScene;
 }
@@ -52,6 +53,7 @@ namespace Pistachio {
 		friend class SceneHierarchyPanel;
 		friend class SceneSerializer;
 		unsigned int m_viewportWidth, m_ViewportHeight;
+		RenderGraph graph;
 		RenderTexture m_gBuffer;
 		RenderTexture m_finalRender;
 	};

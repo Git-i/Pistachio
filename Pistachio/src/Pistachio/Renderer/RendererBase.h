@@ -14,15 +14,37 @@ namespace Pistachio {
 	enum class DepthStencilOp {
 		Less, Less_Equal
 	};
+	struct RTVHandle
+	{
+		uint32_t heapIndex;
+		uint32_t heapOffset;
+	};
+	struct DSVHandle
+	{
+		uint32_t heapIndex;
+		uint32_t heapOffset;
+	};
+	struct TrackedDescriptorHeap
+	{
+		RHI::DescriptorHeap* heap;
+		uint32_t sizeLeft = 0;
+		uint32_t freeOffset = 0;
+	};
 	class PISTACHIO_API RendererBase
 	{
 	public:
 		static bool IsDeviceNull;
 		static void Shutdown();
 		static void EndFrame();
-		static void ChangeViewport(int width, int height, int x=0, int y=0);
 		static void ClearTarget();
 		static void CreateTarget();
+		static RTVHandle CreateRenderTargetView(RHI::Texture* texture, RHI::RenderTargetViewDesc* viewDesc);
+		static DSVHandle CreateDepthStencilView(RHI::Texture* texture, RHI::DepthStencilViewDesc* viewDesc);
+		static void DestroyRenderTargetView(RTVHandle handle);
+		static void DestroyDepthStencilView(DSVHandle handle);
+		static RHI::CPU_HANDLE GetCPUHandle(RTVHandle handle);
+		static RHI::CPU_HANDLE GetCPUHandle(DSVHandle handle);
+		static void ChangeViewport(int width, int height, int x=0, int y=0);
 		static void ClearView();
 		static void Resize(int width, int height);
 		static void PushBufferUpdate(RHI::Buffer* buffer, uint32_t offsetFromBufferStart,const void* data, uint32_t size);
@@ -45,12 +67,16 @@ namespace Pistachio {
 		static RHI::DescriptorHeap* GetRTVDescriptorHeap();
 		static RHI::DescriptorHeap* GetDSVDescriptorHeap();
 		static RHI::DescriptorHeap* GetMainDescriptorHeap();
+		static RHI::Texture* GetBackBufferTexture(uint32_t index);
+		static RHI::Texture* GetDefaultDepthTexture();
 		static uint32_t GetCurrentRTVIndex();
 		//static ID3D11RenderTargetView* GetmainRenderTargetView() { return g_mainRenderTargetView.Get(); }
 		//static ID3D11DepthStencilView* GetDepthStencilView(){ return pDSV.Get(); }
 	private:
 		friend class Renderer; //easy access to avoid fn calls
 		friend class Texture2D;
+		friend class Shader;
+		friend class RenderGraph;
 		static RHI::Device* device;
 		static RHI::GraphicsCommandList* mainCommandList;
 		static RHI::GraphicsCommandList* stagingCommandList;
@@ -63,7 +89,11 @@ namespace Pistachio {
 		static RHI::CommandQueue* directQueue;
 		static RHI::Texture* backBufferTextures[2]; //todo: tripebuffering support
 		static RHI::Texture* depthTexture;
-		static RHI::DescriptorHeap* rtvHeap;
+		static RHI::DescriptorHeap* MainRTVheap;
+		static std::vector<TrackedDescriptorHeap> rtvHeaps;
+		static std::vector<RTVHandle> freeRTVs;
+		static std::vector<TrackedDescriptorHeap> dsvHeaps;
+		static std::vector<DSVHandle> freeDSVs;
 		static RHI::DescriptorHeap* dsvHeap;
 		static std::uint64_t fence_vals[3]; //managing sync across allocators
 		static std::uint64_t currentFenceVal; //managing sync across allocators

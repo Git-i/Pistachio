@@ -103,7 +103,7 @@ static void ChangeVP(float size, Pistachio::hiVector2 offset)
 namespace Pistachio {
 	//todo extremely temprary
 	static Shader* envshader;
-	Scene::Scene(SceneDesc desc) : sm_allocator({ 4096, 4096 }, {256, 256})
+	Scene::Scene(SceneDesc desc) : sm_allocator({ 4096, 4096 }, {256, 256}),graph(2)
 	{
 		//envshader = new Shader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso");
 		//envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
@@ -463,7 +463,7 @@ namespace Pistachio {
 			//Renderer::shadowMapAtlas.Bind();
 			RendererBase::EnableShadowMapRasetrizerState();
 			auto shader = Renderer::GetShaderLibrary().Get("Shadow-Shader");
-			shader->Bind();
+			//shader->Bind();
 			
 		}
 		//dirty shadow casting lights, and draw dirty ones, directional lights will be handles spearately
@@ -516,7 +516,7 @@ namespace Pistachio {
 		{
 			RendererBase::SetCullMode(CullMode::Back);
 			auto shader = Renderer::GetShaderLibrary().Get("GBuffer-Shader");
-			shader->Bind();
+			//shader->Bind();
 		}
 		
 		//m_gBuffer.Bind(0, 4);
@@ -550,7 +550,7 @@ namespace Pistachio {
 		//auto& VB = ScreenSpaceQuad->GetVertexBuffer();
 		//auto& IB = ScreenSpaceQuad->GetIndexBuffer();
 		//Buffer buffer = { &VB,&IB };
-		Renderer::GetShaderLibrary().Get("PBR-Deffered-Shader").get()->Bind();
+		//Renderer::GetShaderLibrary().Get("PBR-Deffered-Shader").get()->Bind();
 		//RendererBase::DrawIndexed(buffer);
 		Renderer::whiteTexture.Bind(3);
 		Renderer::whiteTexture.Bind(4);

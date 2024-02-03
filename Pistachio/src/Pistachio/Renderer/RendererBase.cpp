@@ -14,7 +14,7 @@ RHI::Instance*            Pistachio::RendererBase::instance;
 RHI::SwapChain*           Pistachio::RendererBase::swapChain;
 RHI::CommandQueue*        Pistachio::RendererBase::directQueue;
 RHI::Texture*             Pistachio::RendererBase::backBufferTextures[2]; //todo: tripebuffering support
-RHI::DescriptorHeap*      Pistachio::RendererBase::rtvHeap;
+RHI::DescriptorHeap*      Pistachio::RendererBase::MainRTVheap;
 RHI::DescriptorHeap*      Pistachio::RendererBase::dsvHeap;
 std::uint64_t             Pistachio::RendererBase::fence_vals[3]; //managing sync across allocators
 std::uint64_t             Pistachio::RendererBase::currentFenceVal=0; //managing sync across allocators
@@ -29,6 +29,10 @@ bool                      Pistachio::RendererBase::outstandingResourceUpdate = 0
 uint32_t                  Pistachio::RendererBase::currentFrameIndex =0;
 uint32_t                  Pistachio::RendererBase::currentRTVindex =0;
 FLOAT                     Pistachio::RendererBase::m_ClearColor[4];
+std::vector<Pistachio::TrackedDescriptorHeap> Pistachio::RendererBase::rtvHeaps;
+std::vector<Pistachio::RTVHandle> Pistachio::RendererBase::freeRTVs;
+std::vector<Pistachio::TrackedDescriptorHeap> Pistachio::RendererBase::dsvHeaps;
+std::vector<Pistachio::DSVHandle> Pistachio::RendererBase::freeDSVs;
 static const uint32_t STAGING_BUFFER_INITIAL_SIZE = 80 * 1024 * 1024; //todo: reduce this
 namespace Pistachio {
 	
@@ -123,13 +127,16 @@ namespace Pistachio {
 		rtvHeapHesc.poolSizes = &pSize;
 	
 		//create render target views
-		device->CreateDescriptorHeap(&rtvHeapHesc, &rtvHeap);
+		device->CreateDescriptorHeap(&rtvHeapHesc, &MainRTVheap);
 		PT_CORE_INFO("Created RTV descriptor heaps");
 		for (int i = 0; i < 2; i++)
 		{
 			RHI::CPU_HANDLE handle;
-			handle.val = rtvHeap->GetCpuHandle().val + (i * device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV));
-			device->CreateRenderTargetView(backBufferTextures[i], nullptr, handle);
+			handle.val = MainRTVheap->GetCpuHandle().val + (i * device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV));
+			RHI::RenderTargetViewDesc rtvDesc;
+			rtvDesc.arraySlice = rtvDesc.TextureArray = rtvDesc.textureMipSlice = 0;
+			rtvDesc.format = RHI::Format::B8G8R8A8_UNORM;
+			device->CreateRenderTargetView(backBufferTextures[i], &rtvDesc, handle);
 		}
 		PT_CORE_INFO("Created Tender Target Views");
 		RHI::ClearValue depthVal;
@@ -159,8 +166,10 @@ namespace Pistachio {
 		DAinfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
 		device->CreateTexture(&depthTextureDsc, &depthTexture,0,0,&DAinfo, 0, RHI::ResourceType::Automatic);
 		PT_CORE_INFO("Created Default depth texture");
-
-		device->CreateDepthStencilView(depthTexture, nullptr, dsvHeap->GetCpuHandle());
+		RHI::DepthStencilViewDesc dsvDesc;
+		dsvDesc.arraySlice = dsvDesc.TextureArray = dsvDesc.textureMipSlice = 0;
+		dsvDesc.format = RHI::Format::D32_FLOAT;
+		device->CreateDepthStencilView(depthTexture, &dsvDesc, dsvHeap->GetCpuHandle());
 		// allocators are handled with a "frames in flight approach"
 		RESULT res = device->CreateCommandAllocators(RHI::CommandListType::Direct, 3, commandAllocators);
 		if (res != 0) PT_CORE_INFO("Main allocator creation failed with code :{0}", res);
@@ -369,9 +378,114 @@ namespace Pistachio {
 	{
 		return mainCommandList; 
 	}
+	RTVHandle RendererBase::CreateRenderTargetView(RHI::Texture* texture, RHI::RenderTargetViewDesc* desc)
+	{
+		if (freeRTVs.size())
+		{
+			auto handle = freeRTVs[freeRTVs.size() - 1];
+			RHI::CPU_HANDLE CPUhandle{};
+			CPUhandle.val = rtvHeaps[handle.heapIndex].heap->GetCpuHandle().val +
+				device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV) * handle.heapOffset;
+			device->CreateRenderTargetView(texture, desc, CPUhandle);
+			freeRTVs.pop_back();
+			return handle;
+		}
+		for (uint32_t i = 0; i < rtvHeaps.size();i++)
+		{
+			auto& heap = rtvHeaps[i];
+			if (heap.sizeLeft)
+			{
+				RHI::CPU_HANDLE CPUhandle{};
+				CPUhandle.val = heap.heap->GetCpuHandle().val +
+					device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV) * heap.freeOffset;
+				device->CreateRenderTargetView(texture, desc, CPUhandle);
+				heap.freeOffset++;
+				heap.sizeLeft--;
+				return RTVHandle{ i, heap.freeOffset - 1 };
+			}
+		}
+		//no space in all heaps
+		auto& heap = rtvHeaps.emplace_back();
+		RHI::PoolSize pSize;
+		pSize.numDescriptors = 10;
+		pSize.type = RHI::DescriptorType::RTV;
+		RHI::DescriptorHeapDesc hDesc;
+		hDesc.maxDescriptorSets = 10;//?
+		hDesc.numPoolSizes = 1;
+		hDesc.poolSizes = &pSize;
+		device->CreateDescriptorHeap(&hDesc, &heap.heap);
+		heap.sizeLeft = 10;
+		heap.freeOffset = 0;
+		CreateRenderTargetView(texture, desc);
+		
+	}
+	DSVHandle RendererBase::CreateDepthStencilView(RHI::Texture* texture, RHI::DepthStencilViewDesc* desc)
+	{
+		if (freeDSVs.size())
+		{
+			auto handle = freeDSVs[freeDSVs.size() - 1];
+			RHI::CPU_HANDLE CPUhandle{};
+			CPUhandle.val = dsvHeaps[handle.heapIndex].heap->GetCpuHandle().val +
+				device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::DSV) * handle.heapOffset;
+			device->CreateDepthStencilView(texture, desc, CPUhandle);
+			freeDSVs.pop_back();
+			return handle;
+		}
+		for (uint32_t i = 0; i < dsvHeaps.size(); i++)
+		{
+			auto& heap = dsvHeaps[i];
+			if (heap.sizeLeft)
+			{
+				RHI::CPU_HANDLE CPUhandle{};
+				CPUhandle.val = heap.heap->GetCpuHandle().val +
+					device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::DSV) * heap.freeOffset;
+				device->CreateDepthStencilView(texture, desc, CPUhandle);
+				heap.freeOffset++;
+				heap.sizeLeft--;
+				return DSVHandle{ i, heap.freeOffset - 1 };
+			}
+		}
+		//no space in all heaps
+		auto& heap = dsvHeaps.emplace_back();
+		RHI::PoolSize pSize;
+		pSize.numDescriptors = 10;
+		pSize.type = RHI::DescriptorType::DSV;
+		RHI::DescriptorHeapDesc hDesc;
+		hDesc.maxDescriptorSets = 10;//?
+		hDesc.numPoolSizes = 1;
+		hDesc.poolSizes = &pSize;
+		device->CreateDescriptorHeap(&hDesc, &heap.heap);
+		heap.sizeLeft = 10;
+		heap.freeOffset = 0;
+		CreateDepthStencilView(texture, desc);
+	}
+	void RendererBase::DestroyRenderTargetView(RTVHandle handle)
+	{
+		freeRTVs.push_back(handle);
+	}
+	void RendererBase::DestroyDepthStencilView(DSVHandle handle)
+	{
+		freeDSVs.push_back(handle);
+	}
+	RHI::CPU_HANDLE RendererBase::GetCPUHandle(RTVHandle handle)
+	{
+		RHI::CPU_HANDLE retVal;
+		retVal.val = rtvHeaps[handle.heapIndex].heap->GetCpuHandle().val +
+			device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV) * handle.heapOffset;
+		return retVal;
+	}
+	RHI::CPU_HANDLE RendererBase::GetCPUHandle(DSVHandle handle)
+	{
+		RHI::CPU_HANDLE retVal;
+		retVal.val = dsvHeaps[handle.heapIndex].heap->GetCpuHandle().val +
+			device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::DSV) * handle.heapOffset;
+		return retVal;
+	}
 	RHI::SwapChain*      RendererBase::GetSwapChain() { return swapChain; }
-	RHI::DescriptorHeap* RendererBase::GetRTVDescriptorHeap() { return rtvHeap; };
+	RHI::DescriptorHeap* RendererBase::GetRTVDescriptorHeap() { return MainRTVheap; };
 	uint32_t             RendererBase::GetCurrentRTVIndex() { return currentRTVindex; }
 	RHI::DescriptorHeap* RendererBase::GetDSVDescriptorHeap(){return dsvHeap;}
-	RHI::DescriptorHeap* Pistachio::RendererBase::GetMainDescriptorHeap() { return heap; }
+	RHI::DescriptorHeap* RendererBase::GetMainDescriptorHeap() { return heap; }
+	RHI::Texture* RendererBase::GetBackBufferTexture(uint32_t index) { return backBufferTextures[index]; }
+	RHI::Texture* RendererBase::GetDefaultDepthTexture() { return depthTexture; }
 }

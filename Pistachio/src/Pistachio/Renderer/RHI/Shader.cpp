@@ -269,17 +269,41 @@ namespace Pistachio {
 		return shader;
 	}
 
-	Shader* Shader::CreateWithRs(ShaderCreateDesc* desc, RHI::RootSignature* rs)
+	Shader* Shader::CreateWithRs(ShaderCreateDesc* desc, RHI::RootSignature* rs,RHI::DescriptorSetLayout** layouts, uint32_t numLayouts)
 	{
 		Shader* shader = new Shader;
+		RHI::ShaderReflection* VSReflection = nullptr;
+		RHI::ShaderReflection* PSReflection = nullptr;
+		if (desc->VS)
+		{
+			shader->VS = desc->VS;
+			RHI::ShaderReflection::CreateFromFile(desc->VS, &VSReflection);
+		}
+		if (desc->PS)
+		{
+			shader->PS = desc->PS;
+			RHI::ShaderReflection::CreateFromFile(desc->PS, &PSReflection);
+		}
+		if (desc->HS) shader->HS = desc->HS;
+		if (desc->GS) shader->GS = desc->GS;
+		if (desc->DS) shader->DS = desc->DS;
+		shader->CreateSetInfos(VSReflection, PSReflection);
+		VSReflection->Release();
+		PSReflection->Release();
 		shader->CreateStackRs(desc, rs);
+		shader->layouts = new RHI::DescriptorSetLayout * [numLayouts];
+		for (uint32_t i = 0; i < numLayouts; i++)
+		{
+			shader->layouts[i] = layouts[i];
+			if (layouts[i]) layouts[i]->Hold();
+		}
 		return shader;
 	}
 
-	void Shader::Bind()
+	void Shader::Bind(RHI::GraphicsCommandList* list)
 	{
-		RendererBase::GetMainCommandList()->SetRootSignature(rootSig);
-		RendererBase::GetMainCommandList()->SetPipelineState(PSOs[currentPSO]);
+		list->SetRootSignature(rootSig);
+		list->SetPipelineState(PSOs[currentPSO]);
 	}
 
 	void Shader::GetDepthStencilMode(RHI::DepthStencilMode* mode)
@@ -363,18 +387,35 @@ namespace Pistachio {
 		}
 	}
 
-	void Shader::CreateShaderBinding(ShaderBindingInfo& info)
+	void Shader::GetVSShaderBinding(SetInfo& info, uint32_t setIndex)
 	{
-		PT_CORE_ASSERT(m_info.sets.size() > 0 && "Shader has no bindings, or was created with custom RootSig");
-		for (uint32_t i = 0; i < m_info.sets.size(); i++)
+		uint32_t index = UINT32_MAX;
+		for (uint32_t i = 0; i < m_PSinfo.sets.size(); i++)
 		{
-			auto& setinfo = info.sets.emplace_back();
-			setinfo = m_info.sets[i];
-			setinfo.set = nullptr;
-			RendererBase::CreateDescriptorSet(&setinfo.set, layouts[i]);
+			if (m_PSinfo.sets[i].setIndex == setIndex) index = i;
 		}
-		
+		info = m_VSinfo.sets[index];
+		RendererBase::device->CreateDescriptorSets(RendererBase::heap, 1, layouts[index], &info.set);
 	}
+
+	void Shader::GetPSShaderBinding(SetInfo& info, uint32_t setIndex)
+	{
+		//we make the assumption that vertex shaders come first in the layout array
+		uint32_t index = UINT32_MAX;
+		for (uint32_t i = 0; i < m_PSinfo.sets.size(); i++)
+		{
+			if (m_PSinfo.sets[i].setIndex == setIndex) index = i;
+		}
+		info = m_PSinfo.sets[index];
+		RendererBase::device->CreateDescriptorSets(RendererBase::heap, 1, layouts[index + m_VSinfo.sets.size()], &info.set);
+	}
+
+	void Shader::ApplyBinding(RHI::GraphicsCommandList* list,const SetInfo& info)
+	{
+		list->BindDescriptorSet(rootSig, info.set, info.setIndex);
+	}
+
+	
 	void Shader::CreateStackRs(ShaderCreateDesc* desc, RHI::RootSignature* signature)
 	{
 		RHI::PipelineStateObjectDesc PSOdesc;
@@ -384,11 +425,7 @@ namespace Pistachio {
 		PSOdesc.HS = desc->HS;
 		PSOdesc.GS = desc->GS;
 		PSOdesc.DS = desc->DS;
-		if (desc->VS) VS = desc->VS;
-		if (desc->PS) PS = desc->PS;
-		if (desc->HS) HS = desc->HS;
-		if (desc->GS) GS = desc->GS;
-		if (desc->DS) DS = desc->DS;
+		
 		//only suppport 6 rtvs
 		PSOdesc.RTVFormats[0] = desc->RTVFormats[0];
 		PSOdesc.RTVFormats[1] = desc->RTVFormats[1];
@@ -466,6 +503,38 @@ namespace Pistachio {
 		rootSig->Release();//we can safely release this reference to the RS because CreateStackRs holds one
 	}
 
+	void Shader::CreateSetInfos(RHI::ShaderReflection* VSreflection, RHI::ShaderReflection* PSreflection)
+	{
+		FillSetInfo(VSreflection, m_VSinfo);
+		FillSetInfo(PSreflection, m_PSinfo);
+	}
+
+	void Shader::FillSetInfo(RHI::ShaderReflection* reflection, ShaderSetInfos& info)
+	{
+		if (reflection)
+		{
+			uint32_t numSets = reflection->GetNumDescriptorSets();
+			std::vector<RHI::SRDescriptorSet> sets(numSets);
+			reflection->GetAllDescriptorSets(sets.data());
+			info.sets.reserve(numSets);
+			for (uint32_t i = 0; i < numSets; i++)
+			{
+				auto& set = info.sets.emplace_back();
+				set.setIndex = sets[i].setIndex;
+				set.set = nullptr;
+				std::vector<RHI::SRDescriptorBinding> bindings(sets[i].bindingCount);
+				reflection->GetDescriptorSetBindings(&sets[i], bindings.data());
+				for (uint32_t j = 0; j < sets[i].bindingCount; j++)
+				{
+					set.count.push_back(bindings[j].count);
+					set.slot.push_back(bindings[j].bindingSlot);
+					set.stage.push_back(RHI::ShaderStage::Vertex);
+					set.type.push_back(bindings[j].resourceType);
+				}
+			}
+		}
+	}
+
 	void Shader::CreateRootSignature()
 	{
 		// Creating an RHI::RootSignature
@@ -484,8 +553,6 @@ namespace Pistachio {
 			VSreflection->GetAllDescriptorSets(sets.data());
 			for (uint32_t i = 0; i < numSets; i++)
 			{
-				auto& setInfo= m_info.sets.emplace_back();
-				setInfo.setIndex = sets[i].setIndex;
 				RHI::RootParameterDesc desc;
 
 				desc.type = RHI::RootParameterType::DescriptorTable;
@@ -499,12 +566,6 @@ namespace Pistachio {
 				for (uint32_t j = 0; j < sets[i].bindingCount; j++)
 				{
 					RHI::DescriptorRange range;
-
-					setInfo.slot.push_back(bindings[j].bindingSlot);
-					setInfo.type.push_back(bindings[j].resourceType);
-					setInfo.stage.push_back(RHI::ShaderStage::Vertex);
-					setInfo.count.push_back(bindings[j].count);
-
 					range.BaseShaderRegister = bindings[j].bindingSlot;
 					range.numDescriptors = bindings[j].count;
 					range.type = bindings[j].resourceType;
@@ -514,7 +575,8 @@ namespace Pistachio {
 				}
 				rootParams.push_back(desc);
 			}
-			VSreflection->Destroy();
+			CreateSetInfos(VSreflection, 0);
+			VSreflection->Release();
 		}
 		if (!PS.empty())
 		{
@@ -524,9 +586,6 @@ namespace Pistachio {
 			PSreflection->GetAllDescriptorSets(sets.data());
 			for (uint32_t i = 0; i < numSets; i++)
 			{
-
-				auto& setInfo = m_info.sets.emplace_back();
-				setInfo.setIndex = sets[i].setIndex;
 				RHI::RootParameterDesc desc;
 				desc.descriptorTable.setIndex = sets[i].setIndex;
 				desc.type = RHI::RootParameterType::DescriptorTable;
@@ -539,11 +598,6 @@ namespace Pistachio {
 				//fill out all the ranges (descriptors)
 				for (uint32_t j = 0; j < sets[i].bindingCount; j++)
 				{
-					setInfo.slot.push_back(bindings[j].bindingSlot);
-					setInfo.type.push_back(bindings[j].resourceType);
-					setInfo.stage.push_back(RHI::ShaderStage::Pixel);
-					setInfo.count.push_back(bindings[i].count);
-
 					RHI::DescriptorRange range;
 					range.BaseShaderRegister = bindings[j].bindingSlot;
 					range.numDescriptors = bindings[j].count;
@@ -552,9 +606,11 @@ namespace Pistachio {
 					ranges.emplace_back(range);
 					rangeOffset++;
 				}
+				
 				rootParams.push_back(desc);
 			}
-			PSreflection->Destroy();
+			CreateSetInfos( 0,PSreflection);
+			PSreflection->Release();
 		}
 		for (auto& param : rootParams)
 		{
@@ -591,7 +647,7 @@ namespace Pistachio {
 
 
 
-	void ShaderBindingInfo::UpdateBufferBinding(uint32_t setInfosIndex, BufferBindingUpdateDesc* desc, uint32_t slot)
+	void SetInfo::UpdateBufferBinding(BufferBindingUpdateDesc* desc, uint32_t slot)
 	{
 		RHI::DescriptorBufferInfo info;
 		info.buffer = desc->buffer;
@@ -603,7 +659,19 @@ namespace Pistachio {
 		updateDesc.numDescriptors = 1;
 		updateDesc.type = desc->type;
 		updateDesc.bufferInfos = &info;
-		RendererBase::Getd3dDevice()->UpdateDescriptorSets(1, &updateDesc, sets[setInfosIndex].set);
+		RendererBase::Getd3dDevice()->UpdateDescriptorSets(1, &updateDesc, set);
+	}
+	void SetInfo::UpdateTextureBinding(RHI::TextureView* desc, uint32_t slot)
+	{
+		RHI::DescriptorTextureInfo info;
+		info.texture = desc;
+		RHI::DescriptorSetUpdateDesc updateDesc;
+		updateDesc.arrayIndex = 0;
+		updateDesc.binding = slot;
+		updateDesc.numDescriptors = 1;
+		updateDesc.type = RHI::DescriptorType::SampledTexture;
+		updateDesc.textureInfos = &info;
+		RendererBase::Getd3dDevice()->UpdateDescriptorSets(1, &updateDesc, set);
 	}
 
 	bool PSOHash::operator==(const PSOHash& hash) const
@@ -611,6 +679,7 @@ namespace Pistachio {
 		
 		return std::hash<PSOHash>()(*this) == std::hash<PSOHash>()(hash);
 	}
+
 
 }
 
