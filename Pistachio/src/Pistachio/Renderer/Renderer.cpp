@@ -153,8 +153,8 @@ namespace Pistachio {
 		//shaderlib.Add("Shadow-Shader", shadowShader);
 		//shaderlib.Add("Post-Shader", postprocess_Shader);
 		BYTE data[4] = { 255,255,255,255 };
-		whiteTexture.CreateStack("Cerberus_A.tga", RHI::Format::R8G8B8A8_UNORM);
-		//whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
+		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
+		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
 		LightSB.Bind(7);
 		//Shader::SetVSBuffer(PassCB, 0);
 		//Shader::SetPSBuffer(MaterialCB, 1);
@@ -210,7 +210,7 @@ namespace Pistachio {
 			DirectX::XMMatrixLookAtLH(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMVectorSet(0.0f,  0.0f,  1.0f, 1.0f), DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 1.0f))
 		};
 		RendererBase::ChangeViewport(512, 512);
-		eqShader->Bind();
+		//eqShader->Bind();
 		tex.Bind(0);
 		for (int i = 0; i < 6; i++) {
 			//fbo.Bind(i);
@@ -246,7 +246,7 @@ namespace Pistachio {
 			DirectX::XMMATRIX transform;
 			float roughness;
 		}PrefilterShaderConstBuffer;
-		prefilterShader->Bind();
+		//prefilterShader->Bind();
 		unsigned int maxMipLevels = 5;
 		RenderTexture texture = {};
 		//prefilter.CreateStack(128, 128, 5);
@@ -296,7 +296,7 @@ namespace Pistachio {
 		descBRDF.height = 512;
 		descBRDF.width = 512;
 		//BrdfTex.CreateStack(descBRDF);
-		brdfShader->Bind();
+		//brdfShader->Bind();
 		Pistachio::RendererBase::SetCullMode(CullMode::Front);
 		//BrdfTex.Bind();
 		//RendererBase::DrawIndexed(planebuffer);
@@ -737,9 +737,9 @@ namespace Pistachio {
 	{
 		return cbHandleOffsets[handle.handle];
 	}
-	void Pistachio::Renderer::Submit(const RendererVBHandle vb, const RendererIBHandle ib, uint32_t vertexStride)
+	void Pistachio::Renderer::Submit(RHI::GraphicsCommandList* list,const RendererVBHandle vb, const RendererIBHandle ib, uint32_t vertexStride)
 	{
-		Pistachio::RendererBase::GetMainCommandList()->DrawIndexed(ib.size / sizeof(uint32_t),
+		list->DrawIndexed(ib.size / sizeof(uint32_t),
 			1,
 			ibHandleOffsets[ib.handle] / sizeof(uint32_t),
 			vbHandleOffsets[vb.handle] / vertexStride, 0);

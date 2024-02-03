@@ -150,6 +150,9 @@
     <ClCompile Include="src\Pistachio\Allocators\FreeList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\RenderGraph.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Pistachio\Core\Application.h">
@@ -1323,6 +1326,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Renderer\BufferHandles.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Renderer\RenderGraph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

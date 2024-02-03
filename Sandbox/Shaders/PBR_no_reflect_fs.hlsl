@@ -14,7 +14,7 @@ float4 main(float3 position : WORLD_POSITION, float3 normal : FRAGMENT_NORMAL, f
     
     roughness = clamp(roughness, 0.0, 1.0);
     //ao = 1.0;
-    int3 loc = int3(4096.f * uv.x, 4096.f * uv.y, 0);
+    int3 loc = int3(0,0, 0);
     float3 texture = diffuse.Load(loc).xyz;
     albedo = albedo * texture;
     float3 N = normalize(Normal);
