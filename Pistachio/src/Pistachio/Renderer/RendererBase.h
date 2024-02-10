@@ -24,6 +24,11 @@ namespace Pistachio {
 		uint32_t heapIndex;
 		uint32_t heapOffset;
 	};
+	struct SamplerHandle
+	{
+		uint32_t heapIndex;
+		uint32_t heapOffset;
+	};
 	struct TrackedDescriptorHeap
 	{
 		RHI::DescriptorHeap* heap;
@@ -40,10 +45,13 @@ namespace Pistachio {
 		static void CreateTarget();
 		static RTVHandle CreateRenderTargetView(RHI::Texture* texture, RHI::RenderTargetViewDesc* viewDesc);
 		static DSVHandle CreateDepthStencilView(RHI::Texture* texture, RHI::DepthStencilViewDesc* viewDesc);
+		static SamplerHandle CreateSampler(RHI::SamplerDesc* viewDesc);
 		static void DestroyRenderTargetView(RTVHandle handle);
 		static void DestroyDepthStencilView(DSVHandle handle);
+		static void DestroySampler(SamplerHandle handle);
 		static RHI::CPU_HANDLE GetCPUHandle(RTVHandle handle);
 		static RHI::CPU_HANDLE GetCPUHandle(DSVHandle handle);
+		static RHI::CPU_HANDLE GetCPUHandle(SamplerHandle handle);
 		static void ChangeViewport(int width, int height, int x=0, int y=0);
 		static void ClearView();
 		static void Resize(int width, int height);
@@ -96,6 +104,8 @@ namespace Pistachio {
 		static std::vector<RTVHandle> freeRTVs;
 		static std::vector<TrackedDescriptorHeap> dsvHeaps;
 		static std::vector<DSVHandle> freeDSVs;
+		static std::vector<TrackedDescriptorHeap> samplerHeaps;
+		static std::vector<SamplerHandle> freeSamplers;
 		static RHI::DescriptorHeap* dsvHeap;
 		static std::uint64_t fence_vals[3]; //managing sync across allocators
 		static std::uint64_t currentFenceVal; //managing sync across allocators

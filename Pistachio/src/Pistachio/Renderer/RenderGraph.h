@@ -10,6 +10,8 @@ namespace Pistachio
 	public:
 		void InvalidateRTVHandle()
 		{
+			//todo invalidate should only destroy if the render graph created it, that is
+			//it is not from a pistachio render texture
 			if(rtvHandle.heapIndex != UINT32_MAX)
 				RendererBase::DestroyRenderTargetView(rtvHandle);
 			rtvHandle = { UINT32_MAX, UINT32_MAX };

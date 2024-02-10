@@ -33,6 +33,8 @@ std::vector<Pistachio::TrackedDescriptorHeap> Pistachio::RendererBase::rtvHeaps;
 std::vector<Pistachio::RTVHandle> Pistachio::RendererBase::freeRTVs;
 std::vector<Pistachio::TrackedDescriptorHeap> Pistachio::RendererBase::dsvHeaps;
 std::vector<Pistachio::DSVHandle> Pistachio::RendererBase::freeDSVs;
+std::vector<Pistachio::TrackedDescriptorHeap> Pistachio::RendererBase::samplerHeaps;
+std::vector<Pistachio::SamplerHandle> Pistachio::RendererBase::freeSamplers;
 static const uint32_t STAGING_BUFFER_INITIAL_SIZE = 80 * 1024 * 1024; //todo: reduce this
 namespace Pistachio {
 	
@@ -416,7 +418,7 @@ namespace Pistachio {
 		device->CreateDescriptorHeap(&hDesc, &heap.heap);
 		heap.sizeLeft = 10;
 		heap.freeOffset = 0;
-		CreateRenderTargetView(texture, desc);
+		return CreateRenderTargetView(texture, desc);
 		
 	}
 	DSVHandle RendererBase::CreateDepthStencilView(RHI::Texture* texture, RHI::DepthStencilViewDesc* desc)
@@ -457,7 +459,47 @@ namespace Pistachio {
 		device->CreateDescriptorHeap(&hDesc, &heap.heap);
 		heap.sizeLeft = 10;
 		heap.freeOffset = 0;
-		CreateDepthStencilView(texture, desc);
+		return CreateDepthStencilView(texture, desc);
+	}
+	SamplerHandle Pistachio::RendererBase::CreateSampler(RHI::SamplerDesc* viewDesc)
+	{
+		if (freeSamplers.size())
+		{
+			auto handle = freeSamplers[freeSamplers.size() - 1];
+			RHI::CPU_HANDLE CPUhandle{};
+			CPUhandle.val = samplerHeaps[handle.heapIndex].heap->GetCpuHandle().val +
+				device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::Sampler) * handle.heapOffset;
+			device->CreateSampler(viewDesc, CPUhandle);
+			freeSamplers.pop_back();
+			return handle;
+		}
+		for (uint32_t i = 0; i < samplerHeaps.size(); i++)
+		{
+			auto& heap = samplerHeaps[i];
+			if (heap.sizeLeft)
+			{
+				RHI::CPU_HANDLE CPUhandle{};
+				CPUhandle.val = heap.heap->GetCpuHandle().val +
+					device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::Sampler) * heap.freeOffset;
+				device->CreateSampler(viewDesc, CPUhandle);
+				heap.freeOffset++;
+				heap.sizeLeft--;
+				return SamplerHandle{ i, heap.freeOffset - 1 };
+			}
+		}
+		//no space in all heaps
+		auto& heap = samplerHeaps.emplace_back();
+		RHI::PoolSize pSize;
+		pSize.numDescriptors = 10;
+		pSize.type = RHI::DescriptorType::Sampler;
+		RHI::DescriptorHeapDesc hDesc;
+		hDesc.maxDescriptorSets = 10;//?
+		hDesc.numPoolSizes = 1;
+		hDesc.poolSizes = &pSize;
+		device->CreateDescriptorHeap(&hDesc, &heap.heap);
+		heap.sizeLeft = 10;
+		heap.freeOffset = 0;
+		return CreateSampler(viewDesc);
 	}
 	void RendererBase::DestroyRenderTargetView(RTVHandle handle)
 	{
@@ -466,6 +508,10 @@ namespace Pistachio {
 	void RendererBase::DestroyDepthStencilView(DSVHandle handle)
 	{
 		freeDSVs.push_back(handle);
+	}
+	void Pistachio::RendererBase::DestroySampler(SamplerHandle handle)
+	{
+		freeSamplers.push_back(handle);
 	}
 	RHI::CPU_HANDLE RendererBase::GetCPUHandle(RTVHandle handle)
 	{
@@ -479,6 +525,13 @@ namespace Pistachio {
 		RHI::CPU_HANDLE retVal;
 		retVal.val = dsvHeaps[handle.heapIndex].heap->GetCpuHandle().val +
 			device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::DSV) * handle.heapOffset;
+		return retVal;
+	}
+	RHI::CPU_HANDLE Pistachio::RendererBase::GetCPUHandle(SamplerHandle handle)
+	{
+		RHI::CPU_HANDLE retVal;
+		retVal.val = samplerHeaps[handle.heapIndex].heap->GetCpuHandle().val +
+			device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::Sampler) * handle.heapOffset;
 		return retVal;
 	}
 	RHI::SwapChain*      RendererBase::GetSwapChain() { return swapChain; }

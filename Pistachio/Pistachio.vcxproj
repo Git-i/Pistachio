@@ -130,7 +130,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClInclude Include="src\Pistachio\Event\SceneGraphEvent.h" />
     <ClInclude Include="src\Pistachio\Physics\Physics.h" />
     <ClInclude Include="src\Pistachio\Renderer\BufferHandles.h" />
-    <ClInclude Include="src\Pistachio\Renderer\com_ptr.h" />
+    <ClInclude Include="src\Pistachio\Renderer\RHIPtr.h" />
     <ClInclude Include="src\Pistachio\Core\Timestep.h" />
     <ClInclude Include="src\Pistachio\Core\Transform.h" />
     <ClInclude Include="src\Pistachio\Renderer\Camera.h" />

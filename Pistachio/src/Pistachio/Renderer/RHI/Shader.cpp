@@ -673,6 +673,18 @@ namespace Pistachio {
 		updateDesc.textureInfos = &info;
 		RendererBase::Getd3dDevice()->UpdateDescriptorSets(1, &updateDesc, set);
 	}
+	void SetInfo::UpdateSamplerBinding(SamplerHandle handle, uint32_t slot)
+	{
+		RHI::DescriptorSamplerInfo info;
+		info.heapHandle = RendererBase::GetCPUHandle(handle);
+		RHI::DescriptorSetUpdateDesc updateDesc;
+		updateDesc.arrayIndex = 0;
+		updateDesc.binding = slot;
+		updateDesc.numDescriptors = 1;
+		updateDesc.type = RHI::DescriptorType::Sampler;
+		updateDesc.samplerInfos = &info;
+		RendererBase::Getd3dDevice()->UpdateDescriptorSets(1, &updateDesc, set);
+	}
 
 	bool PSOHash::operator==(const PSOHash& hash) const
 	{

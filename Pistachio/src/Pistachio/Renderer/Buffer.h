@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Buffer.h"
 #include "RendererID_t.h"
+#include "RHIPtr.h"
 namespace Pistachio {
 	class PISTACHIO_API VertexBuffer
 	{
@@ -18,7 +19,7 @@ namespace Pistachio {
 		//we want fast direct acess in the renderer
 		friend class Renderer;
 		unsigned int stride = 0;
-		RHI::Buffer* ID;
+		RHIPtr<RHI::Buffer> ID;
 	};
 	class PISTACHIO_API IndexBuffer
 	{
@@ -32,7 +33,7 @@ namespace Pistachio {
 	private:
 		friend class Renderer;
 		unsigned int count;
-		RHI::Buffer* ID;
+		RHIPtr<RHI::Buffer> ID;
 	};
 	struct PISTACHIO_API StructuredBuffer
 	{
@@ -42,7 +43,7 @@ namespace Pistachio {
 		void CreateStack(const void* data, std::uint32_t size);
 	private:
 		friend class Renderer;
-		RHI::Buffer* ID;
+		RHIPtr<RHI::Buffer> ID;
 	};
 	class PISTACHIO_API ConstantBuffer {
 	public:
@@ -50,9 +51,9 @@ namespace Pistachio {
 		void Update(void* data, std::uint32_t size, std::uint32_t offset);
 		void CreateStack(void* data, std::uint32_t size);
 		static ConstantBuffer* Create(void* data, std::uint32_t size);
-		RHI::Buffer* GetID() { return ID; }
+		RHI::Buffer* GetID() { return ID.Get(); }
 	private:
 		friend class Renderer;
-		RHI::Buffer* ID;
+		RHIPtr<RHI::Buffer> ID;
 	};
 }

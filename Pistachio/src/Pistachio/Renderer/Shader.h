@@ -2,6 +2,7 @@
 #include "../Core.h"
 #include "Core\Device.h"
 #include "RendererID_t.h"
+#include "RendererBase.h"
 #include "Core/ShaderReflect.h"
 #include "Core/DescriptorHeap.h"
 #include "xxhash.h"
@@ -191,6 +192,7 @@ namespace Pistachio {
 		RHI::DescriptorSet* set;
 		void UpdateBufferBinding(BufferBindingUpdateDesc* desc, uint32_t slot);
 		void UpdateTextureBinding(RHI::TextureView* view, uint32_t slot);
+		void UpdateSamplerBinding(SamplerHandle handle, uint32_t slot);
 	};
 	//Every Shader has one of these
 	struct  ShaderSetInfos

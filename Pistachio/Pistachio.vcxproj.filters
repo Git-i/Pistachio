@@ -1319,7 +1319,7 @@
     <ClInclude Include="src\Pistachio\Core\Property.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Pistachio\Renderer\com_ptr.h">
+    <ClInclude Include="src\Pistachio\Renderer\RHIPtr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Event\SceneGraphEvent.h">

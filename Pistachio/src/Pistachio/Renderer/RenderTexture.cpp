@@ -40,7 +40,7 @@ namespace Pistachio
         RHI::TextureViewDesc viewDesc;
         viewDesc.format = format;
         viewDesc.range = range;
-        viewDesc.texture = m_ID;
+        viewDesc.texture = m_ID.Get();
         viewDesc.type = RHI::TextureViewType::Texture2D;
         RendererBase::device->CreateTextureView(&viewDesc, &m_view);
         
@@ -49,7 +49,7 @@ namespace Pistachio
         rtDesc.format = format;
         rtDesc.TextureArray = 0;
         rtDesc.textureMipSlice = 0;
-        RTView = RendererBase::CreateRenderTargetView(m_ID, &rtDesc);
+        RTView = RendererBase::CreateRenderTargetView(m_ID.Get(), &rtDesc);
 	}
     RHI::Format RenderTexture::GetFormat() const{return m_format;}
     uint32_t RenderTexture::GetWidth()  const{ return m_width; }
@@ -90,7 +90,7 @@ namespace Pistachio
         RHI::TextureViewDesc viewDesc;
         viewDesc.format = format;
         viewDesc.range = range;
-        viewDesc.texture = m_ID;
+        viewDesc.texture = m_ID.Get();
         viewDesc.type = RHI::TextureViewType::TextureCube;
         RendererBase::device->CreateTextureView(&viewDesc, &m_view);
 
@@ -101,7 +101,31 @@ namespace Pistachio
             rtDesc.format = format;
             rtDesc.TextureArray = true;
             rtDesc.textureMipSlice = 0;
-            RTViews[i] = RendererBase::CreateRenderTargetView(m_ID, &rtDesc);
+            RTViews[i] = RendererBase::CreateRenderTargetView(m_ID.Get(), &rtDesc);
         }
+    }
+    void RenderCubeMap::SwitchToRenderTargetMode(RHI::GraphicsCommandList* list)
+    {
+        //todo
+    }
+    void RenderCubeMap::SwitchToShaderUsageMode(RHI::GraphicsCommandList* list)
+    {
+        RHI::TextureMemoryBarrier barrier;
+        barrier.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
+        barrier.AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
+        barrier.oldLayout = RHI::ResourceLayout::UNDEFINED;
+        barrier.newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
+        RHI::SubResourceRange range;
+        range.FirstArraySlice = 0;
+        range.imageAspect = RHI::Aspect::COLOR_BIT;
+        range.IndexOrFirstMipLevel = 0;
+        range.NumArraySlices = 6;
+        range.NumMipLevels = m_mipLevels;
+        barrier.subresourceRange = range;
+        barrier.texture = m_ID.Get();
+        if(list)
+        list->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::ALL_GRAPHICS_BIT, 0, 0, 1, &barrier);
+        else
+            RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::ALL_GRAPHICS_BIT, 0, 0, 1, &barrier);
     }
 }
