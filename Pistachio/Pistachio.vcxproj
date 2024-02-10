@@ -527,6 +527,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClCompile Include="src\Pistachio\Renderer\Mesh.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RenderGraph.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\RenderTexture.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RHI\Buffer.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RHI\Shader.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\RHI\Texture.cpp" />

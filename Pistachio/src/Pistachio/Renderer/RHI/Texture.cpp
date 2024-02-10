@@ -21,7 +21,7 @@ namespace Pistachio
         desc.usage = RHI::TextureUsage::CopyDst | RHI::TextureUsage::SampledImage;
         RHI::AutomaticAllocationInfo allocInfo;
         allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-        RendererBase::Getd3dDevice()->CreateTexture(&desc, &m_ID, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic);
+        RendererBase::device->CreateTexture(&desc, &m_ID, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic);
         RHI::SubResourceRange range;
         range.FirstArraySlice = 0;
         range.imageAspect = RHI::Aspect::COLOR_BIT;
@@ -60,6 +60,11 @@ namespace Pistachio
         viewDesc.texture = m_ID;
         viewDesc.type = RHI::TextureViewType::Texture2D;
         RendererBase::device->CreateTextureView(&viewDesc, &m_view);
+    }
+    RHI::Format Texture2D::GetFormat() const
+    {
+        PT_PROFILE_FUNCTION();
+        return m_format;
     }
     unsigned int Texture2D::GetHeight() const
     {
@@ -109,7 +114,7 @@ namespace Pistachio
         CreateTexture(data, flags);
         stbi_image_free(data);
     }
-    void Texture2D::CreateStack(int width, int height, RHI::Format format, void* data, TextureFlags flags)
+    void Texture2D::CreateStack(uint32_t width, uint32_t height, RHI::Format format, void* data, TextureFlags flags)
     {
         PT_PROFILE_FUNCTION();
         m_Width = width;
@@ -169,7 +174,7 @@ namespace Pistachio
         //memcpy(buffer, sr.pData, m_Height * m_Width * RendererUtils::TextureFormatBytesPerPixel(m_format));
         //Pistachio::RendererBase::Getd3dDeviceContext()->Unmap((ID3D11Texture2D*)tex, 0);
     }
-    Texture2D* Texture2D::Create(int width, int height, RHI::Format format, void* data, TextureFlags flags)
+    Texture2D* Texture2D::Create(uint32_t width, uint32_t height, RHI::Format format, void* data, TextureFlags flags)
     {
         PT_PROFILE_FUNCTION()
             Texture2D* result = new Texture2D;

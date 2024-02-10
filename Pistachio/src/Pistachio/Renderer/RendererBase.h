@@ -77,6 +77,8 @@ namespace Pistachio {
 		friend class Texture2D;
 		friend class Shader;
 		friend class RenderGraph;
+		friend class RenderTexture;
+		friend class RenderCubeMap;
 		static RHI::Device* device;
 		static RHI::GraphicsCommandList* mainCommandList;
 		static RHI::GraphicsCommandList* stagingCommandList;
