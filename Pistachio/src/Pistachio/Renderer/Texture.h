@@ -5,6 +5,7 @@
 #include "../Asset/RefCountedObject.h"
 #include "FormatsAndTypes.h"
 #include "../Core/TextureView.h"
+#include "RHIPtr.h"
 namespace Pistachio {
 	class PISTACHIO_API Texture : public RefCountedObject
 	{
@@ -12,7 +13,7 @@ namespace Pistachio {
 		Texture() = default;
 		friend class Renderer;
 		friend class RenderGraph;
-		RHI::Texture* m_ID;
+		RHIPtr<RHI::Texture> m_ID;
 	public:
 		virtual RHI::Format GetFormat() const = 0;
 		virtual uint32_t GetHeight() const = 0;
@@ -33,7 +34,7 @@ namespace Pistachio {
 		void CopyIntoRegion(Texture2D& source, unsigned int location_x, unsigned int location_y, unsigned int src_left, unsigned int src_right, unsigned int src_up, unsigned int src_down, unsigned int mipSlice = 0, unsigned int arraySlice = 0);
 		void CopyInto(Texture2D& source);
 		void CopyToCPUBuffer(void* buffer);
-		RHI::TextureView* GetView()const { return m_view; }
+		RHI::TextureView* GetView()const { return m_view.Get(); }
 		//TODO: Asset Management
 		bool operator==(const Texture2D& texture) const;
 		friend class RenderTexture;
@@ -42,7 +43,7 @@ namespace Pistachio {
 		
 		unsigned int m_Width, m_Height, m_MipLevels;
 		RHI::Format m_format;
-		RHI::TextureView* m_view;
+		RHIPtr<RHI::TextureView> m_view;
 	private:
 		void CreateTexture(void* data, TextureFlags flags);
 	};

@@ -1,5 +1,5 @@
-TextureCube my_texture : register(t8);
-SamplerState my_sampler;
+TextureCube my_texture : register(t0, space1);
+SamplerState my_sampler : register(s1, space1);
 
 float4 main(float3 pos : POSITION) : SV_TARGET
 {
