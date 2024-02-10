@@ -47,8 +47,6 @@
     <FxCompile Include="Shaders\PixelShader.hlsl" />
     <FxCompile Include="Shaders\equirectangular_to_cubemap_vs.hlsl" />
     <FxCompile Include="Shaders\equirectangular_to_cubemap_fs.hlsl" />
-    <FxCompile Include="Shaders\background.hlsl" />
-    <FxCompile Include="Shaders\background_vs.hlsl" />
     <FxCompile Include="Shaders\irradiance_fs.hlsl" />
     <FxCompile Include="Shaders\prefilter_fs.hlsl" />
     <FxCompile Include="Shaders\prefilter_vs.hlsl" />
@@ -60,5 +58,7 @@
   <ItemGroup>
     <None Include="Shaders\PBR_no_reflect_vs.hlsl" />
     <None Include="Shaders\PBR_no_reflect_fs.hlsl" />
+    <None Include="Shaders\background_fs.hlsl" />
+    <None Include="Shaders\background_vs.hlsl" />
   </ItemGroup>
 </Project>

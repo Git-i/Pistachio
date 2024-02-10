@@ -18,6 +18,11 @@ namespace Pistachio {
 	 * This would be not be a full set of textures as in the old api, just one texture.
 	 * The set mechanic would be moved to the render Graph
 	 * 
+	 * Render textures and cubeMaps are by nature transient resources,
+	 * and as such, should be handled by the render graph.
+	 * that being said functions are still provided to transition these resources on a given command list
+	 * 
+	 * 
 	*/
 	class PISTACHIO_API RenderTexture : public Texture 
 	{
@@ -25,6 +30,8 @@ namespace Pistachio {
 	public:
 		static RenderTexture* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
 		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		void SwitchToRenderTargetMode(RHI::GraphicsCommandList* list);
+		void SwitchToShaderUsageMode( RHI::GraphicsCommandList* list);
 		RHI::Format GetFormat() const override;
 		uint32_t GetWidth() const override;
 		uint32_t GetHeight() const override ;
@@ -40,6 +47,9 @@ namespace Pistachio {
 	public:
 		static RenderCubeMap* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
 		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		RHI::TextureView* GetView() { return m_view; }
+		void SwitchToRenderTargetMode(RHI::GraphicsCommandList* list=nullptr);
+		void SwitchToShaderUsageMode( RHI::GraphicsCommandList* list=nullptr);
 		inline unsigned int GetWidth() const override { return m_width; }
 		inline unsigned int GetHeight() const override { return m_height; }
 		inline RHI::Format GetFormat() const override { return m_format; }

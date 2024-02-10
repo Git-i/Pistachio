@@ -109,7 +109,7 @@ namespace Pistachio {
 				&resources[i].transformBufferDesc, 
 				RHI::DescriptorType::ConstantBufferDynamic, 
 				RHI::ShaderStage::Vertex, 
-				resources[i].transformBuffer.ID,
+				resources[i].transformBuffer.ID.Get(),
 				0,
 				256);
 		}
@@ -153,7 +153,6 @@ namespace Pistachio {
 		//shaderlib.Add("Shadow-Shader", shadowShader);
 		//shaderlib.Add("Post-Shader", postprocess_Shader);
 		BYTE data[4] = { 255,255,255,255 };
-		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
 		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
 		LightSB.Bind(7);
 		//Shader::SetVSBuffer(PassCB, 0);
@@ -608,7 +607,6 @@ namespace Pistachio {
 			memcpy(writePtr, readPtr, cbCapacity);
 			resources[i].transformBuffer.ID->UnMap();
 			newCB->UnMap();
-			resources[i].transformBuffer.ID->Release();
 			resources[i].transformBuffer.ID = newCB;
 		}
 	}
@@ -727,7 +725,7 @@ namespace Pistachio {
 	}
 	const RHI::Buffer* Pistachio::Renderer::GetConstantBuffer()
 	{
-		return resources[RendererBase::currentFrameIndex].transformBuffer.ID;
+		return resources[RendererBase::currentFrameIndex].transformBuffer.ID.Get();
 	}
 	const RHI::DynamicDescriptor* Pistachio::Renderer::GetCBDesc()
 	{

@@ -36,7 +36,7 @@ namespace Pistachio {
 	void VertexBuffer::SetData(const void* data, unsigned int size)
 	{
 		PT_PROFILE_FUNCTION();
-		RendererBase::PushBufferUpdate(ID, 0, data, size);
+		RendererBase::PushBufferUpdate(ID.Get(), 0, data, size);
 	}
 	VertexBuffer* VertexBuffer::Create(const void* vertices, unsigned int size, unsigned int Stride)
 	{
@@ -49,7 +49,7 @@ namespace Pistachio {
 	{
 		PT_PROFILE_FUNCTION()
 		CreateStack(size, Stride);
-		RendererBase::PushBufferUpdate(ID, 0, vertices, size);
+		RendererBase::PushBufferUpdate(ID.Get(), 0, vertices, size);
 	}
 
 	IndexBuffer::IndexBuffer()
@@ -58,7 +58,7 @@ namespace Pistachio {
 	void IndexBuffer::Bind() const
 	{
 		PT_PROFILE_FUNCTION();
-		RendererBase::GetMainCommandList()->BindIndexBuffer(ID, 0);
+		RendererBase::GetMainCommandList()->BindIndexBuffer(ID.Get(), 0);
 	}
 	void IndexBuffer::UnBind()
 	{
@@ -75,7 +75,7 @@ namespace Pistachio {
 		RendererBase::Getd3dDevice()->CreateBuffer(&desc, &ID, nullptr, nullptr, &info,0, RHI::ResourceType::Automatic);
 		if (indices)
 		{
-			RendererBase::PushBufferUpdate(ID, 0, indices, size);
+			RendererBase::PushBufferUpdate(ID.Get(), 0, indices, size);
 		}
 	}
 	IndexBuffer* IndexBuffer::Create(const void* indices, std::uint32_t size, std::uint32_t stride)

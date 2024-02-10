@@ -35,13 +35,13 @@ namespace Pistachio
     }
     RGTexture* RenderGraph::CreateTexture(RenderTexture* texture)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID, RHI::ResourceLayout::UNDEFINED, 0, false, 0));
+        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, 0, false, 0));
         tex->rtvHandle = texture->RTView;
         return tex;
     }
     RGTexture* RenderGraph::CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID, RHI::ResourceLayout::UNDEFINED, 0, true, cubeIndex));
+        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, 0, true, cubeIndex));
         tex->rtvHandle = texture->RTViews[cubeIndex];
         return tex;
     }
@@ -53,7 +53,7 @@ namespace Pistachio
     }
     RGTexture* RenderGraph::CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice, bool isArray , uint32_t arraySlice, RHI::ResourceLayout layout)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID, layout,mipSlice,isArray,arraySlice));
+        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), layout, mipSlice, isArray, arraySlice));
         return tex;
     }
     RGTexture* RenderGraph::CreateTexture(RHI::Texture* texture, uint32_t mipSlice, bool isArray, uint32_t arraySlice, RHI::ResourceLayout layout)
