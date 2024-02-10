@@ -33,7 +33,19 @@ namespace Pistachio
             cmdLists[i].list->Begin(RendererBase::commandAllocators[RendererBase::currentFrameIndex]);
         }
     }
-    RenderPass& RenderGraph::AddPass(RHI::PipelineStage stage)
+    RGTexture* RenderGraph::CreateTexture(RenderTexture* texture)
+    {
+        auto tex = textures.emplace_back(new RGTexture(texture->m_ID, RHI::ResourceLayout::UNDEFINED, 0, false, 0));
+        tex->rtvHandle = texture->RTView;
+        return tex;
+    }
+    RGTexture* RenderGraph::CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex)
+    {
+        auto tex = textures.emplace_back(new RGTexture(texture->m_ID, RHI::ResourceLayout::UNDEFINED, 0, true, cubeIndex));
+        tex->rtvHandle = texture->RTViews[cubeIndex];
+        return tex;
+    }
+    RenderPass& RenderGraph::AddPass(RHI::PipelineStage stage, const char* name)
     {
         auto& pass = passes.emplace_back();
         pass.stage = stage;
@@ -56,6 +68,10 @@ namespace Pistachio
     void RenderPass::AddColorOutput(AttachmentInfo* info)
     {
         outputs.push_back(*info);
+    }
+    void RenderPass::SetPassArea(const RHI::Area2D& _area)
+    {
+        area = _area;
     }
     void RenderPass::SetDepthStencilOutput(AttachmentInfo* info) { dsOutput = *info; }
     void RenderGraph::Execute()
@@ -93,7 +109,7 @@ namespace Pistachio
                 RHI::RenderingBeginDesc rbDesc;
                 rbDesc.numColorAttachments = pass->outputs.size();
                 rbDesc.pDepthStencilAttachment = nullptr;
-                rbDesc.renderingArea = RHI::Area2D{0,0,1280,720};//hack
+                rbDesc.renderingArea = pass->area;
                 RHI::RenderingAttachmentDesc* attachments = new RHI::RenderingAttachmentDesc[pass->outputs.size() + (pass->dsOutput.texture ? 1 : 0)];
                 rbDesc.pColorAttachments = attachments;
                 uint32_t attachmentCount = 0;
@@ -139,9 +155,9 @@ namespace Pistachio
                     {
                         //temporary
                         RHI::SubResourceRange range;
-                        range.FirstArraySlice = 0;
+                        range.FirstArraySlice = output.texture->IsArray ? 0 : output.texture->arraySlice;
                         range.imageAspect = RHI::Aspect::COLOR_BIT;
-                        range.IndexOrFirstMipLevel = 0;
+                        range.IndexOrFirstMipLevel = output.texture->mipSlice;
                         range.NumArraySlices = 1;
                         range.NumMipLevels = 1;
                         //transition

@@ -31,8 +31,8 @@ public:
 		PT_PROFILE_FUNCTION();
 		this->delta = delta;
 		frame++;
-		tex->InvalidateRTVHandle();
-		tex->SetResource(Pistachio::RendererBase::GetBackBufferTexture(Pistachio::RendererBase::GetCurrentRTVIndex()));
+		//tex->InvalidateRTVHandle();
+		//tex->SetResource(Pistachio::RendererBase::GetBackBufferTexture(Pistachio::RendererBase::GetCurrentRTVIndex()));
 		graph.NewFrame();
 		graph.Execute();
 		graph.SubmitToQueue();
@@ -41,8 +41,8 @@ public:
 	void OnAttach() override
 	{
 		vp.x = 0;  vp.y = 0;
-		vp.width = 1280;
-		vp.height = 720;
+		vp.width =  512;
+		vp.height = 512;
 		vp.minDepth = 0.f;
 		vp.maxDepth = 1.f;
 		RHI::DepthStencilMode dsMode[2]{};
@@ -116,21 +116,21 @@ public:
 		//dsMode->DepthFunc = RHI::ComparisonFunc::Always;
 		shad->SetDepthStencilMode(dsMode, ShaderModeSetFlags::AutomaticallyCreate);
 		
-		
 		CBData.viewProjection = cam.GetViewProjection().Transpose();
 		cBuf1 = Renderer::AllocateConstantBuffer(sizeof(CBData));
 		cBuf2 = Renderer::AllocateConstantBuffer(sizeof(CBData));
-		
+		auto rtex = RenderCubeMap::Create(512, 512, 1, RHI::Format::B8G8R8A8_UNORM);
 		shad->GetPSShaderBinding(info, 1);
 		info.UpdateTextureBinding(Renderer::GetWhiteTexture().GetView(), 0);
 		RendererBase::FlushStagingBuffer();
-		auto& pass = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT);
-		tex = graph.CreateTexture(RendererBase::GetBackBufferTexture(RendererBase::GetCurrentRTVIndex()));
+		auto& pass = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Main Pass");
+		tex = graph.CreateTexture(rtex,5);
 		auto dtex = graph.CreateTexture(RendererBase::GetDefaultDepthTexture());
 		Pistachio::AttachmentInfo attachInfo;
 		attachInfo.texture = tex;
 		attachInfo.format = RHI::Format::B8G8R8A8_UNORM;
 		pass.AddColorOutput(&attachInfo);
+		pass.SetPassArea({ 0,0,512,512 });
 		attachInfo.texture = dtex;
 		attachInfo.format = RHI::Format::D32_FLOAT;
 		pass.SetDepthStencilOutput(&attachInfo);
@@ -138,7 +138,7 @@ public:
 			{
 				RHI::Area2D area;
 				area.offset = { 0,0 };
-				area.size = { 1280,720 };
+				area.size = { 512,512 };
 				cam.OnUpdate(delta);
 				auto mat = cam.GetViewProjection();
 				mat = mat.Transpose();

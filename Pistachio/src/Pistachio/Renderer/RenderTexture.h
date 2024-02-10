@@ -1,5 +1,6 @@
 #pragma once
 #include "Texture.h"
+#include "RendererBase.h"
 #include "RendererID_t.h"
 namespace Pistachio {
 	struct PISTACHIO_API RenderTextureAttachmentSpecification {
@@ -10,46 +11,43 @@ namespace Pistachio {
 	struct PISTACHIO_API RenderTextureDesc {
 		int width; int height; int miplevels = 1; RenderTextureAttachmentSpecification Attachments;
 	};
-	class PISTACHIO_API RenderTexture : public Texture {
+	/*
+	 * A Render texture is an RT that can propably be later sampled, so the only difference between
+	 * this and a normal texture is the color attachment usage.
+	 * 
+	 * This would be not be a full set of textures as in the old api, just one texture.
+	 * The set mechanic would be moved to the render Graph
+	 * 
+	*/
+	class PISTACHIO_API RenderTexture : public Texture 
+	{
 
 	public:
-		//void Bind(int slot = 0, int count = 1) const;
-		//void BindResource(int slot = 0, int count = 1, int index = 0) const;
-		//void CreateStack(const RenderTextureDesc& desc);
-		//void Clear(float* clearcolor, int slot = 0);
-		//void ClearDepth();
-		//void ClearAll(float* clearcolor);
-		//static RenderTexture* Create(const RenderTextureDesc& desc);
-		////RendererID_t GetSRV(int slot = 0) const; 
-		////Texture2D GetRenderTexture(int slot = 0)const;
-		////RendererID_t GetRTV(int slot = 0); 
-		////RendererID_t GetDSV();
-		////Texture2D GetDepthTexture() const;
-		inline unsigned int GetWidth() const override { return m_width; }
-		inline unsigned int GetHeight() const override { return m_height; }
+		static RenderTexture* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		RHI::Format GetFormat() const override;
+		uint32_t GetWidth() const override;
+		uint32_t GetHeight() const override ;
 	private:
-		std::vector<PlatformRendererID_t> m_shaderResourceView;
-		std::vector<PlatformRendererID_t> m_renderTargetView;
-		PlatformRendererID_t m_pDSV = { 0 };
-		int m_width, m_height, m_miplevels;
+		friend class RenderGraph;
+		RTVHandle RTView;
+		RHI::TextureView* m_view;
+		RHI::Format m_format;
+		uint32_t m_width, m_height, m_mipLevels;
 	};
-	class PISTACHIO_API RenderCubeMap : public Texture{
+	class PISTACHIO_API RenderCubeMap : public Texture
+	{
 	public:
-		//~RenderCubeMap() = default;
-		//void Bind(int slot = 0) const;
-		//void BindResource(int slot = 0) const;
-		//void CreateStack(int width, int height, int miplevels = 1);
-		//void Clear(float* clearcolor, int slot);
-		//static RenderCubeMap* Create(int width, int height, int miplevels = 1);
-		//RendererID_t GetID();
-		//Texture2D GetResource();
-		//RendererID_t Get_RTID(int slot = 0);
+		static RenderCubeMap* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
 		inline unsigned int GetWidth() const override { return m_width; }
 		inline unsigned int GetHeight() const override { return m_height; }
+		inline RHI::Format GetFormat() const override { return m_format; }
 	private:
-		PlatformRendererID_t m_shaderResourceView;
-		PlatformRendererID_t m_renderTargetView[6];
-		PlatformRendererID_t m_pDSV;
+		friend class RenderGraph;
+		RTVHandle RTViews[6];
+		RHI::Format m_format;
+		RHI::TextureView* m_view;
 		int m_width, m_height, m_mipLevels;
 	};
 }
