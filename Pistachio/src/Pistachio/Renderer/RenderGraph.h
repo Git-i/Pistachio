@@ -1,5 +1,6 @@
 #pragma once
 #include "Texture.h"
+#include "RenderTexture.h"
 #include "RendererBase.h"
 namespace Pistachio
 {
@@ -48,6 +49,7 @@ namespace Pistachio
 	class PISTACHIO_API RenderPass
 	{
 	public:
+		void SetPassArea(const RHI::Area2D& area);
 		void AddColorInput(AttachmentInfo* info);
 		void AddColorOutput(AttachmentInfo* info);
 		void SetDepthStencilOutput(AttachmentInfo* info);
@@ -55,6 +57,7 @@ namespace Pistachio
 	private:
 		friend class RenderGraph;
 		RHI::PipelineStage stage;
+		RHI::Area2D area;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
 		AttachmentInfo dsOutput = { (RHI::Format)0,nullptr };
@@ -76,9 +79,13 @@ namespace Pistachio
 		RenderGraph(uint32_t cmdListCount);
 		void SubmitToQueue();
 		void NewFrame();
-		RenderPass& AddPass(RHI::PipelineStage stage);
+		RenderPass& AddPass(RHI::PipelineStage stage, const char* passName);
+		void RemovePass(const char* passName);
+		void GetPass(const char* passName);
 		RGTexture* CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED);
 		RGTexture* CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED);
+		RGTexture* CreateTexture(RenderTexture* texture);
+		RGTexture* CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex);
 		void Execute();
 	private:
 		bool ValidateGraph();
