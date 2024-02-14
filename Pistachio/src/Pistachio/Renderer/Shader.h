@@ -218,6 +218,7 @@ namespace Pistachio {
 		void ApplyBinding(RHI::GraphicsCommandList* list, const SetInfo& info);
 		RHI::RootSignature* GetRootSignature() { return rootSig; };
 		uint32_t SetBlendMode(RHI::BlendMode* mode, ShaderModeSetFlags flags);
+		RHI::PipelineStateObject* GetCurrentPipeline() { return PSOs[currentPSO]; }
 	private:
 		void CreateStackRs(ShaderCreateDesc* desc,RHI::RootSignature* rs);
 		void CreateStack(ShaderCreateDesc* desc);
