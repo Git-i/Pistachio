@@ -1,5 +1,6 @@
 #pragma once
 #include "Texture.h"
+#include "Shader.h"
 #include "RenderTexture.h"
 #include "RendererBase.h"
 namespace Pistachio
@@ -12,7 +13,7 @@ namespace Pistachio
 		{
 			//todo invalidate should only destroy if the render graph created it, that is
 			//it is not from a pistachio render texture
-			if(rtvHandle.heapIndex != UINT32_MAX)
+			if (rtvHandle.heapIndex != UINT32_MAX)
 				RendererBase::DestroyRenderTargetView(rtvHandle);
 			rtvHandle = { UINT32_MAX, UINT32_MAX };
 		}
@@ -22,14 +23,14 @@ namespace Pistachio
 		}
 	private:
 		friend class RenderGraph;
-		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, uint32_t MipSlice,bool isArray,uint32_t Slice) : 
-			texture(_texture), 
+		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, uint32_t MipSlice, bool isArray, uint32_t Slice) :
+			texture(_texture),
 			current_layout(layout),
 			mipSlice(MipSlice),
 			IsArray(isArray),
-			arraySlice(Slice){}
-		RGTexture() = default; 
-		RGTexture(const RGTexture&) = default; 
+			arraySlice(Slice) {}
+		RGTexture() = default;
+		RGTexture(const RGTexture&) = default;
 		RGTexture(RGTexture&&) = default;
 		RHI::Texture* texture;
 		RHI::ResourceLayout current_layout;
@@ -41,11 +42,18 @@ namespace Pistachio
 		DSVHandle dsvHandle = { UINT32_MAX, UINT32_MAX };//for output resources
 		RenderPass* inputUsers;
 		RenderPass* outputUsers;
+	};;
+	enum class AttachmentUsage
+	{
+		Graphics,//I: Shader Read, O: Color attachment
+		Copy, //I: Copy Src, O: Copy Dst
 	};
 	struct AttachmentInfo
 	{
 		RHI::Format format;
 		RGTexture* texture;
+		RHI::LoadOp loadOp = RHI::LoadOp::Clear;
+		AttachmentUsage usage = AttachmentUsage::Graphics;
 	};
 
 	class PISTACHIO_API RenderPass
@@ -54,12 +62,14 @@ namespace Pistachio
 		void SetPassArea(const RHI::Area2D& area);
 		void AddColorInput(AttachmentInfo* info);
 		void AddColorOutput(AttachmentInfo* info);
+		void SetShader(Shader* shader);//Make sure the shader is already preconfigured to desired state
 		void SetDepthStencilOutput(AttachmentInfo* info);
 		std::function<void(RHI::GraphicsCommandList* list)> pass_fn;
 	private:
 		friend class RenderGraph;
 		RHI::PipelineStage stage;
 		RHI::Area2D area;
+		RHI::PipelineStateObject* pso = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
 		AttachmentInfo dsOutput = { (RHI::Format)0,nullptr };
@@ -78,6 +88,7 @@ namespace Pistachio
 	class PISTACHIO_API RenderGraph
 	{
 	public:
+		~RenderGraph();
 		RenderGraph(uint32_t cmdListCount);
 		void SubmitToQueue();
 		void NewFrame();

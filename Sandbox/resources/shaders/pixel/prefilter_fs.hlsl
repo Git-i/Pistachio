@@ -5,8 +5,8 @@ struct PixelInputType
     float roughness : ROUGHNESS;
 };
 
-TextureCube shaderTexture : register(t1);
-SamplerState textureSampler;
+TextureCube shaderTexture : register(t0,   space1);
+SamplerState textureSampler : register(s1, space1);
 
 static const float PI = 3.14159265359;
 

@@ -3,6 +3,18 @@
 #include "RenderGraph.h"
 namespace Pistachio
 {
+    RenderGraph::~RenderGraph()
+    {
+        for (auto tex : textures)
+        {
+            delete tex;
+        }
+        for (uint32_t i = 0; i < numCmdLists; i++)
+        {
+            cmdLists[i].list->Release();
+        }
+        delete[] cmdLists;
+    }
     RenderGraph::RenderGraph(uint32_t numCmdLists)
     {
         PT_CORE_ASSERT(numCmdLists < 10);
@@ -61,6 +73,10 @@ namespace Pistachio
         auto tex = textures.emplace_back(new RGTexture(texture, layout,mipSlice,isArray,arraySlice));
         return tex;
     }
+    void RenderPass::SetShader(Shader* shader)
+    {
+        pso = shader->GetCurrentPipeline();
+    }
     void RenderPass::AddColorInput(AttachmentInfo* info)
     {
         inputs.push_back(*info);
@@ -74,6 +90,54 @@ namespace Pistachio
         area = _area;
     }
     void RenderPass::SetDepthStencilOutput(AttachmentInfo* info) { dsOutput = *info; }
+    RHI::ResourceLayout InputLayout(AttachmentUsage usage)
+    {
+        switch (usage)
+        {
+        case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
+            break;
+        case Pistachio::AttachmentUsage::Copy: return RHI::ResourceLayout::TRANSFER_SRC_OPTIMAL;
+            break;
+        default:
+            break;
+        }
+    }
+    RHI::ResourceLayout OutputLayout(AttachmentUsage usage)
+    {
+        switch (usage)
+        {
+        case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL;
+            break;
+        case Pistachio::AttachmentUsage::Copy: return RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
+            break;
+        default:
+            break;
+        }
+    }
+    RHI::ResourceAcessFlags InputAccess(AttachmentUsage usage)
+    {
+        switch (usage)
+        {
+        case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceAcessFlags::SHADER_READ;
+            break;
+        case Pistachio::AttachmentUsage::Copy: return RHI::ResourceAcessFlags::TRANSFER_READ;
+            break;
+        default:
+            break;
+        }
+    }
+    RHI::ResourceAcessFlags OutputAccess(AttachmentUsage usage)
+    {
+        switch (usage)
+        {
+        case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceAcessFlags::COLOR_ATTACHMENT_WRITE;
+            break;
+        case Pistachio::AttachmentUsage::Copy: return RHI::ResourceAcessFlags::TRANSFER_WRITE;
+            break;
+        default:
+            break;
+        }
+    }
     void RenderGraph::Execute()
     {
         /*every element of levelTransitionIndices tells what index the next level starts
@@ -99,7 +163,7 @@ namespace Pistachio
             uint32_t numPasses = levelTransitionIndices[i] - startingPass;
             uint32_t listIndex = std::min(i/numLevelsPerList, numCmdLists);
             RGCommandList& listToUse = cmdLists[listIndex];
-            for (uint32_t j = startingPass; j < numPasses; j++)
+            for (uint32_t j = startingPass; j < startingPass+numPasses; j++)
             {
                 //every pass in the current level
                 //we still have to manage transitions
@@ -116,7 +180,9 @@ namespace Pistachio
                 for (auto& input : pass->inputs)
                 {
                     //assuming all inputs are supposed to be in shader_read
-                    if (input.texture->current_layout != RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL)
+                    barriers[barrierCount].newLayout = InputLayout(input.usage);
+
+                    if (input.texture->current_layout != barriers[barrierCount].newLayout)
                     {
                         //temporary
                         RHI::SubResourceRange range;
@@ -126,47 +192,51 @@ namespace Pistachio
                         range.NumArraySlices = 1;
                         range.NumMipLevels = 1;
                         //transition
-                        barriers[barrierCount].AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;//maybe?
+                        barriers[barrierCount].AccessFlagsAfter = InputAccess(input.usage);//maybe?
                         barriers[barrierCount].AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
-                        barriers[barrierCount].newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
                         barriers[barrierCount].oldLayout = input.texture->current_layout;
                         barriers[barrierCount].texture =   input.texture->texture;
                         barriers[barrierCount].subresourceRange = range;
+                        input.texture->current_layout = barriers[barrierCount].newLayout;
                         barrierCount++;
                     }
                 }
                 for (auto& output : pass->outputs)
                 {
-                    attachments[attachmentCount].clearColor = { 0,0,0,0 };
-                    attachments[attachmentCount].loadOp = RHI::LoadOp::Clear;//todo
-                    attachments[attachmentCount].storeOp = RHI::StoreOp::Store; // if !output->inputUsers StoreOp::DontCare
-                    if (output.texture->rtvHandle.heapIndex == UINT32_MAX)
+                    if (output.usage == AttachmentUsage::Graphics)
                     {
-                        RHI::RenderTargetViewDesc rtvDesc;
-                        rtvDesc.arraySlice = output.texture->arraySlice;
-                        rtvDesc.format = output.format;
-                        rtvDesc.TextureArray =    output.texture->IsArray;
-                        rtvDesc.textureMipSlice = output.texture->mipSlice;
-                        output.texture->rtvHandle = RendererBase::CreateRenderTargetView(output.texture->texture,&rtvDesc);
+                        attachments[attachmentCount].clearColor = { 0,0,0,0 };
+                        attachments[attachmentCount].loadOp = output.loadOp;
+                        attachments[attachmentCount].storeOp = RHI::StoreOp::Store; // if !output->inputUsers StoreOp::DontCare
+                        if (output.texture->rtvHandle.heapIndex == UINT32_MAX)
+                        {
+                            RHI::RenderTargetViewDesc rtvDesc;
+                            rtvDesc.arraySlice = output.texture->arraySlice;
+                            rtvDesc.format = output.format;
+                            rtvDesc.TextureArray = output.texture->IsArray;
+                            rtvDesc.textureMipSlice = output.texture->mipSlice;
+                            output.texture->rtvHandle = RendererBase::CreateRenderTargetView(output.texture->texture, &rtvDesc);
+                        }
+                        attachments[attachmentCount].ImageView = RendererBase::GetCPUHandle(output.texture->rtvHandle);
+                        attachmentCount++;
                     }
-                    attachments[attachmentCount].ImageView = RendererBase::GetCPUHandle(output.texture->rtvHandle);
-                    attachmentCount++;
-                    if (output.texture->current_layout != RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL)
+                    barriers[barrierCount].newLayout = OutputLayout(output.usage);
+                    if (output.texture->current_layout != barriers[barrierCount].newLayout)
                     {
                         //temporary
                         RHI::SubResourceRange range;
-                        range.FirstArraySlice = output.texture->IsArray ? 0 : output.texture->arraySlice;
+                        range.FirstArraySlice = output.texture->IsArray ? output.texture->arraySlice: 0 ;
                         range.imageAspect = RHI::Aspect::COLOR_BIT;
                         range.IndexOrFirstMipLevel = output.texture->mipSlice;
                         range.NumArraySlices = 1;
                         range.NumMipLevels = 1;
                         //transition
-                        barriers[barrierCount].AccessFlagsAfter = RHI::ResourceAcessFlags::COLOR_ATTACHMENT_WRITE;//maybe?
+                        barriers[barrierCount].AccessFlagsAfter = OutputAccess(output.usage);
                         barriers[barrierCount].AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
-                        barriers[barrierCount].newLayout = RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL;
                         barriers[barrierCount].oldLayout = output.texture->current_layout;
                         barriers[barrierCount].texture =   output.texture->texture;
                         barriers[barrierCount].subresourceRange = range;
+                        output.texture->current_layout = barriers[barrierCount].newLayout;
                         barrierCount++;
                     }
                 }
@@ -208,9 +278,10 @@ namespace Pistachio
                 }
                 listToUse.listMutex.lock();
                 listToUse.list->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, pass->stage, 0, nullptr, barrierCount, barriers);
-                listToUse.list->BeginRendering(&rbDesc);
+                if(pass->pso) listToUse.list->SetPipelineState(pass->pso);
+                if(attachmentCount) listToUse.list->BeginRendering(&rbDesc);
                 pass->pass_fn(listToUse.list);
-                listToUse.list->EndRendering();
+                if(attachmentCount) listToUse.list->EndRendering();
                 listToUse.listMutex.unlock();
                 delete[] barriers;
                 delete[] attachments;

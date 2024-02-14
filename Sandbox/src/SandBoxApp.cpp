@@ -6,10 +6,6 @@
 RHI::Viewport vp;
 struct
 {
-	Pistachio::Matrix4 view;
-	Pistachio::Matrix4 invView;
-	Pistachio::Matrix4 proj;
-	Pistachio::Matrix4 invProj;
 	Pistachio::Matrix4 viewProjection;
 	Pistachio::Matrix4 transform = Pistachio::Matrix4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 	Pistachio::Vector4 viewPos =   Pistachio::Vector4(0, 10, -20, 1);
@@ -19,6 +15,12 @@ struct
 	float ao = 1.f;
 }CBData;
 decltype(CBData) CBData2;
+struct BackgroundCBStruct
+{
+	Pistachio::Matrix4 pad[4];
+	Pistachio::Matrix4 viewProj;
+	Pistachio::Matrix4 invViewProj;
+}BackgroundCB;
 class ExampleLayer : public Pistachio::Layer
 {
 public:
@@ -46,7 +48,7 @@ public:
 	{
 		vp.x = 0;  vp.y = 0;
 		vp.width =  1280;
-		vp.height = 0720;
+		vp.height = 720;
 		vp.minDepth = 0.f;
 		vp.maxDepth = 1.f;
 		RHI::DepthStencilMode dsMode[2]{};
@@ -54,8 +56,6 @@ public:
 		dsMode[0].StencilEnable = false;
 		dsMode[0].DepthFunc = RHI::ComparisonFunc::LessEqual;
 		dsMode[0].DepthWriteMask = RHI::DepthWriteMask::All;
-		dsMode[0].BackFace.DepthfailOp = RHI::StencilOp::DecrSat;
-
 		dsMode[1] = dsMode[0];
 		dsMode[1].DepthEnable = false;
 		RHI::BlendMode blendMode{};
@@ -76,8 +76,8 @@ public:
 			{"SEM2", BufferLayoutFormat::FLOAT2, 6*4 }
 		};
 		ShaderCreateDesc desc{};
-		desc.VS = "C:/Dev/Repos/Pistachio/Sandbox/Shaders/Compiled/background_vs";
-		desc.PS = "C:/Dev/Repos/Pistachio/Sandbox/Shaders/Compiled/background_fs";
+		desc.VS = "Shaders/PBR_no_reflect_vs";
+		desc.PS = "Shaders/PBR_no_reflect_fs";
 		desc.numDepthStencilModes = 2;
 		desc.DepthStencilModes = dsMode;
 		desc.DSVFormat = RHI::Format::D32_FLOAT;
@@ -91,40 +91,20 @@ public:
 		desc.InputDescription = layout;
 		desc.BlendModes = &blendMode;
 		
-		RHI::SamplerDesc sampler;
-		sampler.AddressU = RHI::AddressMode::Clamp;
-		sampler.AddressV = RHI::AddressMode::Clamp;
-		sampler.AddressW = RHI::AddressMode::Clamp;
-		sampler.anisotropyEnable = false;
-		sampler.compareEnable = false;
-		sampler.magFilter = RHI::Filter::Linear;
-		sampler.minFilter = RHI::Filter::Linear;
-		sampler.mipFilter = RHI::Filter::Linear;
-		sampler.maxLOD = 0;
-		sampler.minLOD = 0;
-		sampler.mipLODBias = 0;
-
-		SamplerHandle samplerHandle = RendererBase::CreateSampler(&sampler);
-
-
 		RHI::RootParameterDesc rpDesc[2];
 		rpDesc[0].type = RHI::RootParameterType::DynamicDescriptor;
 		rpDesc[0].dynamicDescriptor.stage = RHI::ShaderStage::Vertex;
 		rpDesc[0].dynamicDescriptor.type = RHI::DescriptorType::ConstantBufferDynamic;
 		rpDesc[0].dynamicDescriptor.setIndex = 0;
-		RHI::DescriptorRange range[2];
-		range[0].BaseShaderRegister = 0;
-		range[0].numDescriptors = 1;
-		range[0].stage = RHI::ShaderStage::Pixel;
-		range[0].type = RHI::DescriptorType::SampledTexture;
-		range[1].BaseShaderRegister = 1;
-		range[1].numDescriptors = 1;
-		range[1].stage = RHI::ShaderStage::Pixel;
-		range[1].type = RHI::DescriptorType::Sampler;
+		RHI::DescriptorRange range;
+		range.BaseShaderRegister = 0;
+		range.numDescriptors = 1;
+		range.stage = RHI::ShaderStage::Pixel;
+		range.type = RHI::DescriptorType::SampledTexture;
 		rpDesc[1].type = RHI::RootParameterType::DescriptorTable;
-		rpDesc[1].descriptorTable.numDescriptorRanges = 2;
+		rpDesc[1].descriptorTable.numDescriptorRanges = 1;
 		rpDesc[1].descriptorTable.setIndex = 1;
-		rpDesc[1].descriptorTable.ranges = range;
+		rpDesc[1].descriptorTable.ranges = &range;
 
 		RHI::DescriptorSetLayout* setlayout[2]{};
 
@@ -134,23 +114,38 @@ public:
 		RHI::RootSignature* rs;
 		RendererBase::Getd3dDevice()->CreateRootSignature(&rsDesc, &rs, setlayout);
 		shad = Shader::CreateWithRs(&desc, rs, setlayout,2);
+		desc.VS = "Shaders/Compiled/background_vs";
+		desc.PS = "Shaders/Compiled/background_fs";
+		desc.numDepthStencilModes = 1;
+		shad->SetDepthStencilMode(dsMode, ShaderModeSetFlags::AutomaticallyCreate);
+		dsMode[0].DepthFunc = RHI::ComparisonFunc::LessEqual;
+		envshader = Shader::Create(&desc);
+		
+		envshader->GetPSShaderBinding(envShaderPS, 1);
+		envshader->GetVSShaderBinding(envShaderVS, 0);
+		backgroundCB = Renderer::AllocateConstantBuffer(sizeof(BackgroundCB));
+		BufferBindingUpdateDesc backgroundDesc;
+		backgroundDesc.buffer = Renderer::GetConstantBuffer();
+		backgroundDesc.offset = Renderer::GetCBOffset(backgroundCB);
+		backgroundDesc.size = sizeof(BackgroundCB);
+		backgroundDesc.type = RHI::DescriptorType::ConstantBuffer;
+		envShaderVS.UpdateBufferBinding(&backgroundDesc, 0);
+		Renderer::GetSkybox().SwitchToShaderUsageMode();
+		envShaderPS.UpdateTextureBinding(Renderer::GetSkybox().GetView(), 0);
+		envShaderPS.UpdateSamplerBinding(Renderer::GetDefaultSampler(), 1);
 		rs->Release();
 		RHI::DepthStencilMode currMode{};
-		//dsMode->DepthFunc = RHI::ComparisonFunc::Always;
-		shad->SetDepthStencilMode(dsMode, ShaderModeSetFlags::AutomaticallyCreate);
 		
 		CBData.viewProjection = cam.GetViewProjection().Transpose();
 		cBuf1 = Renderer::AllocateConstantBuffer(sizeof(CBData));
 		cBuf2 = Renderer::AllocateConstantBuffer(sizeof(CBData));
-		rtex = RenderCubeMap::Create(512, 512, 1, RHI::Format::B8G8R8A8_UNORM);
 		shad->GetPSShaderBinding(info, 1);
-		info.UpdateTextureBinding(rtex->GetView(), 0);
-		info.UpdateSamplerBinding(samplerHandle, 1);
+		info.UpdateTextureBinding(Renderer::GetWhiteTexture().GetView(), 0);
 		RendererBase::FlushStagingBuffer();
-		auto& pass = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Render Into CubeMap");
+		auto& pass = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Main Pass");
 		tex = graph.CreateTexture(RendererBase::GetBackBufferTexture(RendererBase::GetCurrentRTVIndex()));
 		auto dtex = graph.CreateTexture(RendererBase::GetDefaultDepthTexture());
-		Pistachio::AttachmentInfo attachInfo;
+		Pistachio::AttachmentInfo attachInfo{};
 		attachInfo.texture = tex;
 		attachInfo.format = RHI::Format::B8G8R8A8_UNORM;
 		pass.AddColorOutput(&attachInfo);
@@ -158,6 +153,7 @@ public:
 		attachInfo.texture = dtex;
 		attachInfo.format = RHI::Format::D32_FLOAT;
 		pass.SetDepthStencilOutput(&attachInfo);
+		pass.SetShader(shad);
 		pass.pass_fn = [this](RHI::GraphicsCommandList* list) 
 			{
 				RHI::Area2D area;
@@ -180,7 +176,7 @@ public:
 				Pistachio::Renderer::FullCBUpdate(cBuf2, &CBData2);
 				list->SetViewports(1, &vp);
 				list->SetScissorRects(1, &area);
-				shad->Bind(list);
+
 				list->BindVertexBuffers(0, 1, &Pistachio::Renderer::GetVertexBuffer()->ID);
 				list->BindIndexBuffer(Pistachio::Renderer::GetIndexBuffer(), 0);
 				list->BindDynamicDescriptor(shad->GetRootSignature(), Pistachio::Renderer::GetCBDesc(), 0, Pistachio::Renderer::GetCBOffset(cBuf1));
@@ -199,7 +195,17 @@ public:
 						sphere = new Pistachio::Model("circle.obj");
 					Pistachio::Renderer::Submit(list, cube.meshes[0].GetVBHandle(), cube.meshes[0].GetIBHandle(), sizeof(Pistachio::Vertex));
 				}
-
+				DirectX::XMFLOAT3X3 view;
+				DirectX::XMStoreFloat3x3(&view, cam.GetViewMatrix());
+				Matrix4 acc_view = DirectX::XMLoadFloat3x3(&view);
+				BackgroundCB.viewProj = acc_view * cam.GetProjection();
+				BackgroundCB.viewProj = BackgroundCB.viewProj.Transpose();
+				Pistachio::Renderer::FullCBUpdate(backgroundCB, &BackgroundCB);
+				//different pass?
+				envshader->Bind(list);
+				envshader->ApplyBinding(list, envShaderVS);
+				envshader->ApplyBinding(list, envShaderPS);
+				Pistachio::Renderer::Submit(list, cube.meshes[0].GetVBHandle(), cube.meshes[0].GetIBHandle(), sizeof(Pistachio::Vertex));
 			};
 	}
 	void OnImGuiRender()
@@ -217,7 +223,9 @@ public:
 private:
 	float delta = 0;
 	int frame = 0;
-	Pistachio::RenderCubeMap* rtex;
+	Pistachio::RendererCBHandle backgroundCB;
+	Pistachio::SetInfo envShaderVS;
+	Pistachio::SetInfo envShaderPS;
 	Pistachio::RGTexture* tex;
 	Pistachio::RenderGraph graph;
 	Pistachio::RendererCBHandle cBuf1;

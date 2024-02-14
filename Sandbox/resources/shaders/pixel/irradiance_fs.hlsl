@@ -1,5 +1,5 @@
-TextureCube my_texture : register(t1);
-SamplerState my_sampler;
+TextureCube my_texture : register(t0,space1);
+SamplerState my_sampler : register(s1, space1);
 static float PI = 3.14159265359;
 
 float4 main(float3 localPos : WORLD_POSITION) : SV_TARGET
@@ -22,7 +22,7 @@ float4 main(float3 localPos : WORLD_POSITION) : SV_TARGET
 			// tangent space to world
             float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal;
 
-            irradiance += my_texture.SampleLevel(my_sampler, sampleVec, 0).rgb * cos(theta) * sin(theta);
+            irradiance += my_texture.Sample(my_sampler, sampleVec).rgb * cos(theta) * sin(theta);
             nrSamples++;
         }
     }

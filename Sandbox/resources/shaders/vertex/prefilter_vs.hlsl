@@ -5,12 +5,16 @@ struct VS_OUT
     float4 position : SV_POSITION;
 };
 
-cbuffer CBuf
+cbuffer CBuf:register(b0,space0)
 {
     matrix viewProjection;
     matrix transform;
-    float roughness;
+    
 };
+cbuffer CBuf2 : register(b0, space2)
+{
+    float roughness;
+}
 
 VS_OUT main(float3 pos : POSITION)
 {

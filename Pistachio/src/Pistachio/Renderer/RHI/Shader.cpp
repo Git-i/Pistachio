@@ -390,9 +390,9 @@ namespace Pistachio {
 	void Shader::GetVSShaderBinding(SetInfo& info, uint32_t setIndex)
 	{
 		uint32_t index = UINT32_MAX;
-		for (uint32_t i = 0; i < m_PSinfo.sets.size(); i++)
+		for (uint32_t i = 0; i < m_VSinfo.sets.size(); i++)
 		{
-			if (m_PSinfo.sets[i].setIndex == setIndex) index = i;
+			if (m_VSinfo.sets[i].setIndex == setIndex) index = i;
 		}
 		info = m_VSinfo.sets[index];
 		RendererBase::device->CreateDescriptorSets(RendererBase::heap, 1, layouts[index], &info.set);
@@ -528,7 +528,7 @@ namespace Pistachio {
 				{
 					set.count.push_back(bindings[j].count);
 					set.slot.push_back(bindings[j].bindingSlot);
-					set.stage.push_back(RHI::ShaderStage::Vertex);
+					set.stage.push_back(RHI::ShaderStage::Vertex);//todo
 					set.type.push_back(bindings[j].resourceType);
 				}
 			}
@@ -556,6 +556,7 @@ namespace Pistachio {
 				RHI::RootParameterDesc desc;
 
 				desc.type = RHI::RootParameterType::DescriptorTable;
+				desc.descriptorTable.setIndex = sets[i].setIndex;
 				desc.descriptorTable.numDescriptorRanges = sets[i].bindingCount;
 				desc.descriptorTable.ranges = (RHI::DescriptorRange*)rangeOffset;
 

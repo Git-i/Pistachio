@@ -45,8 +45,8 @@ namespace Pistachio {
 	class PISTACHIO_API RenderCubeMap : public Texture
 	{
 	public:
-		static RenderCubeMap* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
-		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		static RenderCubeMap* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format, RHI::TextureUsage extraUsage = RHI::TextureUsage::None);
+		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format, RHI::TextureUsage extraUsage=RHI::TextureUsage::None);
 		RHI::TextureView* GetView() { return m_view; }
 		void SwitchToRenderTargetMode(RHI::GraphicsCommandList* list=nullptr);
 		void SwitchToShaderUsageMode( RHI::GraphicsCommandList* list=nullptr);
@@ -55,6 +55,7 @@ namespace Pistachio {
 		inline RHI::Format GetFormat() const override { return m_format; }
 	private:
 		friend class RenderGraph;
+		friend class Renderer;
 		RTVHandle RTViews[6];
 		RHI::Format m_format;
 		RHI::TextureView* m_view;

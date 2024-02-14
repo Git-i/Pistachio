@@ -22,7 +22,7 @@ namespace Pistachio {
 		m_Window = Scope<Window>(Window::Create(info));
 		Pistachio::Log::Init();
 		RendererBase::Init(m_Window->pd.hwnd);
-		Renderer::Init("resources/textures/hdr/panorama_image.png");
+		Renderer::Init("resources/textures/hdr/Alexs_Apt_2k.hdr");
 		Renderer2D::Init();
 		std::cout << "phys time" << std::endl;
 		//Physics::Init();
