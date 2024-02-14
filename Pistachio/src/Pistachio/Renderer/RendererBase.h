@@ -56,7 +56,7 @@ namespace Pistachio {
 		static void ClearView();
 		static void Resize(int width, int height);
 		static void PushBufferUpdate(RHI::Buffer* buffer, uint32_t offsetFromBufferStart,const void* data, uint32_t size);
-		static void PushTextureUpdate(RHI::Texture* texture, uint32_t imgByteSize,const void* data,RHI::SubResourceRange* range, RHI::Extent3D imageExtent, RHI::Offset3D imageOffset);
+		static void PushTextureUpdate(RHI::Texture* texture, uint32_t imgByteSize,const void* data,RHI::SubResourceRange* range, RHI::Extent3D imageExtent, RHI::Offset3D imageOffset,RHI::Format format);
 		static void CreateDescriptorSet(RHI::DescriptorSet**, RHI::DescriptorSetLayout* layout);
 		static void FlushStagingBuffer();
 		static void SetPrimitiveTopology(PrimitiveTopology Topology);

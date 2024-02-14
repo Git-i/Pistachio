@@ -1,7 +1,7 @@
-Texture2D my_texture : register(t0);
-SamplerState my_sampler;
+Texture2D my_texture : register(t0, space1);
+SamplerState my_sampler : register(s1, space1);
 
-const float2 invAtan = float2(0.1591, 0.3183);
+static const float2 invAtan = float2(0.1591, 0.3183);
 #define PI 3.14159265359
 float2 SampleSphericalMap(float3 v)
 {

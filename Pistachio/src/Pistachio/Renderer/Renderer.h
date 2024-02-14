@@ -114,10 +114,12 @@ namespace Pistachio {
 		static const uint32_t GetCBOffset(const RendererCBHandle handle);
 		static void  Submit(RHI::GraphicsCommandList* lsit, const RendererVBHandle vb, const RendererIBHandle ib, uint32_t vertexStride);
 		static const Texture2D& GetWhiteTexture();
+		static RenderCubeMap& GetSkybox();
+		static SamplerHandle GetDefaultSampler();
 		static const RHI::DynamicDescriptor* GetCBDesc();
-		static const RHI::Buffer* GetVertexBuffer();
-		static const RHI::Buffer* GetIndexBuffer();
-		static const RHI::Buffer* GetConstantBuffer();
+		static RHI::Buffer* GetVertexBuffer();
+		static RHI::Buffer* GetIndexBuffer();
+		static RHI::Buffer* GetConstantBuffer();
 		static void OnEvent(Event& e) {
 			if (e.GetEventType() == EventType::WindowResize)
 				OnWindowResize((WindowResizeEvent&)e);
@@ -200,11 +202,20 @@ namespace Pistachio {
 		static std::vector<uint32_t> cbHandleOffsets;
 		static std::vector<uint32_t> cbUnusedHandles;
 		static FrameResource resources[3];
-		//Old Renderer
-		static RenderCubeMap fbo;
-		static RenderCubeMap ifbo;
-		static RenderCubeMap prefilter;
+		static RenderCubeMap skybox;
+		static RenderCubeMap irradianceSkybox;
+		static RenderCubeMap prefilterSkybox;
 		static RenderTexture BrdfTex;
+		static Shader* eqShader;//equirectangular to cube map
+		static Shader* irradianceShader;
+		static Shader* prefilterShader;
+		static SetInfo eqShaderVS[6];
+		static SetInfo eqShaderPS;
+		static SetInfo irradianceShaderPS;
+		static SetInfo prefilterShaderVS[5];
+
+		static SamplerHandle defaultSampler;
+
 		static DirectX::XMMATRIX viewproj;
 		static DirectX::XMVECTOR m_campos;
 		static ShaderLibrary shaderlib;
@@ -223,9 +234,6 @@ namespace Pistachio {
 		static ShadowMap shadowMapAtlas;
 		friend class Scene;
 		friend class Material;
-		static Shader* eqShader;
-		static Shader* irradianceShader;
 		static Shader* brdfShader;
-		static Shader* prefilterShader;
 	};
 }

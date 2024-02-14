@@ -3,6 +3,7 @@
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Core/Error.h"
+#include "Util\FormatUtils.h"
 
 #pragma comment(lib, "RenderHardwareInterface.lib")
 RHI::Device*              Pistachio::RendererBase::device;
@@ -192,14 +193,14 @@ namespace Pistachio {
 
 		RHI::PoolSize HeapSizes[2];
 		
-		HeapSizes[0].numDescriptors = 5;
+		HeapSizes[0].numDescriptors = 25;
 		HeapSizes[0].type = RHI::DescriptorType::ConstantBuffer;
 
-		HeapSizes[1].numDescriptors = 5;
+		HeapSizes[1].numDescriptors = 25;
 		HeapSizes[1].type = RHI::DescriptorType::SampledTexture;
 
 		RHI::DescriptorHeapDesc DHdesc;
-		DHdesc.maxDescriptorSets = 10;
+		DHdesc.maxDescriptorSets = 50;
 		DHdesc.numPoolSizes = 1;
 		DHdesc.poolSizes = HeapSizes;
 		device->CreateDescriptorHeap(&DHdesc, &heap);
@@ -292,13 +293,25 @@ namespace Pistachio {
 		outstandingResourceUpdate = true;
 	}
 
-	void RendererBase::PushTextureUpdate(RHI::Texture* texture, uint32_t size ,const void* data,RHI::SubResourceRange* range, RHI::Extent3D imageExtent, RHI::Offset3D imageOffset)
+	void RendererBase::PushTextureUpdate(RHI::Texture* texture, uint32_t size ,const void* data,RHI::SubResourceRange* range, RHI::Extent3D imageExtent, RHI::Offset3D imageOffset,RHI::Format format)
 	{
 		PT_CORE_ASSERT((size % (imageExtent.width * imageExtent.height)) == 0);
+		//check required offset
+		uint32_t offsetFactor = RHI::Util::GetFormatBPP(format);
+		uint32_t currentOffset = staginBufferPortionUsed;
+		uint32_t requiredOffset = 0;
+		if (currentOffset==0) requiredOffset = 0;
+		else
+		{
+			uint32_t remainder = currentOffset % offsetFactor;
+			if (remainder) requiredOffset = currentOffset;
+			else requiredOffset = currentOffset + offsetFactor - remainder;
+		}
 		//check if we have enough space to queue the write
-		if ((stagingBufferSize - staginBufferPortionUsed) < size)
+		if ((stagingBufferSize - staginBufferPortionUsed) < size+requiredOffset)
 		{
 			FlushStagingBuffer();
+			requiredOffset = 0;
 		}
 		//check if resource is bigger than the entire buffer
 		if (size > stagingBufferSize)
@@ -309,11 +322,11 @@ namespace Pistachio {
 		}
 		void* stagingBufferPointer;
 		stagingBuffer->Map(&stagingBufferPointer);
-		stagingBufferPointer = ((std::uint8_t*)stagingBufferPointer) + staginBufferPortionUsed; //offset by the amount of bytes already used
+		stagingBufferPointer = ((std::uint8_t*)stagingBufferPointer) + requiredOffset; //offset by the amount of bytes already used
 		memcpy(stagingBufferPointer, data, size);
 		stagingBuffer->UnMap();
-		stagingCommandList->CopyBufferToImage(staginBufferPortionUsed, *range, imageOffset, imageExtent, stagingBuffer, texture);
-		staginBufferPortionUsed += size;
+		stagingCommandList->CopyBufferToImage(requiredOffset, *range, imageOffset, imageExtent, stagingBuffer, texture);
+		staginBufferPortionUsed = size + requiredOffset;
 		outstandingResourceUpdate = true;
 	}
 
