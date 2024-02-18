@@ -189,26 +189,64 @@ namespace Pistachio {
 		for(uint32_t i = 0; i < 5; i++)
 			prefilterShader->GetVSShaderBinding(prefilterShaderVS[i], 2);
 		prefilterSkybox.CreateStack(128, 128, 5, RHI::Format::R16G16B16A16_FLOAT,RHI::TextureUsage::CopyDst);
-		//create the pbr skybox shaders
-		// 
-		//Ref<Shader> pbrShader = std::make_shared<Shader>(L"resources/shaders/vertex/VertexShader.cso", L"resources/shaders/pixel/PixelShader.cso");
-		//pbrShader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
-		//Ref<Shader> shadowShader = std::make_shared<Shader>(L"resources/shaders/vertex/shadow_vs.cso", L"resources/shaders/pixel/Shadow_ps.cso", L"resources/shaders/geometry/shadow_gs.cso");
-		//shadowShader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
-		//Ref<Shader> gBuffer_Shader = std::make_shared<Shader>(L"resources/shaders/vertex/VertexShader.cso", L"resources/shaders/pixel/gbuffer_write.cso");
-		//gBuffer_Shader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
-		//Ref<Shader> gBuffer_Shader_shadowMap = std::make_shared<Shader>(L"resources/shaders/vertex/VertexShader.cso", L"resources/shaders/pixel/gbuffer_write_shadowMap.cso");
-		//gBuffer_Shader_shadowMap->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
-		//Ref<Shader> deffered_Shader = std::make_shared<Shader>(L"resources/shaders/vertex/vertex_shader_no_transform.cso", L"resources/shaders/pixel/DefferedShading_ps.cso");
-		//deffered_Shader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
-		//Ref<Shader> postprocess_Shader = std::make_shared<Shader>(L"resources/shaders/vertex/vertex_shader_no_transform.cso", L"resources/shaders/pixel/postprocess_ps.cso");
-		//postprocess_Shader->CreateLayout(Mesh::GetLayout(), Mesh::GetLayoutSize());
-		//shaderlib.Add("PBR-Forward-Shader", pbrShader);
-		//shaderlib.Add("PBR-Deffered-Shader", deffered_Shader);
-		//shaderlib.Add("GBuffer-Shader", gBuffer_Shader);
-		//shaderlib.Add("GBuffer-Shader-Shadow-Map", gBuffer_Shader_shadowMap);
-		//shaderlib.Add("Shadow-Shader", shadowShader);
-		//shaderlib.Add("Post-Shader", postprocess_Shader);
+
+		RHI::DepthStencilMode dsModeEnabledLEqual;
+		dsModeEnabledLEqual.DepthEnable = true;
+		dsModeEnabledLEqual.DepthFunc = RHI::ComparisonFunc::LessEqual;
+		dsModeEnabledLEqual.DepthWriteMask = RHI::DepthWriteMask::All;
+		dsModeEnabledLEqual.StencilEnable = false;
+
+		//Fill the shader library
+		ShaderDesc.VS = "resources/shaders/vertex/Compiled/VertexShader";
+		ShaderDesc.PS = "resources/shaders/pixel/Compiled/gbuffer_write";
+		ShaderDesc.DepthStencilModes = &dsModeEnabledLEqual;
+		ShaderDesc.NumRenderTargets = 3;
+		ShaderDesc.RTVFormats[0] = RHI::Format::R8G8B8A8_UNORM;
+		ShaderDesc.RTVFormats[1] = ShaderDesc.RTVFormats[2] = RHI::Format::R16G16B16A16_FLOAT;
+		ShaderDesc.DSVFormat = RHI::Format::D32_FLOAT;
+		//blend mode doesnt change for gbuffer shader
+		RHI::RootParameterDesc rpDesc[3];
+		rpDesc[0].type = RHI::RootParameterType::DynamicDescriptor;
+		rpDesc[0].dynamicDescriptor.setIndex = 1;
+		rpDesc[0].dynamicDescriptor.stage = RHI::ShaderStage::Vertex;
+		rpDesc[0].dynamicDescriptor.type = RHI::DescriptorType::ConstantBufferDynamic;
+		RHI::DescriptorRange range;
+		range.BaseShaderRegister = 0;
+		range.numDescriptors = 1;
+		range.stage = RHI::ShaderStage::Vertex;
+		range.type = RHI::DescriptorType::ConstantBuffer;
+		rpDesc[1,2].type = RHI::RootParameterType::DescriptorTable;
+		rpDesc[1].descriptorTable.setIndex = 0;
+		rpDesc[1].descriptorTable.numDescriptorRanges = 1;
+		rpDesc[1].descriptorTable.ranges = &range;
+		RHI::DescriptorRange ranges[6];
+		for (int i = 0; i < 6; i++) ranges[i].BaseShaderRegister = i;
+		ranges[0 ,1,2, 3].type = RHI::DescriptorType::SampledTexture;
+		ranges[0, 1, 2, 3, 4, 5].numDescriptors = 1;
+		ranges[0, 1, 2, 3, 4, 5].stage = RHI::ShaderStage::Pixel;
+		ranges[4].type = RHI::DescriptorType::Sampler;
+		ranges[5].type = RHI::DescriptorType::ConstantBuffer;
+		rpDesc[2].descriptorTable.numDescriptorRanges = 6;
+		rpDesc[2].descriptorTable.ranges = ranges;
+		rpDesc[2].descriptorTable.setIndex = 2;
+		RHI::RootSignatureDesc rsDesc;
+		rsDesc.numRootParameters = 3;
+		rsDesc.rootParameters = rpDesc;
+		RHI::DescriptorSetLayout* layouts[3];
+		RHI::RootSignature* rs;
+		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
+		shaderlib.Add("GBuffer-Shader", std::make_shared<Shader>(Shader::CreateWithRs(&ShaderDesc,rs,layouts,3)));
+		rs->Release();
+		ShaderDesc.VS = "resources/shaders/vertex/Compiled/VertexShader";
+		ShaderDesc.PS = nullptr;
+		ShaderDesc.NumRenderTargets = 0;
+		shaderlib.Add("Shadow-Shader", std::make_shared<Shader>(Shader::Create(&ShaderDesc)));
+		//for this we dont need depth testing
+		ShaderDesc.DepthStencilModes = &dsMode;
+		ShaderDesc.NumRenderTargets = 1;
+		ShaderDesc.VS = "resources/shaders/vertex/Compiled/vertex_shader_no_transform";
+		ShaderDesc.PS = "resources/shaders/pixel/Compiled/DefferedShading_ps";
+		shaderlib.Add("PBR-Deferred-Shader", std::make_shared<Shader>(Shader::Create(&ShaderDesc)));
 		BYTE data[4] = { 255,255,255,255 };
 		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
 		LightSB.Bind(7);

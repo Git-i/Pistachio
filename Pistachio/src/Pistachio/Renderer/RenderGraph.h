@@ -98,6 +98,7 @@ namespace Pistachio
 		RGTexture* CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED);
 		RGTexture* CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED);
 		RGTexture* CreateTexture(RenderTexture* texture);
+		RGTexture* CreateTexture(DepthTexture* texture);
 		RGTexture* CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex);
 		void Execute();
 	private:

@@ -88,17 +88,17 @@ static DirectX::XMMATRIX GetLightMatrixFromCamera(const DirectX::XMMATRIX& camVi
 	const DirectX::XMMATRIX lightProjection = DirectX::XMMatrixOrthographicOffCenterLH(minX, maxX, minY, maxY, minZ, maxZ);
 	return DirectX::XMMatrixMultiplyTranspose(lightView, lightProjection);
 }
-static D3D11_VIEWPORT vp[4];
-static void ChangeVP(float size, Pistachio::hiVector2 offset)
+static RHI::Viewport vp[4];
+static void ChangeVP(float size, Pistachio::iVector2 offset)
 {
-	vp[0].Width = vp[0].Height = size;
-	vp[0].TopLeftX = offset.x;
-	vp[0].TopLeftY = offset.y;
+	vp[0].width = vp[0].height = size;
+	vp[0].x = offset.x;
+	vp[0].x = offset.y;
 	vp[1] = vp[2] = vp[3] = vp[0];
-	vp[1].TopLeftX += size;
-	vp[2].TopLeftY += size;
-	vp[3].TopLeftX += size;
-	vp[3].TopLeftY += size;
+	vp[1].x += size;
+	vp[2].y += size;
+	vp[3].x += size;
+	vp[3].y += size;
 }
 namespace Pistachio {
 	//todo extremely temprary
@@ -109,29 +109,76 @@ namespace Pistachio {
 		//envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		PT_PROFILE_FUNCTION();
 		CreateEntity("Root").GetComponent<ParentComponent>().parentID = -1;
-		vp[0].TopLeftX = 0;
-		vp[0].TopLeftY = 0;
-		vp[0].Width = 2048;
-		vp[0].Height = 2048;
-		vp[0].MinDepth = 0;
-		vp[0].MaxDepth = 1;
-		vp[1] = vp[2] = vp[3] = vp[0];
-		vp[1].TopLeftX = 2048;
-		vp[2].TopLeftY = 2048;
-		vp[3].TopLeftX = vp[3].TopLeftY = 2048;
-		RenderTextureDesc rtDesc;
-		rtDesc.width = desc.Resolution.x;
-		rtDesc.height = desc.Resolution.y;
-		rtDesc.miplevels = 1;
-		rtDesc.Attachments = { TextureFormat::RGBA8U,  TextureFormat::RGBA16F,TextureFormat::RGBA16F, TextureFormat::RGBA16F, TextureFormat::D24S8 };
-		//m_gBuffer.CreateStack(rtDesc);
-		RenderTextureDesc rtDesc2;
-		rtDesc2.width = desc.Resolution.x;
-		rtDesc2.height = desc.Resolution.y;
-		rtDesc2.miplevels = 1;
-		rtDesc2.Attachments = { TextureFormat::RGBA8U, TextureFormat::D24S8 };
+		ChangeVP(1024, { 0,0 });
+		gBufferColor.CreateStack(desc.Resolution.x, desc.Resolution.y, 1, RHI::Format::R8G8B8A8_UNORM);
+		finalRender.CreateStack(desc.Resolution.x, desc.Resolution.y, 1, RHI::Format::R8G8B8A8_UNORM);
+		gBufferNormal.CreateStack(desc.Resolution.x, desc.Resolution.y, 1, RHI::Format::R16G16B16A16_FLOAT);
+		gBufferPosition.CreateStack(desc.Resolution.x, desc.Resolution.y, 1, RHI::Format::R16G16B16A16_FLOAT);
 		//m_finalRender.CreateStack(rtDesc2);
 		ScreenSpaceQuad = MeshFactory::CreatePlane();
+
+		auto RGshadowMap = graph.CreateTexture(&Renderer::shadowMapAtlas);
+		auto RGgBufferColor = graph.CreateTexture(&gBufferColor);
+		auto RGgBufferNormal = graph.CreateTexture(&gBufferNormal);
+		auto RGgBufferPosition = graph.CreateTexture(&gBufferPosition);
+		auto RGfinalRender = graph.CreateTexture(&finalRender);
+		AttachmentInfo shadowMapAttachInfo;
+		shadowMapAttachInfo.format = RHI::Format::D32_FLOAT;//todo
+		shadowMapAttachInfo.loadOp = RHI::LoadOp::Load;
+		shadowMapAttachInfo.texture = RGshadowMap;
+		shadowMapAttachInfo.usage = AttachmentUsage::Graphics;
+		AttachmentInfo gBufferAttachmentInfo;
+		gBufferAttachmentInfo.format = RHI::Format::R8G8B8A8_UNORM;
+		gBufferAttachmentInfo.texture = RGgBufferColor;
+		gBufferAttachmentInfo.loadOp = RHI::LoadOp::Clear;
+		gBufferAttachmentInfo.usage = AttachmentUsage::Graphics;
+		AttachmentInfo finalRenderAttachmentInfo;
+		finalRenderAttachmentInfo.format = RHI::Format::R8G8B8A8_UNORM;
+		finalRenderAttachmentInfo.texture = RGfinalRender;
+		finalRenderAttachmentInfo.loadOp = RHI::LoadOp::Clear;
+		finalRenderAttachmentInfo.usage = AttachmentUsage::Graphics;
+		auto& dShadowPass = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Directional Shadows");
+		dShadowPass.SetDepthStencilOutput(&shadowMapAttachInfo);
+		dShadowPass.SetShader(Renderer::shaderlib.Get("Shadow-Shader").get());
+		dShadowPass.SetPassArea({ 0,0,4096,4096 });
+		dShadowPass.pass_fn = [this](RHI::GraphicsCommandList* list) {std::cout << "D Pass\n"; };
+		auto& spotShadowPass = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Spot Shadows");
+		spotShadowPass.SetDepthStencilOutput(&shadowMapAttachInfo);
+		spotShadowPass.SetShader(Renderer::shaderlib.Get("Shadow-Shader").get());
+		spotShadowPass.SetPassArea({ 0,0,4096,4096 });
+		spotShadowPass.pass_fn = [this](RHI::GraphicsCommandList* list) {std::cout << "S Pass\n"; };
+		auto& pointShadowPass = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Point Shadows");
+		pointShadowPass.SetDepthStencilOutput(&shadowMapAttachInfo);
+		pointShadowPass.SetShader(Renderer::shaderlib.Get("Shadow-Shader").get());
+		pointShadowPass.SetPassArea({ 0,0,4096,4096 });
+		pointShadowPass.pass_fn = [this](RHI::GraphicsCommandList* list) {std::cout << "P Pass\n"; };
+		auto& gBufferWrite = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Deferred Render Pass");
+		gBufferWrite.AddColorOutput(&gBufferAttachmentInfo);
+		gBufferAttachmentInfo.format = RHI::Format::R16G16B16A16_FLOAT;
+		gBufferAttachmentInfo.texture = RGgBufferNormal;
+		gBufferWrite.AddColorOutput(&gBufferAttachmentInfo);
+		gBufferAttachmentInfo.texture = RGgBufferPosition;
+		gBufferWrite.AddColorOutput(&gBufferAttachmentInfo);
+		gBufferWrite.SetShader(Renderer::shaderlib.Get("GBuffer-Shader").get());
+		gBufferWrite.SetPassArea({ 0,0,(uint32_t)desc.Resolution.x,(uint32_t)desc.Resolution.y });
+		gBufferWrite.pass_fn = [](RHI::GraphicsCommandList* list) {std::cout << "GBuffer Pass\n"; };
+		auto& lightingPass= graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Deferred Lighting Pass");
+		lightingPass.AddColorInput(&shadowMapAttachInfo);
+		lightingPass.AddColorInput(&gBufferAttachmentInfo);
+		gBufferAttachmentInfo.texture = RGgBufferNormal;
+		lightingPass.AddColorInput(&gBufferAttachmentInfo);
+		gBufferAttachmentInfo.format = RHI::Format::R8G8B8A8_UNORM;
+		gBufferAttachmentInfo.texture = RGgBufferColor;
+		lightingPass.AddColorInput(&gBufferAttachmentInfo);
+		lightingPass.AddColorOutput(&finalRenderAttachmentInfo);
+		lightingPass.SetShader(Renderer::shaderlib.Get("PBR-Deferred-Shader").get());
+		lightingPass.SetPassArea({ 0,0,(uint32_t)desc.Resolution.x,(uint32_t)desc.Resolution.y });
+		lightingPass.pass_fn = [](RHI::GraphicsCommandList* list) {std::cout << "Lighting Pass" << std::endl; };
+		// todo graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "2D Pass");
+		graph.NewFrame();
+		graph.Execute();
+
+		
 	}
 	Scene::~Scene()
 	{

@@ -34,8 +34,8 @@ namespace Pistachio {
 		template<typename _ComponentTy> auto GetAllComponents() { return m_Registry.view<_ComponentTy>(); }
 		Entity GetRootEntity();
 		Entity GetPrimaryCameraEntity();
-		const RenderTexture& GetGBuffer() { return m_gBuffer; };
-		const RenderTexture& GetRenderedScene() { return m_finalRender; };
+		//const RenderTexture& GetGBuffer() { return m_gBuffer; };
+		//const RenderTexture& GetRenderedScene() { return m_finalRender; };
 		template<typename T> void OnComponentAdded(Entity entity, T& component);
 	private:
 		void UpdateObjectCBs();
@@ -46,7 +46,7 @@ namespace Pistachio {
 		template <typename T> void RenderDirectionalLightShadows(T&, ShadowCastingLight&);
 	private:
 		AtlasAllocator sm_allocator;
-		Pistachio::Mesh* ScreenSpaceQuad;
+		Pistachio::Mesh* ScreenSpaceQuad;//?
 		entt::registry m_Registry;
 		physx::PxScene* m_PhysicsScene = NULL;
 		friend class Entity;
@@ -54,8 +54,10 @@ namespace Pistachio {
 		friend class SceneSerializer;
 		unsigned int m_viewportWidth, m_ViewportHeight;
 		RenderGraph graph;
-		RenderTexture m_gBuffer;
-		RenderTexture m_finalRender;
+		RenderTexture gBufferNormal;
+		RenderTexture gBufferColor;
+		RenderTexture gBufferPosition;
+		RenderTexture finalRender;
 	};
 
 }

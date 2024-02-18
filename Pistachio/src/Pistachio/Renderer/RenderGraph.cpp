@@ -51,6 +51,12 @@ namespace Pistachio
         tex->rtvHandle = texture->RTView;
         return tex;
     }
+    RGTexture* RenderGraph::CreateTexture(DepthTexture* texture)
+    {
+        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, 0, false, 0));
+        tex->dsvHandle = texture->DSView;
+        return tex;
+    }
     RGTexture* RenderGraph::CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex)
     {
         auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, 0, true, cubeIndex));
@@ -295,11 +301,11 @@ namespace Pistachio
     {
         //passes have levels, each pass in a level can be executed async
         //and passes with higher level cannot execute till passes of lower level are done
-        
         std::vector<RenderPass*> passesLeft;
         for (auto& pass : passes) { passesLeft.push_back(&pass); }
 
         std::vector<RGTexture*> readyOutputs;
+        uint32_t intendedOutputIndex = 0;
         uint32_t readyOutputIndex = 0;
         while (passesLeft.size())
         {
@@ -323,11 +329,19 @@ namespace Pistachio
                 if (currLevel)
                 {
                     passesSorted.push_back(pass);
-                    for (auto output : pass->outputs) readyOutputs.push_back(output.texture);
+                    for (auto output : pass->outputs)
+                    {
+                        intendedOutputIndex++;
+                        readyOutputs.push_back(output.texture);
+                    }
+                    if (pass->dsOutput.texture) 
+                    {
+                        intendedOutputIndex++; readyOutputs.push_back(pass->dsOutput.texture);
+                    };
                 }
             }
+            readyOutputIndex = intendedOutputIndex;
             passesLeft = std::move(passesWithFurtherLevel);
-            readyOutputIndex = passesSorted.size();
             levelTransitionIndices.push_back(passesSorted.size());
         }
 
