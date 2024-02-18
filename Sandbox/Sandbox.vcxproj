@@ -206,6 +206,10 @@
     <None Include="resources\shaders\pixel\prefilter_fs.hlsl">
       <FileType>Document</FileType>
     </None>
+    <FxCompile Include="resources\shaders\pixel\gbuffer_write.hlsl" />
+    <FxCompile Include="resources\shaders\vertex\shadow_vs.hlsl" />
+    <FxCompile Include="resources\shaders\vertex\VertexShader.hlsl" />
+    <FxCompile Include="resources\shaders\vertex\vertex_shader_no_transform.hlsl" />
     <FxCompile Include="Shaders\brdf_fs.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>

@@ -46,6 +46,11 @@ public:
 	}
 	void OnAttach() override
 	{
+		std::cout << "--------------------------------------------" << std::endl;
+		Pistachio::SceneDesc sdesc;
+		sdesc.Resolution = { 1280,720 };
+		Pistachio::Scene scene(sdesc);
+		std::cout << "---------------------------------------------" << std::endl;
 		vp.x = 0;  vp.y = 0;
 		vp.width =  1280;
 		vp.height = 720;
