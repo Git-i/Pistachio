@@ -250,7 +250,6 @@ namespace Pistachio {
 	{
 	public:
 		void Add(const std::string& name,const Ref<Shader>& Shader);
-		Ref<Shader> Load(const std::string& name, const std::string& vertex, const std::string& fragment);
 		Ref<Shader> Get(const std::string& name);
 	private:
 		std::unordered_map<std::string, Ref<Shader>> m_Shaders;

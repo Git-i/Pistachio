@@ -3,14 +3,6 @@
 #include "RendererBase.h"
 #include "RendererID_t.h"
 namespace Pistachio {
-	struct PISTACHIO_API RenderTextureAttachmentSpecification {
-		RenderTextureAttachmentSpecification() = default;
-		RenderTextureAttachmentSpecification(std::initializer_list<TextureFormat> attachments) : Attachments(attachments) {}
-		std::vector<TextureFormat> Attachments;
-	};
-	struct PISTACHIO_API RenderTextureDesc {
-		int width; int height; int miplevels = 1; RenderTextureAttachmentSpecification Attachments;
-	};
 	/*
 	 * A Render texture is an RT that can propably be later sampled, so the only difference between
 	 * this and a normal texture is the color attachment usage.
@@ -38,6 +30,21 @@ namespace Pistachio {
 	private:
 		friend class RenderGraph;
 		RTVHandle RTView;
+		RHI::TextureView* m_view;
+		RHI::Format m_format;
+		uint32_t m_width, m_height, m_mipLevels;
+	};
+	class PISTACHIO_API DepthTexture : public Texture
+	{
+	public:
+		static DepthTexture* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		RHI::Format GetFormat() const override;
+		uint32_t GetWidth() const override;
+		uint32_t GetHeight() const override;
+	private:
+		friend class RenderGraph;
+		DSVHandle DSView;
 		RHI::TextureView* m_view;
 		RHI::Format m_format;
 		uint32_t m_width, m_height, m_mipLevels;

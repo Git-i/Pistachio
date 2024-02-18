@@ -231,7 +231,7 @@ namespace Pistachio {
 		static std::vector<std::uint8_t> LightSBCPU;
 		static Material* currentMat;
 		static Shader* currentShader;
-		static ShadowMap shadowMapAtlas;
+		static DepthTexture shadowMapAtlas;
 		friend class Scene;
 		friend class Material;
 		static Shader* brdfShader;
