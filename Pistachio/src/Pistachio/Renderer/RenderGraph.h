@@ -6,6 +6,18 @@
 namespace Pistachio
 {
 	class RenderPass;
+	enum class PassType
+	{
+		Graphics, Compute
+	};
+	class PISTACHIO_API RGBuffer
+	{
+	public:
+	private:
+		RGBuffer() {}
+		RHI::Buffer* buffer;
+		RHI::ResourceLayout currentLayout;
+	};
 	class PISTACHIO_API RGTexture
 	{
 	public:
@@ -17,10 +29,10 @@ namespace Pistachio
 				RendererBase::DestroyRenderTargetView(rtvHandle);
 			rtvHandle = { UINT32_MAX, UINT32_MAX };
 		}
-		void SetResource(RHI::Texture* texture)
-		{
-			this->texture = texture;
-		}
+		//void SetResource(RHI::Texture* texture)
+		//{
+		//	this->texture = texture;
+		//}
 	private:
 		friend class RenderGraph;
 		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, uint32_t MipSlice, bool isArray, uint32_t Slice) :
@@ -62,6 +74,8 @@ namespace Pistachio
 		void SetPassArea(const RHI::Area2D& area);
 		void AddColorInput(AttachmentInfo* info);
 		void AddColorOutput(AttachmentInfo* info);
+		void AddBufferInput(RGBuffer* buffer);
+		void AddBufferOutput(RGBuffer* buffer);
 		void SetShader(Shader* shader);//Make sure the shader is already preconfigured to desired state
 		void SetDepthStencilOutput(AttachmentInfo* info);
 		std::function<void(RHI::GraphicsCommandList* list)> pass_fn;
@@ -72,7 +86,17 @@ namespace Pistachio
 		RHI::PipelineStateObject* pso = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
+		std::vector<RGBuffer*> bufferInputs;
+		std::vector<RGBuffer*> bufferOutputs;
 		AttachmentInfo dsOutput = { (RHI::Format)0,nullptr };
+	};
+	class PISTACHIO_API ComputePass
+	{
+	public:
+		std::vector<AttachmentInfo> inputs;
+		std::vector<AttachmentInfo> outputs;
+		std::vector<RGBuffer*> bufferInputs;
+		std::vector<RGBuffer*> bufferOutputs;
 	};
 	struct RGCommandList
 	{
@@ -90,6 +114,7 @@ namespace Pistachio
 	public:
 		~RenderGraph();
 		RenderGraph(uint32_t cmdListCount);
+		void Compile();
 		void SubmitToQueue();
 		void NewFrame();
 		RenderPass& AddPass(RHI::PipelineStage stage, const char* passName);
@@ -107,7 +132,9 @@ namespace Pistachio
 	private:
 		std::vector<RGTexture*> textures;
 		std::vector<RenderPass> passes;
-		std::vector<RenderPass*> passesSorted;
+		std::vector<ComputePass> computePasses;
+		std::vector<std::pair<RenderPass*, uint32_t>> passesSortedAndFence;
+		std::vector<std::pair<ComputePass*, uint32_t>> computePassesSortedAndFence;
 		std::vector<uint32_t> levelTransitionIndices;
 		RGCommandList* cmdLists;
 		uint32_t numCmdLists;

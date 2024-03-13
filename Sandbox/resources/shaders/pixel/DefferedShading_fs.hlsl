@@ -1,17 +1,19 @@
-Texture2D BRDFLUT : register(t0);
-TextureCube irradianceMap : register(t1);
-TextureCube prefilterMap : register(t2);
+Texture2D BRDFLUT : register(t0, space1);
+TextureCube irradianceMap : register(t1, space1);
+TextureCube prefilterMap : register(t2, space1);
 
 
-Texture2D color : register(t3);
-Texture2D normal_roughness : register(t4);
-Texture2D position_metallic : register(t5);
-Texture2D shadow_t : register(t9);
+Texture2D color : register(t0, space2);
+Texture2D normal_roughness : register(t1, space2);
+Texture2D position_metallic : register(t2, space2);
+Texture2D shadow_t : register(t3, space2);
+StructuredBuffer<float4> lights : register(t4, space3);  //16 bytes per Element being the gcd of the size of normal and shadow light
 
 
-SamplerState my_sampler : register(s0);
-SamplerState Brdfsampler : register(s1);
-SamplerComparisonState ShadowSampler : register(s2);
+
+SamplerState my_sampler : register(s0, space3);
+SamplerState Brdfsampler : register(s1, space3);
+SamplerComparisonState ShadowSampler : register(s2, space3);
 
 
 float DistributionGGX(float3 N, float3 H, float roughness);
@@ -39,7 +41,6 @@ struct ShadowCastingLight
     uint2 shadowMapOffset;
     uint2 shadowMapSize;
 };
-StructuredBuffer<float4> lights : register(t7);  //16 bytes per Element being the gcd of the size of normal and shadow light
 static const uint RegularLightStepSize = 64 / 16;
 static const uint ShadowLightStepSize = 336 / 16;
 Light RegularLight(int startIndex)

@@ -49,10 +49,6 @@
     <FxCompile Include="Shaders\brdf_vs.hlsl" />
     <FxCompile Include="Shaders\Renderer2D\2D_fs.hlsl" />
     <FxCompile Include="Shaders\Renderer2D\2D_vs.hlsl" />
-    <FxCompile Include="resources\shaders\vertex\VertexShader.hlsl" />
-    <FxCompile Include="resources\shaders\vertex\vertex_shader_no_transform.hlsl" />
-    <FxCompile Include="resources\shaders\vertex\shadow_vs.hlsl" />
-    <FxCompile Include="resources\shaders\pixel\gbuffer_write.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\PBR_no_reflect_vs.hlsl" />
@@ -65,5 +61,9 @@
     <None Include="Shaders\prefilter_fs.hlsl" />
     <None Include="resources\shaders\vertex\prefilter_vs.hlsl" />
     <None Include="resources\shaders\pixel\prefilter_fs.hlsl" />
+    <None Include="resources\shaders\pixel\gbuffer_write.hlsl" />
+    <None Include="resources\shaders\vertex\shadow_vs.hlsl" />
+    <None Include="resources\shaders\vertex\VertexShader.hlsl" />
+    <None Include="resources\shaders\vertex\vertex_shader_no_transform.hlsl" />
   </ItemGroup>
 </Project>

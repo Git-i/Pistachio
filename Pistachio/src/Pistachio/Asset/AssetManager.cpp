@@ -1,4 +1,5 @@
 #include "ptpch.h"
+#include "Pistachio/Renderer/Material.h"
 #include "AssetManager.h"
 
 namespace Pistachio
@@ -117,7 +118,11 @@ namespace Pistachio
 	{
 		return CreateAsset(filename, ResourceType::Model);
 	}
-	std::string AssetManager::GetAssetFileName(Asset& asset)
+	Asset AssetManager::CreateShaderAsset(const std::string& filename)
+	{
+		return CreateAsset(filename, ResourceType::Shader);
+	}
+	std::string AssetManager::GetAssetFileName(const Asset& asset)
 	{
 		auto it = std::find_if(pathUUIDMap.begin(), pathUUIDMap.end(), [asset](auto&& p) { return p.second == asset.m_uuid; });
 		if (it == pathUUIDMap.end())
@@ -158,10 +163,18 @@ namespace Pistachio
 		}
 		return nullptr;
 	}
+	ShaderAsset* AssetManager::GetShaderResource(Asset& a)
+	{
+		auto it = assetResourceMap.find(a.m_uuid);
+		if (it != assetResourceMap.end())
+		{
+			return (ShaderAsset*)(assetResourceMap[a.m_uuid]);
+		}
+		return nullptr;
+	}
 	Asset AssetManager::CreateAsset(const std::string& filename, ResourceType type)
 	{
-		auto it = pathUUIDMap.find(filename);
-		if (it != pathUUIDMap.end())
+		if (auto it = pathUUIDMap.find(filename); it != pathUUIDMap.end())
 		{
 			//assetResourceMap[it->second]->hold();
 			return Asset(it->second, type);
@@ -172,6 +185,7 @@ namespace Pistachio
 			RefCountedObject* obj;
 			if (type == ResourceType::Texture) obj = Texture2D::Create(filename.c_str());
 			else if (type == ResourceType::Material) obj = Material::Create(filename.c_str());
+			else if (type == ResourceType::Shader) obj = ShaderAsset::Create(filename.c_str());
 			else if (type == ResourceType::Model) obj = Model::Create(filename.c_str());
 			else obj = new RefCountedObject;
 			assetResourceMap[uuid] = obj;

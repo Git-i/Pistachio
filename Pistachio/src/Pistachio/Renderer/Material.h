@@ -1,36 +1,32 @@
 #pragma once
 #include <string>
+#include <type_traits>
 #include "Pistachio/Asset/Asset.h"
 #include "Pistachio/Asset/RefCountedObject.h"
 #include "Pistachio/Core/Math.h"
-#include "../Renderer/Shader.h"
+#include "../Asset/AssetManager.h"
+#include "../Renderer/BufferHandles.h"
+#include "../Renderer/ShaderAsset.h"
+#include "../Renderer/Texture.h"
 #include "../Renderer/Buffer.h"
 namespace Pistachio
 {
+	
 	class PISTACHIO_API Material : public RefCountedObject
 	{
 	public:
-		Vector4 diffuseColor = Vector4(1.f, 1.f, 1.f, 1.f);
-		float metallic = 0.5f;
-		float roughness = 0.5f;
-		Asset diffuseTex;
-		Asset normalTex;
-		Asset metallicTex;
-		Asset roughnessTex;
-		bool bDirty = true;
-		//editor specific
-		std::string diffuseTexName = "None";
-		std::string normalTexName = "None";
-		std::string metallicTexName = "None";
-		std::string roughnessTexName = "None";
-		void Initialize();
-	public:
-		void Bind();
-		void Update();
-	private:
-		ConstantBuffer data;
-	public:
+		void ChangeTexture(uint32_t slot, Texture* texture);
+		template<typename ParamTy> void ChangeParam(const std::string& name, const ParamTy& value);
 		static Material* Create(const char* filepath);
+		void SetShader(Asset shader);
+		//Unsafe: use only if you wrote this engine or know what you're doing
+		template<typename ParamTy> void ChangeParam(uint32_t size,const ParamTy* value, uint32_t offset);
+	private:
+		friend class MaterialSerializer;
+		RendererCBHandle parametersBuffer;
+		std::vector<Asset> m_textures;
+		Asset shader;
+		SetInfo mtlInfo;
 	};
 
 	class PISTACHIO_API MaterialSerializer
@@ -38,4 +34,97 @@ namespace Pistachio
 	public:
 		void Serialize(const std::string& filepath, const Material& mat);
 	};
+	template<typename ParamTy>
+	inline void Material::ChangeParam(uint32_t size, const ParamTy* value, uint32_t offset)
+	{
+		Renderer::PartialCBUpdate(parametersBuffer, value, offset, size);
+	}
+	template<typename ParamTy, uint32_t components, typename checkTy, typename shaderTy>
+	inline void CheckAndUpdate(const ParamTy& value, Pistachio::ParamInfo& info, RendererCBHandle handle)
+	{
+		PT_CORE_ASSERT(std::is_convertible_v<ParamTy, checkTy>);
+		shaderTy data[components];
+		if constexpr (components == 1) { data[0] = (shaderTy)value; }
+		else
+		{
+			checkTy vector = (checkTy)value;
+			for (uint32_t i = 0; i < components; i++) { data[i] = ((float*)&vector)[i]; }
+		}
+		Renderer::PartialCBUpdate(handle, data, info.offset, sizeof(uint32_t) * components);
+		return;
+	}
+	template<typename ParamTy>
+	inline void Material::ChangeParam(const std::string& name, const ParamTy& value)
+	{
+		ShaderAsset* res = GetAssetManager()->GetShaderResource(shader);
+		ParamInfo info = res->GetParameterInfo(name);
+		PT_CORE_ASSERT(info.offset != UINT32_MAX);
+		//single component
+		switch (info.type)
+		{
+		case Pistachio::ParamType::Uint:
+		{
+			CheckAndUpdate<ParamTy, 1, uint32_t, uint32_t>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Uint2:
+		{
+			CheckAndUpdate<ParamTy, 2, Vector2, uint32_t>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Uint3:
+		{
+			CheckAndUpdate<ParamTy, 3, Vector3, uint32_t>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Uint4:
+		{
+			CheckAndUpdate<ParamTy, 4, Vector4, uint32_t>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Int:
+		{
+			CheckAndUpdate<ParamTy, 1, int32_t, int32_t>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Int2:
+		{
+			CheckAndUpdate<ParamTy, 2, Vector2, int32_t>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Int3:
+		{
+			CheckAndUpdate<ParamTy, 3, Vector3, int32_t>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Int4:
+		{
+			CheckAndUpdate<ParamTy, 4, Vector4, int32_t>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Float:
+		{
+			CheckAndUpdate<ParamTy, 1, float, float>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Float2:
+		{
+			CheckAndUpdate<ParamTy, 2, Vector2, float>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Float3:
+		{
+			CheckAndUpdate<ParamTy, 3, Vector3, float>(value, info, parametersBuffer);
+			break;
+		}
+		case Pistachio::ParamType::Float4:
+		{
+			CheckAndUpdate<ParamTy, 4, Vector4, float>(value, info, parametersBuffer);
+			break;
+		}
+		default:
+			break;
+		}
+		
+	}
 }

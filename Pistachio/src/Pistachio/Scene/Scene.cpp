@@ -161,7 +161,20 @@ namespace Pistachio {
 		gBufferWrite.AddColorOutput(&gBufferAttachmentInfo);
 		gBufferWrite.SetShader(Renderer::shaderlib.Get("GBuffer-Shader").get());
 		gBufferWrite.SetPassArea({ 0,0,(uint32_t)desc.Resolution.x,(uint32_t)desc.Resolution.y });
-		gBufferWrite.pass_fn = [](RHI::GraphicsCommandList* list) {std::cout << "GBuffer Pass\n"; };
+		gBufferWrite.pass_fn = [this](RHI::GraphicsCommandList* list)
+			{
+				auto transformMesh = m_Registry.view<MeshRendererComponent, TransformComponent>();
+				for (auto entity : transformMesh)
+				{
+					auto [meshComp, transform] = transformMesh.get(entity);
+					Model* model = GetAssetManager()->GetModelResource(meshComp.Model);
+					if (model)
+					{
+						Mesh& mesh = model->meshes[meshComp.modelIndex];
+						Renderer::Submit(list, mesh.GetVBHandle(), mesh.GetIBHandle(), sizeof(Vertex));
+					}
+				}
+			};
 		auto& lightingPass= graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Deferred Lighting Pass");
 		lightingPass.AddColorInput(&shadowMapAttachInfo);
 		lightingPass.AddColorInput(&gBufferAttachmentInfo);

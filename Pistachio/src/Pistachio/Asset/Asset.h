@@ -10,6 +10,7 @@ namespace Pistachio
 		Material,
 		Animation,
 		Audio,
+		Shader
 	};
 	class PISTACHIO_API Asset
 	{

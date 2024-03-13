@@ -23,11 +23,11 @@ Pistachio::Texture2D Pistachio::Renderer::whiteTexture = Pistachio::Texture2D();
 Pistachio::Material Pistachio::Renderer::DefaultMaterial = Pistachio::Material();
 Pistachio::Material* Pistachio::Renderer::currentMat = nullptr;
 Pistachio::Shader* Pistachio::Renderer::currentShader = nullptr;
-Pistachio::ShadowMap Pistachio::Renderer::shadowMapAtlas;
 Pistachio::SetInfo Pistachio::Renderer::eqShaderVS[6];
 Pistachio::SetInfo Pistachio::Renderer::eqShaderPS;
 Pistachio::SetInfo Pistachio::Renderer::irradianceShaderPS;
 Pistachio::SetInfo Pistachio::Renderer::prefilterShaderVS[5];
+Pistachio::DepthTexture Pistachio::Renderer::shadowMapAtlas;
 static Pistachio::SamplerState* brdfSampler ;
 static Pistachio::SamplerState* shadowSampler;
 Pistachio::Shader* Pistachio::Renderer::eqShader;
@@ -165,11 +165,11 @@ namespace Pistachio {
 		ShaderDesc.BlendModes = &blendMode;
 		ShaderDesc.DepthStencilModes = &dsMode;
 		ShaderDesc.RasterizerModes = &rsMode;
-		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
 		ShaderDesc.numBlendModes = 1;
 		ShaderDesc.numDepthStencilModes = 1;
-		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
 		ShaderDesc.numRasterizerModes = 1;
+		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
+		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
 		ShaderDesc.NumRenderTargets = 1;
 		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
 
@@ -215,15 +215,29 @@ namespace Pistachio {
 		range.numDescriptors = 1;
 		range.stage = RHI::ShaderStage::Vertex;
 		range.type = RHI::DescriptorType::ConstantBuffer;
-		rpDesc[1,2].type = RHI::RootParameterType::DescriptorTable;
+		rpDesc[1].type = RHI::RootParameterType::DescriptorTable;
+		rpDesc[2].type = RHI::RootParameterType::DescriptorTable;
 		rpDesc[1].descriptorTable.setIndex = 0;
 		rpDesc[1].descriptorTable.numDescriptorRanges = 1;
 		rpDesc[1].descriptorTable.ranges = &range;
 		RHI::DescriptorRange ranges[6];
 		for (int i = 0; i < 6; i++) ranges[i].BaseShaderRegister = i;
-		ranges[0 ,1,2, 3].type = RHI::DescriptorType::SampledTexture;
-		ranges[0, 1, 2, 3, 4, 5].numDescriptors = 1;
-		ranges[0, 1, 2, 3, 4, 5].stage = RHI::ShaderStage::Pixel;
+		ranges[0].type = RHI::DescriptorType::SampledTexture;
+		ranges[1].type = RHI::DescriptorType::SampledTexture;
+		ranges[2].type = RHI::DescriptorType::SampledTexture;
+		ranges[3].type = RHI::DescriptorType::SampledTexture;
+		ranges[0].numDescriptors = 
+		ranges[1].numDescriptors = 
+		ranges[2].numDescriptors = 
+		ranges[3].numDescriptors = 
+		ranges[4].numDescriptors = 
+		ranges[5].numDescriptors = 1;
+		ranges[0].stage =
+		ranges[1].stage =
+		ranges[2].stage =
+		ranges[3].stage =
+		ranges[4].stage =
+		ranges[5].stage = RHI::ShaderStage::Pixel;
 		ranges[4].type = RHI::DescriptorType::Sampler;
 		ranges[5].type = RHI::DescriptorType::ConstantBuffer;
 		rpDesc[2].descriptorTable.numDescriptorRanges = 6;
@@ -232,21 +246,21 @@ namespace Pistachio {
 		RHI::RootSignatureDesc rsDesc;
 		rsDesc.numRootParameters = 3;
 		rsDesc.rootParameters = rpDesc;
-		RHI::DescriptorSetLayout* layouts[3];
+		RHI::DescriptorSetLayout* layouts[3]{};
 		RHI::RootSignature* rs;
 		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
-		shaderlib.Add("GBuffer-Shader", std::make_shared<Shader>(Shader::CreateWithRs(&ShaderDesc,rs,layouts,3)));
+		shaderlib.Add("GBuffer-Shader", std::shared_ptr<Shader>(Shader::CreateWithRs(&ShaderDesc,rs,layouts,3)));
 		rs->Release();
 		ShaderDesc.VS = "resources/shaders/vertex/Compiled/VertexShader";
 		ShaderDesc.PS = nullptr;
 		ShaderDesc.NumRenderTargets = 0;
-		shaderlib.Add("Shadow-Shader", std::make_shared<Shader>(Shader::Create(&ShaderDesc)));
+		shaderlib.Add("Shadow-Shader", std::shared_ptr<Shader>(Shader::Create(&ShaderDesc)));
 		//for this we dont need depth testing
 		ShaderDesc.DepthStencilModes = &dsMode;
 		ShaderDesc.NumRenderTargets = 1;
 		ShaderDesc.VS = "resources/shaders/vertex/Compiled/vertex_shader_no_transform";
-		ShaderDesc.PS = "resources/shaders/pixel/Compiled/DefferedShading_ps";
-		shaderlib.Add("PBR-Deferred-Shader", std::make_shared<Shader>(Shader::Create(&ShaderDesc)));
+		ShaderDesc.PS = "resources/shaders/pixel/Compiled/DefferedShading_fs";
+		shaderlib.Add("PBR-Deferred-Shader", std::shared_ptr<Shader>(Shader::Create(&ShaderDesc)));
 		BYTE data[4] = { 255,255,255,255 };
 		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
 		LightSB.Bind(7);
