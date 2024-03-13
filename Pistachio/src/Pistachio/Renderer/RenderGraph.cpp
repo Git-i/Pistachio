@@ -294,55 +294,141 @@ namespace Pistachio
             }
         }
         levelTransitionIndices.clear();
-        passesSorted.clear();
+        passesSortedAndFence.clear();
+        
     }
 
     void RenderGraph::SortPasses()
     {
-        //passes have levels, each pass in a level can be executed async
-        //and passes with higher level cannot execute till passes of lower level are done
+        /*
+        a level is a group of passes that can be submitted into one command buffer
+        i.e levels have the same fence vals
+         */
         std::vector<RenderPass*> passesLeft;
+        std::vector<ComputePass*> computePassesLeft;
         for (auto& pass : passes) { passesLeft.push_back(&pass); }
+        for (auto& pass : computePasses) { computePassesLeft.push_back(&pass); }
+        std::vector<std::tuple<RGTexture*, PassType, uint32_t>> readyOutputs;
+        std::vector<std::tuple<RGBuffer*, PassType, uint32_t>> readyBufferOutputs;
 
-        std::vector<RGTexture*> readyOutputs;
-        uint32_t intendedOutputIndex = 0;
-        uint32_t readyOutputIndex = 0;
-        while (passesLeft.size())
+        while (passesLeft.size() + computePassesLeft.size())
         {
-            std::vector<RenderPass*> passesWithFurtherLevel;
+            std::vector<RenderPass*> passesStillLeft;
+            std::vector<ComputePass*> computePassesStillLeft;
+            //gfx passes
             for (uint32_t i = 0; i < passesLeft.size(); i++)
             {
                 RenderPass* pass = passesLeft[i];
                 //if all a pass inputs are in the ready Outputs,pass belong to current level
                 bool currLevel = true;
+                uint64_t fenceVal = 0;
                 for (auto& input : pass->inputs)
                 {
-                    if (auto pos = std::find(readyOutputs.begin(), readyOutputs.begin() + readyOutputIndex, input.texture);
-                        pos == readyOutputs.begin() + readyOutputIndex)
+                    if (auto pos = std::find_if(readyOutputs.begin(), readyOutputs.end(),
+                        [input, &fenceVal](const std::tuple<RGTexture*,PassType,uint64_t>& output)
+                        {
+                            bool found = input.texture == std::get<0>(output);
+                            if (found)
+                                fenceVal = std::max(fenceVal, std::get<2>(output)) + (std::get<1>(output) != PassType::Graphics);
+                            return found;
+                        });
+                        pos == readyOutputs.end())
                     {
-                        //one input isn't ready, its not for this level
-                        passesWithFurtherLevel.push_back(pass);
+                        passesStillLeft.push_back(pass);
+                        currLevel = false;
+                        break;
+                    }
+                }
+                for (auto& input : pass->bufferInputs)
+                {
+                    if (auto pos = std::find_if(readyBufferOutputs.begin(), readyBufferOutputs.end(),
+                        [input, &fenceVal](const std::tuple<RGBuffer*, PassType, uint64_t>& output)
+                        {
+                            bool found = input == std::get<0>(output);
+                            if (found)
+                                fenceVal = std::max(fenceVal, std::get<2>(output)) + (std::get<1>(output) != PassType::Graphics);
+                            return found;
+                        });
+                        pos == readyBufferOutputs.end())
+                    {
+                        passesStillLeft.push_back(pass);
                         currLevel = false;
                         break;
                     }
                 }
                 if (currLevel)
                 {
-                    passesSorted.push_back(pass);
+                    passesSortedAndFence.push_back({ pass,fenceVal });
                     for (auto output : pass->outputs)
                     {
-                        intendedOutputIndex++;
-                        readyOutputs.push_back(output.texture);
+                        readyOutputs.push_back({ output.texture ,PassType::Graphics,fenceVal});
+                    }
+                    for (auto output : pass->bufferOutputs)
+                    {
+                        readyBufferOutputs.push_back({ output, PassType::Graphics, fenceVal });
                     }
                     if (pass->dsOutput.texture) 
                     {
-                        intendedOutputIndex++; readyOutputs.push_back(pass->dsOutput.texture);
+                        readyOutputs.push_back({ pass->dsOutput.texture,PassType::Graphics,fenceVal });
                     };
                 }
             }
-            readyOutputIndex = intendedOutputIndex;
-            passesLeft = std::move(passesWithFurtherLevel);
-            levelTransitionIndices.push_back(passesSorted.size());
+            //compute passes
+            for (uint32_t i = 0; i < computePassesLeft.size(); i++)
+            {
+                ComputePass* pass = computePassesLeft[i];
+                //if all a pass inputs are in the ready Outputs,pass belong to current level
+                bool currLevel = true;
+                uint64_t fenceVal = 0;
+                for (auto& input : pass->inputs)
+                {
+                    if (auto pos = std::find_if(readyOutputs.begin(), readyOutputs.end(),
+                        [input, &fenceVal](const std::tuple<RGTexture*, PassType, uint64_t>& output)
+                        {
+                            bool found = input.texture == std::get<0>(output);
+                            if (found)
+                                fenceVal = std::max(fenceVal, std::get<2>(output)) + (std::get<1>(output) != PassType::Compute);
+                            return found;
+                        });
+                        pos == readyOutputs.end())
+                    {
+                        computePassesStillLeft.push_back(pass);
+                        currLevel = false;
+                        break;
+                    }
+                }
+                for (auto& input : pass->bufferInputs)
+                {
+                    if (auto pos = std::find_if(readyBufferOutputs.begin(), readyBufferOutputs.end(),
+                        [input, &fenceVal](const std::tuple<RGBuffer*, PassType, uint64_t>& output)
+                        {
+                            bool found = input == std::get<0>(output);
+                            if (found)
+                                fenceVal = std::max(fenceVal, std::get<2>(output)) + (std::get<1>(output) != PassType::Graphics);
+                            return found;
+                        });
+                        pos == readyBufferOutputs.end())
+                    {
+                        computePassesStillLeft.push_back(pass);
+                        currLevel = false;
+                        break;
+                    }
+                }
+                if (currLevel)
+                {
+                    computePassesSortedAndFence.push_back({ pass,fenceVal });
+                    for (auto output : pass->outputs)
+                    {
+                        readyOutputs.push_back({ output.texture ,PassType::Compute,fenceVal });
+                    }
+                    for (auto output : pass->bufferOutputs)
+                    {
+                        readyBufferOutputs.push_back({ output, PassType::Compute, fenceVal });
+                    }
+                }
+            }
+            computePassesLeft = std::move(computePassesStillLeft);
+            levelTransitionIndices.push_back(passesSortedAndFence.size());
         }
 
 

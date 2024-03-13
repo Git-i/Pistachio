@@ -1,8 +1,8 @@
 #include "ptpch.h"
 #include "Material.h"
+#include "../Renderer/Renderer.h"
 #include "yaml-cpp\yaml.h"
 #include "../Asset/AssetManager.h"
-#include "../Renderer/Renderer.h"
 namespace YAML {
 	template<>
 	struct convert<DirectX::XMVECTOR>
@@ -78,47 +78,18 @@ namespace Pistachio
 		out << YAML::BeginMap;
 		out << YAML::Comment("Pistachio Material File");
 		out << YAML::Key << "Material" << YAML::Value << "Unnamed Materail";
-		out << YAML::Key << "DiffuseColor" << YAML::Value << (DirectX::XMFLOAT4)mat.diffuseColor;
-		out << YAML::Key << "Metallic" << YAML::Value << mat.metallic;
-		out << YAML::Key << "Roughness" << YAML::Value << mat.roughness;
-		out << YAML::Key << "DiffuseTex" << YAML::Value << mat.diffuseTexName;
-		out << YAML::Key << "NormalTex" << YAML::Value << mat.normalTexName;
-		out << YAML::Key << "MetallicTex" << YAML::Value << mat.metallicTexName;
-		out << YAML::Key << "RoughnessTex" << YAML::Value << mat.roughnessTexName;
+		out << YAML::Key << "Num Textures" << YAML::Value << (uint32_t)mat.m_textures.size();
+		for (uint32_t i = 0; i < mat.m_textures.size();i++)
+		{
+			out << YAML::Key << i << YAML::Value << GetAssetManager()->GetAssetFileName(mat.m_textures[i]);
+		}
 		out << YAML::EndMap;
 
 		std::ofstream fout(filepath, std::ios::binary | std::ios::out);
 		fout.write(out.c_str(), out.size());
 		fout.close();
 	}
-	void Material::Initialize()
-	{
-		data.Create(nullptr, sizeof(MaterialStruct));
-	}
-	void Material::Bind()
-	{
-		auto diff = GetAssetManager()->GetTexture2DResource(diffuseTex);
-		auto rough = GetAssetManager()->GetTexture2DResource(roughnessTex);
-		auto metal = GetAssetManager()->GetTexture2DResource(metallicTex);
-		auto norm = GetAssetManager()->GetTexture2DResource(normalTex);
-		if (diff) { diff->Bind(3); }
-		else { Renderer::whiteTexture.Bind(3); }
-		if (rough) { rough->Bind(4); }
-		else { Renderer::whiteTexture.Bind(4); }
-		if (metal) { metal->Bind(5); }
-		else { Renderer::whiteTexture.Bind(5); }
-		if (norm) { norm->Bind(6); }
-		else { Renderer::whiteTexture.Bind(6); }
-	}
-	void Material::Update()
-	{
-		MaterialStruct Mstruct;
-		Mstruct.albedo = diffuseColor;
-		Mstruct.metallic = metallic;
-		Mstruct.roughness = roughness;
-		Mstruct.ID = -1;
-		data.Update(&Mstruct, sizeof(MaterialStruct),0);
-	}
+	
 	Material* Material::Create(const char* filepath)
 	{
 		Material* mat = new Material;
@@ -131,27 +102,20 @@ namespace Pistachio
 			PT_CORE_ERROR("The file {0} is not a valid Pistachio Material", filepath);
 			return mat;
 		}
-		YAML::Node diffuseColor = data["DiffuseColor"];
-		YAML::Node metallic = data["Metallic"];
-		YAML::Node roughness = data["Roughness"];
-		YAML::Node diffuseTex = data["DiffuseTex"];
-		YAML::Node metallicTex = data["MetallicTex"];
-		YAML::Node roughnessTex = data["RoughnessTex"];
-		YAML::Node normalTex = data["NormalTex"];
-		auto assetMan = GetAssetManager();
-		mat->diffuseColor = diffuseColor.as<DirectX::XMFLOAT4>();
-		mat->diffuseTexName = diffuseTex.as<std::string>();
-		mat->metallicTexName = metallicTex.as<std::string>();
-		mat->roughnessTexName = roughnessTex.as<std::string>();
-		mat->normalTexName = normalTex.as<std::string>();
-		if(diffuseTex.as<std::string>() != "None")mat->diffuseTex = assetMan->CreateTexture2DAsset(std::string("assets/") + diffuseTex.as<std::string>());
-		if(metallicTex.as<std::string>() != "None")mat->metallicTex = assetMan->CreateTexture2DAsset(std::string("assets/") + metallicTex.as<std::string>());
-		if(roughnessTex.as<std::string>() != "None")mat->roughnessTex = assetMan->CreateTexture2DAsset(std::string("assets/") + roughnessTex.as<std::string>());
-		if(normalTex.as<std::string>() != "None")mat->normalTex = assetMan->CreateTexture2DAsset(std::string("assets/") + normalTex.as<std::string>());
-		mat->metallic = metallic.as<float>();
-		mat->roughness = roughness.as<float>();
-		mat->Initialize();
-		mat->Update();
+		uint32_t numTextures = data["Num Textures"].as<uint32_t>();
+		for (uint32_t i = 0; i < numTextures; i++)
+		{
+			mat->m_textures.push_back(GetAssetManager()->CreateTexture2DAsset(data[std::to_string(i)].as<std::string>()));
+		}
+		std::string shader_name = data["Shader Asset"].as<std::string>();
+		mat->shader = GetAssetManager()->CreateShaderAsset(shader_name);
+		ShaderAsset* shader = GetAssetManager()->GetShaderResource(mat->shader);
+		shader->GetShader()->GetPSShaderBinding(mat->mtlInfo, 3);
+		Renderer::AllocateConstantBuffer(shader->GetParamBufferSize());
+		BufferBindingUpdateDesc bufferDesc;
+		bufferDesc.buffer = Renderer::GetConstantBuffer();
+		
+		mat->mtlInfo.UpdateBufferBinding(,0)
 		return mat;
 	}
 }

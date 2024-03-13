@@ -161,6 +161,8 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClInclude Include="src\Pistachio\Core\EntryPoint.h" />
     <ClInclude Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.h" />
     <ClInclude Include="src\Pistachio\Core\Window.h" />
+    <ClInclude Include="src\Pistachio\Renderer\ShaderAsset.h" />
+    <ClInclude Include="src\Pistachio\Renderer\ShaderAssetCompiler.h" />
     <ClInclude Include="src\Pistachio\Renderer\ShadowMap.h" />
     <ClInclude Include="src\Pistachio\Scene\Components.h" />
     <ClInclude Include="src\Pistachio\Scene\CullingManager.h" />
@@ -538,6 +540,8 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClCompile Include="src\Pistachio\Core\Application.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputCallbacks.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsInputPoll.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\ShaderAsset.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\ShaderAssetCompiler.cpp" />
     <ClCompile Include="src\Pistachio\Scene\CullingManager.cpp" />
     <ClCompile Include="src\Pistachio\Scene\Entity.cpp" />
     <ClCompile Include="src\Pistachio\Scene\Scene.cpp" />

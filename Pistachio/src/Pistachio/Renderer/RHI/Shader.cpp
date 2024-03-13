@@ -262,6 +262,15 @@ namespace Pistachio {
 	}
 	Shader::Shader(){}
 
+	Shader::~Shader()
+	{
+		if (VS.data) free(VS.data);
+		if (PS.data) free(PS.data);
+		if (HS.data) free(HS.data);
+		if (GS.data) free(GS.data);
+		if (DS.data) free(DS.data);
+	}
+
 	Shader* Shader::Create(ShaderCreateDesc* desc)
 	{
 		Shader* shader = new Shader;
@@ -425,7 +434,8 @@ namespace Pistachio {
 		PSOdesc.HS = desc->HS;
 		PSOdesc.GS = desc->GS;
 		PSOdesc.DS = desc->DS;
-		
+		PSOdesc.shaderMode = desc->shaderMode;
+		mode = desc->shaderMode;
 		//only suppport 6 rtvs
 		PSOdesc.RTVFormats[0] = desc->RTVFormats[0];
 		PSOdesc.RTVFormats[1] = desc->RTVFormats[1];
@@ -545,9 +555,12 @@ namespace Pistachio {
 		std::vector<RHI::RootParameterDesc> rootParams;
 		std::vector<RHI::DescriptorRange> ranges;
 		uint32_t rangeOffset = 0;
-		if (!VS.empty())
+		if (VS.data)
 		{
-			RHI::ShaderReflection::CreateFromFile(VS.c_str(), &VSreflection);
+			if (mode == RHI::ShaderMode::File)
+				RHI::ShaderReflection::CreateFromFile(VS.data, &VSreflection);
+			else
+				RHI::ShaderReflection::CreateFromMemory(VS.data, VS.size, &VSreflection);
 			uint32_t numSets = VSreflection->GetNumDescriptorSets();
 			std::vector<RHI::SRDescriptorSet> sets(numSets);
 			VSreflection->GetAllDescriptorSets(sets.data());
@@ -579,9 +592,12 @@ namespace Pistachio {
 			CreateSetInfos(VSreflection, 0);
 			VSreflection->Release();
 		}
-		if (!PS.empty())
+		if (PS.data)
 		{
-			RHI::ShaderReflection::CreateFromFile(PS.c_str(), &PSreflection);
+			if (mode == RHI::ShaderMode::File)
+				RHI::ShaderReflection::CreateFromFile(PS.data, &PSreflection);
+			else
+				RHI::ShaderReflection::CreateFromMemory(PS.data, PS.size, &PSreflection);
 			uint32_t numSets = PSreflection->GetNumDescriptorSets();
 			std::vector<RHI::SRDescriptorSet> sets(numSets);
 			PSreflection->GetAllDescriptorSets(sets.data());
@@ -631,13 +647,6 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION();
 		PT_CORE_ASSERT(m_Shaders.find(name) == m_Shaders.end());
 		m_Shaders[name] = Shader;
-	}
-	Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::string& vertex, const std::string& fragment)
-	{
-		PT_PROFILE_FUNCTION();
-		auto shader = std::make_shared<Shader>();// ((wchar_t*)(vertex.c_str()), (wchar_t*)(fragment.c_str()));
-		Add(name, shader);
-		return shader;
 	}
 	Ref<Shader> ShaderLibrary::Get(const std::string& name)
 	{

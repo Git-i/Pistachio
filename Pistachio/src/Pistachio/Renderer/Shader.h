@@ -167,6 +167,7 @@ namespace Pistachio {
 		uint32_t numBlendModes = 0;
 		RHI::RasterizerMode* RasterizerModes = NULL;
 		uint32_t numRasterizerModes = 0;
+		RHI::ShaderMode shaderMode = RHI::ShaderMode::File;
 	};
 	enum class ShaderModeSetFlags
 	{
@@ -201,10 +202,12 @@ namespace Pistachio {
 		std::vector<SetInfo> sets;
 		
 	};
+	
 	class PISTACHIO_API Shader
 	{
 	public:
 		Shader();
+		~Shader();
 		static Shader* Create(ShaderCreateDesc* desc);
 		static Shader* CreateWithRs(ShaderCreateDesc* desc, RHI::RootSignature* rs,RHI::DescriptorSetLayout** layouts,uint32_t numLayouts);
 		void Bind(RHI::GraphicsCommandList* list);
@@ -226,6 +229,7 @@ namespace Pistachio {
 		void FillSetInfo(RHI::ShaderReflection* reflection,ShaderSetInfos& info);
 		void CreateRootSignature();
 	private:
+		friend class ShaderAsset;
 		std::unordered_map<PSOHash, RHI::PipelineStateObject*> PSOs;
 		ShaderSetInfos m_VSinfo;
 		ShaderSetInfos m_PSinfo;
@@ -235,16 +239,17 @@ namespace Pistachio {
 		RHI::Format rtvFormats[6];
 		RHI::Format dsvFormat;
 		uint32_t numRenderTargets;
-		std::string VS;
-		std::string PS;
-		std::string GS;
-		std::string HS;
-		std::string DS;
+		RHI::ShaderCode VS = {};
+		RHI::ShaderCode PS = {};
+		RHI::ShaderCode GS = {};
+		RHI::ShaderCode HS = {};
+		RHI::ShaderCode DS = {};
 		RHI::InputBindingDesc* InputBindingDescription;
 		RHI::InputElementDesc* InputElementDescription;
 		std::uint32_t numInputElements;
 		std::uint32_t numInputBindings;
 		PSOHash currentPSO;
+		RHI::ShaderMode mode;
 	};
 	class PISTACHIO_API ShaderLibrary
 	{
