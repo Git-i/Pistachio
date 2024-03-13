@@ -7,7 +7,7 @@ struct VS_OUT
     float4x4 view_mat : VIEW;
     float4 pos : SV_Position;
 };
-cbuffer FrameCB : register(b0)
+cbuffer FrameCB : register(b0, space0)
 {
     float4x4 View;
     float4x4 InvView;

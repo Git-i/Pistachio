@@ -29,7 +29,7 @@ cbuffer FrameCB : register(b0, space0)
     matrix lightSpaceMatrix[16];
     float4 numlights;
 };
-cbuffer ModelCB : register(b1, space1)
+cbuffer ModelCB : register(b0, space1)
 {
     matrix transform;
     matrix normalmatrix;

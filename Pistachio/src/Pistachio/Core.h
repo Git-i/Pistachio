@@ -89,7 +89,7 @@ namespace Pistachio {
 	
 }
 #ifdef _DEBUG
-#define PT_CORE_ASSERT(x) if(x){}else{__debugbreak();}
+#define PT_CORE_ASSERT(...) if(__VA_ARGS__){}else{__debugbreak();}
 #else
 #define PT_CORE_ASSERT(x) x
 #endif // _DEBUG
