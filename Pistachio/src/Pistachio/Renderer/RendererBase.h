@@ -99,6 +99,7 @@ namespace Pistachio {
 		static RHI::Instance* instance;
 		static RHI::SwapChain* swapChain;
 		static RHI::CommandQueue* directQueue;
+		static RHI::CommandQueue* computeQueue;
 		static RHI::Texture* backBufferTextures[2]; //todo: tripebuffering support
 		static RHI::Texture* depthTexture;
 		static RHI::DescriptorHeap* MainRTVheap;

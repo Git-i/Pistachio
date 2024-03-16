@@ -10,13 +10,22 @@ namespace Pistachio
 	{
 		Graphics, Compute
 	};
+	enum class PassAction : uint32_t
+	{
+		Signal = 1, Wait = 0
+	};
+	ENUM_FLAGS(PassAction);
 	class PISTACHIO_API RGBuffer
 	{
 	public:
 	private:
+		friend class RenderGraph;
 		RGBuffer() {}
 		RHI::Buffer* buffer;
-		RHI::ResourceLayout currentLayout;
+		RHI::ResourceAcessFlags currentAccess;
+		RHI::QueueFamily currentFamily;
+		uint32_t offset;
+		uint32_t size;
 	};
 	class PISTACHIO_API RGTexture
 	{
@@ -35,12 +44,14 @@ namespace Pistachio
 		//}
 	private:
 		friend class RenderGraph;
-		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, uint32_t MipSlice, bool isArray, uint32_t Slice) :
+		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, RHI::ResourceAcessFlags access, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice) :
 			texture(_texture),
 			current_layout(layout),
 			mipSlice(MipSlice),
 			IsArray(isArray),
-			arraySlice(Slice) {}
+			arraySlice(Slice),
+			currentAccess(access),
+			currentFamily(family){}
 		RGTexture() = default;
 		RGTexture(const RGTexture&) = default;
 		RGTexture(RGTexture&&) = default;
@@ -49,16 +60,18 @@ namespace Pistachio
 		uint32_t mipSlice;
 		bool IsArray;
 		uint32_t arraySlice;
+		RHI::ResourceAcessFlags currentAccess;
+		RHI::QueueFamily currentFamily;
 		//every resource can only have i input user and on output user
 		RTVHandle rtvHandle = { UINT32_MAX, UINT32_MAX };
 		DSVHandle dsvHandle = { UINT32_MAX, UINT32_MAX };//for output resources
-		RenderPass* inputUsers;
-		RenderPass* outputUsers;
+
 	};;
 	enum class AttachmentUsage
 	{
 		Graphics,//I: Shader Read, O: Color attachment
 		Copy, //I: Copy Src, O: Copy Dst
+		Compute //I: Shader Read, O: Shader Write
 	};
 	struct AttachmentInfo
 	{
@@ -66,6 +79,11 @@ namespace Pistachio
 		RGTexture* texture;
 		RHI::LoadOp loadOp = RHI::LoadOp::Clear;
 		AttachmentUsage usage = AttachmentUsage::Graphics;
+	};
+	struct BufferAttachmentInfo
+	{
+		RGBuffer* buffer;
+		AttachmentUsage usage;
 	};
 
 	class PISTACHIO_API RenderPass
@@ -86,17 +104,24 @@ namespace Pistachio
 		RHI::PipelineStateObject* pso = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
-		std::vector<RGBuffer*> bufferInputs;
-		std::vector<RGBuffer*> bufferOutputs;
+		std::vector<BufferAttachmentInfo> bufferInputs;
+		std::vector<BufferAttachmentInfo> bufferOutputs;
 		AttachmentInfo dsOutput = { (RHI::Format)0,nullptr };
+		bool signal = false;
 	};
+	//unlike the render-pass compute pipeline must be set
 	class PISTACHIO_API ComputePass
 	{
 	public:
+		std::function<void(RHI::GraphicsCommandList* list)> pass_fn;
+	private:
+		friend class RenderGraph;
+		RHI::ComputePipeline* computePipeline = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
-		std::vector<RGBuffer*> bufferInputs;
-		std::vector<RGBuffer*> bufferOutputs;
+		std::vector<BufferAttachmentInfo> bufferInputs;
+		std::vector<BufferAttachmentInfo> bufferOutputs;
+		bool signal = false;
 	};
 	struct RGCommandList
 	{
@@ -127,16 +152,21 @@ namespace Pistachio
 		RGTexture* CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex);
 		void Execute();
 	private:
-		bool ValidateGraph();
 		void SortPasses();
 	private:
+		bool dirty = true;
+		RHI::Fence* fence;
 		std::vector<RGTexture*> textures;
+		std::vector<RGBuffer*> buffers;
 		std::vector<RenderPass> passes;
 		std::vector<ComputePass> computePasses;
 		std::vector<std::pair<RenderPass*, uint32_t>> passesSortedAndFence;
 		std::vector<std::pair<ComputePass*, uint32_t>> computePassesSortedAndFence;
-		std::vector<uint32_t> levelTransitionIndices;
-		RGCommandList* cmdLists;
-		uint32_t numCmdLists;
+		std::vector<std::pair<uint32_t, PassAction>> levelTransitionIndices;
+		std::vector<std::pair<uint32_t, PassAction>> computeLevelTransitionIndices;
+		RGCommandList* cmdLists = 0;
+		uint32_t numGFXCmdLists;
+		RGCommandList* computeCmdLists = 0;
+		uint32_t numComputeCmdLists;
 	};
 }
