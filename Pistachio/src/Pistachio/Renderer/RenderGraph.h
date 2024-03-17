@@ -12,7 +12,7 @@ namespace Pistachio
 	};
 	enum class PassAction : uint32_t
 	{
-		Signal = 1, Wait = 0
+		Signal = 1, Wait = 1 << 1
 	};
 	ENUM_FLAGS(PassAction);
 	class PISTACHIO_API RGBuffer
@@ -99,6 +99,8 @@ namespace Pistachio
 	{
 	public:
 		~RenderPass();
+		RenderPass() = default;
+		RenderPass(const RenderPass& other);
 		void SetPassArea(const RHI::Area2D& area);
 		void AddColorInput(AttachmentInfo* info);
 		void AddColorOutput(AttachmentInfo* info);
@@ -155,7 +157,7 @@ namespace Pistachio
 	{
 	public:
 		~RenderGraph();
-		RenderGraph(uint32_t cmdListCount);
+		RenderGraph();
 		void Compile();
 		void SubmitToQueue();
 		void NewFrame();

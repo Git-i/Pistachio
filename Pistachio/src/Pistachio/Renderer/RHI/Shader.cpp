@@ -516,6 +516,7 @@ namespace Pistachio {
 		HS = desc->HS;
 		GS = desc->GS;
 		DS = desc->DS;
+		mode = desc->shaderMode;
 		CreateRootSignature();
 		CreateStackRs(desc, rootSig);
 		rootSig->Release();//we can safely release this reference to the RS because CreateStackRs holds one

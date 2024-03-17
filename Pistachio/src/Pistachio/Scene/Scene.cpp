@@ -103,7 +103,7 @@ static void ChangeVP(float size, Pistachio::iVector2 offset)
 namespace Pistachio {
 	//todo extremely temprary
 	static Shader* envshader;
-	Scene::Scene(SceneDesc desc) : sm_allocator({ 4096, 4096 }, {256, 256}),graph(2)
+	Scene::Scene(SceneDesc desc) : sm_allocator({ 4096, 4096 }, { 256, 256 })
 	{
 		//envshader = new Shader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso");
 		//envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
