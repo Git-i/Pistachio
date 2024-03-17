@@ -1,4 +1,5 @@
 #pragma once
+#include <dxcapi.h>
 namespace Pistachio
 {
 	enum class ShaderType
