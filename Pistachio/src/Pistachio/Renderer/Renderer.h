@@ -14,6 +14,7 @@
 #include "ShadowMap.h"
 #include "Pistachio\Allocators\FreeList.h"
 #include "BufferHandles.h"
+#include "Material.h"
 namespace Pistachio {
 	/*
 	* The New Renderer would probably have a huge Vertex Buffer or Vertex Buffer Array, same for index buffer

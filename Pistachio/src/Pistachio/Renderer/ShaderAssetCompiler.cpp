@@ -3,7 +3,6 @@
 #include <string_view>
 #include <sstream>
 #include <charconv>
-#include <dxcapi.h>
 #include "Pistachio\Utils\PlatformUtils.h"
 namespace Pistachio
 {
@@ -222,11 +221,6 @@ namespace Pistachio
 					errorBuf = "Invalid Slot declaration at line " + std::to_string(i + 1);
 					return 1;
 				}
-				if (slot < 1)
-				{
-					errorBuf = "Binding slot less than 1 at line" + std::to_string(i + 1);
-					return 1;
-				}
 				ostream << words[0] << " " << words[1] << " : register(t" << slot << ", space3);\n";
 				continue;
 			}
@@ -239,7 +233,7 @@ namespace Pistachio
 		}
 		if (!cbuffer.empty())
 		{
-			ostream << "cbuffer params_buffer : register(b0, space3)\n{\n" << cbuffer << "};\n";
+			ostream << "cbuffer params_buffer : register(b0, space4)\n{\n" << cbuffer << "};\n";
 		}
 		uint32_t shaderType = FindSection("ShaderType");
 		uint32_t shaderTypeLines = GetSectionLineCount(shaderType);

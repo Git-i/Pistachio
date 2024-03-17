@@ -3,6 +3,8 @@
 #include "Pistachio\Utils\PlatformUtils.h"
 namespace Pistachio
 {
+    std::vector<char>      ShaderAsset::vs;
+    RHI::ShaderReflection* ShaderAsset::VSReflection;
     ShaderAsset::~ShaderAsset()
     {
         shader.VS.data = nullptr; //avoid the shader destructor deletin this
@@ -106,8 +108,8 @@ namespace Pistachio
         rsMode.fillMode = RHI::FillMode::Solid;
         rsMode.topology = RHI::PrimitiveTopology::TriangleList;
         ShaderCreateDesc desc{};
-        desc.VS = vs.data();
-        desc.PS = code.data();
+        desc.VS = {vs.data()  ,(uint32_t)vs.size()};
+        desc.PS = {code.data(),(uint32_t)code.size()};
         desc.BlendModes = &blendMode;
         desc.DepthStencilModes = &dsMode;
         desc.RasterizerModes = &rsMode;
@@ -123,7 +125,7 @@ namespace Pistachio
         returnVal->shader.CreateSetInfos(VSReflection, PSReflection);
         PSReflection->Release();
 
-        RHI::RootParameterDesc rpDesc[4];
+        RHI::RootParameterDesc rpDesc[5];
         rpDesc[0].type = RHI::RootParameterType::DescriptorTable;
         rpDesc[0].descriptorTable.numDescriptorRanges = 1;
         rpDesc[0].descriptorTable.setIndex = 0;
@@ -150,15 +152,10 @@ namespace Pistachio
         for (uint32_t i = 0; i < 4; i++) rendererRanges[i].BaseShaderRegister = i;
         rpDesc[2].descriptorTable.ranges = rendererRanges;
 
-        rpDesc[3].type = RHI::RootParameterType::DescriptorTable;
+        rpDesc[3].type = RHI::RootParameterType::DescriptorTable;//Parameters constant buffer
         //user data
         std::vector<RHI::DescriptorRange> customRange;
-        customRange.reserve(returnVal->bindingsMap.size() + 1);
-        auto& parameterRange = customRange.emplace_back();
-        parameterRange.type = RHI::DescriptorType::ConstantBuffer;
-        parameterRange.stage = RHI::ShaderStage::Pixel;
-        parameterRange.BaseShaderRegister = 0;
-        parameterRange.numDescriptors = 1;
+        customRange.reserve(returnVal->bindingsMap.size());
         for (auto& [_, index] : returnVal->bindingsMap)
         {
             auto& range = customRange.emplace_back();
@@ -171,12 +168,17 @@ namespace Pistachio
         rpDesc[3].descriptorTable.ranges = customRange.data();
         rpDesc[3].descriptorTable.setIndex = 3;
 
+        rpDesc[4].type = RHI::RootParameterType::DynamicDescriptor;
+        rpDesc[4].dynamicDescriptor.setIndex = 4;
+        rpDesc[4].dynamicDescriptor.type = RHI::DescriptorType::ConstantBufferDynamic;
+        rpDesc[4].dynamicDescriptor.stage = RHI::ShaderStage::Pixel;
+
         RHI::RootSignatureDesc rsDesc;
-        rsDesc.numRootParameters = 4;
+        rsDesc.numRootParameters = 5;
         rsDesc.rootParameters = rpDesc;
         
         RHI::RootSignature* rs;
-        RHI::DescriptorSetLayout* layouts[4];
+        RHI::DescriptorSetLayout* layouts[5];
         RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
 
         returnVal->shader.CreateStackRs(&desc, rs);

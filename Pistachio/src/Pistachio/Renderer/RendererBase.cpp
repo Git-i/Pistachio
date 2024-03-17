@@ -22,6 +22,7 @@ std::uint64_t             Pistachio::RendererBase::currentFenceVal=0; //managing
 RHI::Fence*               Pistachio::RendererBase::mainFence;
 RHI::Fence*               Pistachio::RendererBase::stagingFence;
 RHI::DescriptorHeap*      Pistachio::RendererBase::heap;
+RHI::CommandQueue*		  Pistachio::RendererBase::computeQueue;
 RHI::Buffer*              Pistachio::RendererBase::stagingBuffer;
 RHI::Texture*			  Pistachio::RendererBase::depthTexture;
 uint32_t                  Pistachio::RendererBase::staginBufferPortionUsed = 0;
@@ -89,12 +90,17 @@ namespace Pistachio {
 
 		RHI::Surface surface;
 
-		RHI::CommandQueueDesc commandQueueDesc = {};
-		commandQueueDesc.CommandListType = RHI::CommandListType::Direct; // 1 direct cmd queue for now
-		commandQueueDesc.Priority = 1.f;//only really used in vulkan
+		RHI::CommandQueueDesc commandQueueDesc[2] {};
+		commandQueueDesc[0].CommandListType = RHI::CommandListType::Direct; // 1 direct cmd queue for now
+		commandQueueDesc[0].Priority = 1.f;//only really used in vulkan
+		commandQueueDesc[1].CommandListType = RHI::CommandListType::Compute;
+		commandQueueDesc[1].Priority = 1.f;
 
 		PT_CORE_INFO("Creating Device");
-		RHICreateDevice(physicalDevice, &commandQueueDesc, 1, &directQueue, instance->ID ,&device );
+		RHI::CommandQueue* queues[2];
+		RHICreateDevice(physicalDevice, commandQueueDesc, 2, queues, instance->ID ,&device );
+		directQueue = queues[0];
+		computeQueue = queues[1];
 		PT_CORE_INFO("Device Created ID:{0} Internal_ID:{1}", (void*)device, (void*)device->ID);
 		//todo handle multiplatform surface creation
 		PT_CORE_INFO("Creating Surface for Win32");

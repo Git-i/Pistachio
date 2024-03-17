@@ -38,7 +38,7 @@ public:
 		this->delta = delta;
 		frame++;
 		tex->InvalidateRTVHandle();
-		tex->SetResource(Pistachio::RendererBase::GetBackBufferTexture(Pistachio::RendererBase::GetCurrentRTVIndex()));
+		//tex->SetResource(Pistachio::RendererBase::GetBackBufferTexture(Pistachio::RendererBase::GetCurrentRTVIndex()));
 		graph.NewFrame();
 		graph.Execute();
 		graph.SubmitToQueue();
@@ -81,8 +81,8 @@ public:
 			{"SEM2", BufferLayoutFormat::FLOAT2, 6*4 }
 		};
 		ShaderCreateDesc desc{};
-		desc.VS = "Shaders/PBR_no_reflect_vs";
-		desc.PS = "Shaders/PBR_no_reflect_fs";
+		desc.VS = {(char*)"Shaders/PBR_no_reflect_vs",0};
+		desc.PS = { (char*)"Shaders/PBR_no_reflect_fs",0 };
 		desc.numDepthStencilModes = 2;
 		desc.DepthStencilModes = dsMode;
 		desc.DSVFormat = RHI::Format::D32_FLOAT;
@@ -119,8 +119,8 @@ public:
 		RHI::RootSignature* rs;
 		RendererBase::Getd3dDevice()->CreateRootSignature(&rsDesc, &rs, setlayout);
 		shad = Shader::CreateWithRs(&desc, rs, setlayout,2);
-		desc.VS = "Shaders/Compiled/background_vs";
-		desc.PS = "Shaders/Compiled/background_fs";
+		desc.VS ={(char*) "Shaders/Compiled/background_vs",0};
+		desc.PS = { (char*)"Shaders/Compiled/background_fs",0 };
 		desc.numDepthStencilModes = 1;
 		shad->SetDepthStencilMode(dsMode, ShaderModeSetFlags::AutomaticallyCreate);
 		dsMode[0].DepthFunc = RHI::ComparisonFunc::LessEqual;
