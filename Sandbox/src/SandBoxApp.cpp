@@ -28,8 +28,7 @@ public:
 		Layer(name), cam(45.f, 16.f / 9.f, 0.1, 100.f),
 		mesh("sphere.obj"),
 		cube("cube.obj"),
-		sphere(new Pistachio::Model("circle.obj")),
-		graph(1)
+		sphere(new Pistachio::Model("circle.obj"))
 	{
 	}
 	void OnUpdate(float delta) override
