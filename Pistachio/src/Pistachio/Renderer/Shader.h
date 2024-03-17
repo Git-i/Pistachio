@@ -149,11 +149,11 @@ namespace Pistachio {
 	struct ShaderCreateDesc
 	{
 		//Constant
-		const char* VS = NULL;
-		const char* PS = NULL;
-		const char* GS = NULL;
-		const char* HS = NULL;
-		const char* DS = NULL;
+		RHI::ShaderCode VS = {NULL,NULL};
+		RHI::ShaderCode PS = {NULL,NULL};
+		RHI::ShaderCode GS = {NULL,NULL};
+		RHI::ShaderCode HS = {NULL,NULL};
+		RHI::ShaderCode DS = {NULL,NULL};
 		uint32_t NumRenderTargets = 1;	//can't be changed because this is with the pixel shader
 		RHI::Format RTVFormats[8]; // make this constant too??, or make it such that a shader can be used with multipe rtv formats
 		RHI::Format DSVFormat;
@@ -203,6 +203,24 @@ namespace Pistachio {
 		
 	};
 	
+	class PISTACHIO_API ComputeShader
+	{
+	public:
+		ComputeShader() {};
+		~ComputeShader();
+		static ComputeShader* Create(const RHI::ShaderCode& code, RHI::ShaderMode mode);
+		void GetShaderBinding(SetInfo& info, uint32_t setIndex);
+		static ComputeShader* CreateWithRs(const RHI::ShaderCode& code, RHI::ShaderMode mode, RHI::RootSignature* rSig);
+	private:
+		friend class ComputePass;
+		void CreateRootSignature(const RHI::ShaderCode& code, RHI::ShaderMode mode);
+		void CreateSetInfos(RHI::ShaderReflection* reflection);
+		RHI::RootSignature* rSig;
+		RHI::DescriptorSetLayout** layouts;
+		RHI::ComputePipeline* pipeline;
+		uint32_t numLayouts;
+		ShaderSetInfos m_info;
+	};
 	class PISTACHIO_API Shader
 	{
 	public:
