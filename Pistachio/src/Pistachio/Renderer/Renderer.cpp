@@ -287,7 +287,7 @@ namespace Pistachio {
 	void Renderer::ChangeSkybox(const char* filename)
 	{
 		//the skybox texture
-		RenderGraph skyboxRG(1);
+		RenderGraph skyboxRG;
 		static Texture2D tex;
 		tex.CreateStack(filename, RHI::Format::R32G32B32A32_FLOAT);
 

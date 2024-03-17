@@ -19,12 +19,13 @@ namespace Pistachio
         }
         delete[] cmdLists;
     }
-    RenderGraph::RenderGraph(uint32_t numCmdLists)
+    RenderGraph::RenderGraph()
     {
-        
+        RendererBase::device->CreateFence(&fence, 0);
     }
     void RenderGraph::SubmitToQueue()
     {
+        if(levelTransitionIndices.size())
         RendererBase::directQueue->WaitForFence(fence, passesSortedAndFence[0].second);
         for (uint32_t i = 0; i < levelTransitionIndices.size(); i++)
         {
@@ -40,6 +41,7 @@ namespace Pistachio
                 RendererBase::directQueue->SignalFence(fence, passesSortedAndFence[j].second + 2);
             }
         }
+        if(computeLevelTransitionIndices.size())
         RendererBase::computeQueue->WaitForFence(fence, computePassesSortedAndFence[0].second);
         for (uint32_t i = 0; i < computeLevelTransitionIndices.size(); i++)
         {
@@ -123,6 +125,21 @@ namespace Pistachio
     RenderPass::~RenderPass()
     {
         if (pso) pso->Release();
+        pso = nullptr;
+    }
+    RenderPass::RenderPass(const RenderPass& other)
+    {
+        pass_fn = other.pass_fn;
+        stage= other.stage;
+        area= other.area;
+        pso= other.pso;
+        inputs=other.inputs;
+        outputs= other.outputs;
+        bufferInputs= other.bufferInputs;
+        bufferOutputs= other.bufferOutputs;
+        dsOutput = other.dsOutput;
+        signal = other.signal;
+        pso->Hold();
     }
     void RenderPass::SetPassArea(const RHI::Area2D& _area)
     {
@@ -555,7 +572,8 @@ namespace Pistachio
         for (auto& pass : computePasses) { computePassesLeft.push_back(&pass); }
         std::vector<std::tuple<RGTexture*, PassType, uint32_t, void*>> readyOutputs;
         std::vector<std::tuple<RGBuffer*, PassType, uint32_t, void*>> readyBufferOutputs;
-
+        computePassesSortedAndFence.clear();
+        passesSortedAndFence.clear();
         while (passesLeft.size() + computePassesLeft.size())
         {
             std::vector<RenderPass*> passesStillLeft;
@@ -707,13 +725,19 @@ namespace Pistachio
             }
             passesLeft = std::move(passesStillLeft);
             computePassesLeft = std::move(computePassesStillLeft);
-            if (!(levelTransitionIndices.size() && (levelTransitionIndices.end() - 1)->first == passesSortedAndFence.size()))
-                levelTransitionIndices.push_back({ passesSortedAndFence.size(),PassAction::Wait });
-            if (!(computeLevelTransitionIndices.size() && (computeLevelTransitionIndices.end() - 1)->first == computePassesSortedAndFence.size()))
-                computeLevelTransitionIndices.push_back({ computePassesSortedAndFence.size(),PassAction::Wait });
+            if (passesSortedAndFence.size())
+            {
+                if (!(levelTransitionIndices.size() && (levelTransitionIndices.end() - 1)->first == passesSortedAndFence.size()))
+                    levelTransitionIndices.push_back({ passesSortedAndFence.size(),PassAction::Wait });
+            }
+            if (computePassesSortedAndFence.size())
+            {
+                if (!(computeLevelTransitionIndices.size() && (computeLevelTransitionIndices.end() - 1)->first == computePassesSortedAndFence.size()))
+                    computeLevelTransitionIndices.push_back({ computePassesSortedAndFence.size(),PassAction::Wait });
+            }
         }
-        (levelTransitionIndices.end() - 1)->second = (PassAction)0;
-        (computeLevelTransitionIndices.end() - 1)->second = (PassAction)0;
+        if(levelTransitionIndices.size())(levelTransitionIndices.end() - 1)->second = (PassAction)0;
+        if(computeLevelTransitionIndices.size())(computeLevelTransitionIndices.end() - 1)->second = (PassAction)0;
         //Go through every level
         for (uint32_t i = 0; i < levelTransitionIndices.size(); i++)
         {
@@ -802,9 +826,10 @@ namespace Pistachio
         for (uint32_t i = 0; i < numComputeCmdLists; i++)
         {
             RendererBase::device->CreateCommandList(RHI::CommandListType::Compute,
-                RendererBase::commandAllocators[RendererBase::currentFrameIndex], &cmdLists[i].list);
+                RendererBase::commandAllocators[RendererBase::currentFrameIndex], &computeCmdLists[i].list);
         }
         dirty = false;
+        NewFrame();
     }
 
 }
