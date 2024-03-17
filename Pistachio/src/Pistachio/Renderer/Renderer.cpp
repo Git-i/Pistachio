@@ -160,8 +160,9 @@ namespace Pistachio {
 		rsMode.fillMode = RHI::FillMode::Solid;
 		rsMode.topology = RHI::PrimitiveTopology::TriangleList;
 		ShaderCreateDesc ShaderDesc{};
-		ShaderDesc.VS = "resources/shaders/vertex/Compiled/equirectangular_to_cubemap_vs";
-		ShaderDesc.PS = "resources/shaders/pixel/Compiled/equirectangular_to_cubemap_fs";
+		ShaderDesc.VS = {(char*)"resources/shaders/vertex/Compiled/equirectangular_to_cubemap_vs",0};
+		ShaderDesc.PS = {(char*)"resources/shaders/pixel/Compiled/equirectangular_to_cubemap_fs" ,0};
+		ShaderDesc.shaderMode = RHI::ShaderMode::File;
 		ShaderDesc.BlendModes = &blendMode;
 		ShaderDesc.DepthStencilModes = &dsMode;
 		ShaderDesc.RasterizerModes = &rsMode;
@@ -178,13 +179,13 @@ namespace Pistachio {
 		for(uint32_t i = 0; i < 6; i++)
 			eqShader->GetVSShaderBinding(eqShaderVS[i], 0);
 		skybox.CreateStack(512, 512, 1, RHI::Format::R16G16B16A16_FLOAT);
-		ShaderDesc.PS = "resources/shaders/pixel/Compiled/irradiance_fs";
+		ShaderDesc.PS = { (char*)"resources/shaders/pixel/Compiled/irradiance_fs",0 };
 		irradianceShader = Shader::Create(&ShaderDesc);
 		irradianceShader->GetPSShaderBinding(irradianceShaderPS,1);
 		irradianceSkybox.CreateStack(32, 32, 1, RHI::Format::R16G16B16A16_FLOAT);
 
-		ShaderDesc.VS = "resources/shaders/vertex/Compiled/prefilter_vs";
-		ShaderDesc.PS = "resources/shaders/pixel/Compiled/prefilter_fs";
+		ShaderDesc.VS = {(char*)"resources/shaders/vertex/Compiled/prefilter_vs",0};
+		ShaderDesc.PS = {(char*)"resources/shaders/pixel/Compiled/prefilter_fs" ,0};
 		prefilterShader = Shader::Create(&ShaderDesc);
 		for(uint32_t i = 0; i < 5; i++)
 			prefilterShader->GetVSShaderBinding(prefilterShaderVS[i], 2);
@@ -197,8 +198,8 @@ namespace Pistachio {
 		dsModeEnabledLEqual.StencilEnable = false;
 
 		//Fill the shader library
-		ShaderDesc.VS = "resources/shaders/vertex/Compiled/VertexShader";
-		ShaderDesc.PS = "resources/shaders/pixel/Compiled/gbuffer_write";
+		ShaderDesc.VS = {(char*)"resources/shaders/vertex/Compiled/VertexShader",0};
+		ShaderDesc.PS = { (char*)"resources/shaders/pixel/Compiled/gbuffer_write",0 };
 		ShaderDesc.DepthStencilModes = &dsModeEnabledLEqual;
 		ShaderDesc.NumRenderTargets = 3;
 		ShaderDesc.RTVFormats[0] = RHI::Format::R8G8B8A8_UNORM;
@@ -251,15 +252,15 @@ namespace Pistachio {
 		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
 		shaderlib.Add("GBuffer-Shader", std::shared_ptr<Shader>(Shader::CreateWithRs(&ShaderDesc,rs,layouts,3)));
 		rs->Release();
-		ShaderDesc.VS = "resources/shaders/vertex/Compiled/VertexShader";
-		ShaderDesc.PS = nullptr;
+		ShaderDesc.VS = { (char*)"resources/shaders/vertex/Compiled/VertexShader", 0 };
+		ShaderDesc.PS = { nullptr,0 };
 		ShaderDesc.NumRenderTargets = 0;
 		shaderlib.Add("Shadow-Shader", std::shared_ptr<Shader>(Shader::Create(&ShaderDesc)));
 		//for this we dont need depth testing
 		ShaderDesc.DepthStencilModes = &dsMode;
 		ShaderDesc.NumRenderTargets = 1;
-		ShaderDesc.VS = "resources/shaders/vertex/Compiled/vertex_shader_no_transform";
-		ShaderDesc.PS = "resources/shaders/pixel/Compiled/DefferedShading_fs";
+		ShaderDesc.VS = { (char*)"resources/shaders/vertex/Compiled/vertex_shader_no_transform",0 };
+		ShaderDesc.PS = { (char*)"resources/shaders/pixel/Compiled/DefferedShading_fs",0 };
 		shaderlib.Add("PBR-Deferred-Shader", std::shared_ptr<Shader>(Shader::Create(&ShaderDesc)));
 		BYTE data[4] = { 255,255,255,255 };
 		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
@@ -690,7 +691,7 @@ namespace Pistachio {
 		if ((mat == currentMat));
 		else
 		{
-			mat->Bind();
+			//mat->Bind();
 			currentMat = mat;
 		}
 		if (shader == currentShader);

@@ -112,10 +112,7 @@ namespace Pistachio
 		ShaderAsset* shader = GetAssetManager()->GetShaderResource(mat->shader);
 		shader->GetShader()->GetPSShaderBinding(mat->mtlInfo, 3);
 		Renderer::AllocateConstantBuffer(shader->GetParamBufferSize());
-		BufferBindingUpdateDesc bufferDesc;
-		bufferDesc.buffer = Renderer::GetConstantBuffer();
 		
-		mat->mtlInfo.UpdateBufferBinding(,0)
 		return mat;
 	}
 }
