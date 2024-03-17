@@ -20,7 +20,16 @@ namespace Pistachio
 	public:
 	private:
 		friend class RenderGraph;
-		RGBuffer() {}
+		RGBuffer(RHI::Buffer* _buffer, uint32_t _offset, uint32_t _size,RHI::ResourceAcessFlags access, RHI::QueueFamily family) :
+			buffer(_buffer),
+			currentAccess(access),
+			currentFamily(family),
+			offset(_offset),
+			size  (_size)
+		{}
+		RGBuffer() = default;
+		RGBuffer(const RGBuffer&) = default;
+		RGBuffer(RGBuffer&&) = default;
 		RHI::Buffer* buffer;
 		RHI::ResourceAcessFlags currentAccess;
 		RHI::QueueFamily currentFamily;
@@ -51,7 +60,8 @@ namespace Pistachio
 			IsArray(isArray),
 			arraySlice(Slice),
 			currentAccess(access),
-			currentFamily(family){}
+			currentFamily(family)
+		{}
 		RGTexture() = default;
 		RGTexture(const RGTexture&) = default;
 		RGTexture(RGTexture&&) = default;
@@ -62,7 +72,6 @@ namespace Pistachio
 		uint32_t arraySlice;
 		RHI::ResourceAcessFlags currentAccess;
 		RHI::QueueFamily currentFamily;
-		//every resource can only have i input user and on output user
 		RTVHandle rtvHandle = { UINT32_MAX, UINT32_MAX };
 		DSVHandle dsvHandle = { UINT32_MAX, UINT32_MAX };//for output resources
 
@@ -89,11 +98,12 @@ namespace Pistachio
 	class PISTACHIO_API RenderPass
 	{
 	public:
+		~RenderPass();
 		void SetPassArea(const RHI::Area2D& area);
 		void AddColorInput(AttachmentInfo* info);
 		void AddColorOutput(AttachmentInfo* info);
-		void AddBufferInput(RGBuffer* buffer);
-		void AddBufferOutput(RGBuffer* buffer);
+		void AddBufferInput(BufferAttachmentInfo* buffer);
+		void AddBufferOutput(BufferAttachmentInfo* buffer);
 		void SetShader(Shader* shader);//Make sure the shader is already preconfigured to desired state
 		void SetDepthStencilOutput(AttachmentInfo* info);
 		std::function<void(RHI::GraphicsCommandList* list)> pass_fn;
@@ -113,6 +123,13 @@ namespace Pistachio
 	class PISTACHIO_API ComputePass
 	{
 	public:
+		~ComputePass();
+		void AddColorInput(AttachmentInfo* info);
+		void AddColorOutput(AttachmentInfo* info);
+		void AddBufferInput(BufferAttachmentInfo* buffer);
+		void AddBufferOutput(BufferAttachmentInfo* buffer);
+		void SetShader(ComputeShader* shader);
+		void SetShader(RHI::ComputePipeline* pipeline);
 		std::function<void(RHI::GraphicsCommandList* list)> pass_fn;
 	private:
 		friend class RenderGraph;
@@ -143,13 +160,15 @@ namespace Pistachio
 		void SubmitToQueue();
 		void NewFrame();
 		RenderPass& AddPass(RHI::PipelineStage stage, const char* passName);
+		ComputePass& AddComputePass(const char* passName);
 		void RemovePass(const char* passName);
 		void GetPass(const char* passName);
-		RGTexture* CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED);
-		RGTexture* CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED);
+		RGTexture* CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
+		RGTexture* CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED,RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family= RHI::QueueFamily::Ignored);
 		RGTexture* CreateTexture(RenderTexture* texture);
 		RGTexture* CreateTexture(DepthTexture* texture);
 		RGTexture* CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex);
+		RGBuffer* CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
 		void Execute();
 	private:
 		void SortPasses();

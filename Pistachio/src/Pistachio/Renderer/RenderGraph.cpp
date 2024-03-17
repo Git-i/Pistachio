@@ -70,41 +70,63 @@ namespace Pistachio
     }
     RGTexture* RenderGraph::CreateTexture(RenderTexture* texture)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, 0, false, 0));
+        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags::NONE, RHI::QueueFamily::Ignored, 0, false, 0));
         tex->rtvHandle = texture->RTView;
         return tex;
     }
     RGTexture* RenderGraph::CreateTexture(DepthTexture* texture)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, 0, false, 0));
+        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED,RHI::ResourceAcessFlags::NONE, RHI::QueueFamily::Ignored ,0, false, 0));
         tex->dsvHandle = texture->DSView;
         return tex;
     }
     RGTexture* RenderGraph::CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, 0, true, cubeIndex));
+        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags::NONE, RHI::QueueFamily::Ignored, 0, true, cubeIndex));
         tex->rtvHandle = texture->RTViews[cubeIndex];
         return tex;
+    }
+    RGBuffer* RenderGraph::CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::ResourceAcessFlags access, RHI::QueueFamily family)
+    {
+        auto buff = buffers.emplace_back(new RGBuffer(buffer, offset, size, access, family));
+        return buff;
     }
     RenderPass& RenderGraph::AddPass(RHI::PipelineStage stage, const char* name)
     {
         auto& pass = passes.emplace_back();
         pass.stage = stage;
+        dirty = true;
         return pass;
     }
-    RGTexture* RenderGraph::CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice, bool isArray , uint32_t arraySlice, RHI::ResourceLayout layout)
+    ComputePass& RenderGraph::AddComputePass(const char* passName)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), layout, mipSlice, isArray, arraySlice));
+        auto& pass = computePasses.emplace_back();
+        dirty = true;
+        return pass;
+    }
+    RGTexture* RenderGraph::CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice, bool isArray , uint32_t arraySlice, RHI::ResourceLayout layout,RHI::ResourceAcessFlags flags , RHI::QueueFamily family)
+    {
+        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), layout, flags, family,mipSlice, isArray, arraySlice));
         return tex;
     }
-    RGTexture* RenderGraph::CreateTexture(RHI::Texture* texture, uint32_t mipSlice, bool isArray, uint32_t arraySlice, RHI::ResourceLayout layout)
+    RGTexture* RenderGraph::CreateTexture(RHI::Texture* texture, uint32_t mipSlice, bool isArray, uint32_t arraySlice, RHI::ResourceLayout layout,RHI::ResourceAcessFlags flags, RHI::QueueFamily family)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture, layout,mipSlice,isArray,arraySlice));
+        auto tex = textures.emplace_back(new RGTexture(texture, layout, flags, family, mipSlice,isArray,arraySlice));
         return tex;
     }
     void RenderPass::SetShader(Shader* shader)
     {
+        if (pso) pso->Release();
         pso = shader->GetCurrentPipeline();
+        pso->Hold();
+    }
+    RenderPass::~RenderPass()
+    {
+        if (pso) pso->Release();
+    }
+    void RenderPass::SetPassArea(const RHI::Area2D& _area)
+    {
+        area = _area;
     }
     void RenderPass::AddColorInput(AttachmentInfo* info)
     {
@@ -114,9 +136,46 @@ namespace Pistachio
     {
         outputs.push_back(*info);
     }
-    void RenderPass::SetPassArea(const RHI::Area2D& _area)
+    void RenderPass::AddBufferInput(BufferAttachmentInfo* buffer)
     {
-        area = _area;
+        bufferInputs.push_back(*buffer);
+    }
+    void RenderPass::AddBufferOutput(BufferAttachmentInfo* buffer)
+    {
+        bufferOutputs.push_back(*buffer);
+    }
+
+    ComputePass::~ComputePass()
+    {
+        if (computePipeline) computePipeline->Release();
+    }
+
+    void ComputePass::AddColorInput(AttachmentInfo* info)
+    {
+        inputs.push_back(*info);
+    }
+    void ComputePass::AddColorOutput(AttachmentInfo* info)
+    {
+        outputs.push_back(*info);
+    }
+    void ComputePass::AddBufferInput(BufferAttachmentInfo* buffer)
+    {
+        bufferInputs.push_back(*buffer);
+    }
+    void ComputePass::AddBufferOutput(BufferAttachmentInfo* buffer)
+    {
+        bufferOutputs.push_back(*buffer);
+    }
+    void ComputePass::SetShader(ComputeShader* shader)
+    {
+        if (computePipeline) computePipeline->Release();
+        computePipeline = shader->pipeline;
+        computePipeline->Hold();
+    }
+    void ComputePass::SetShader(RHI::ComputePipeline* pipeline)
+    {
+        computePipeline = pipeline;
+        computePipeline->Hold();
     }
     void RenderPass::SetDepthStencilOutput(AttachmentInfo* info) { dsOutput = *info; }
     RHI::ResourceLayout InputLayout(AttachmentUsage usage)
