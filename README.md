@@ -1,13 +1,8 @@
 # Pistachio
 Pistachio Game Engine
 
+## Branch Details
+This is the branch for adding the [RHI](https://github.com/Git-i/RHI). also the engine is being replaced with a clustered forward renderer. For a branch the builds checkout [dev](https://github.com/Git-i/Pistachio/tree/dev) or [main](https://github.com/Git-i/Pistachio/tree/main).
+
 ## Building
-Run `git clone https://github.com/Git-i/Pistachio.git`
-In the main folder Generate Project files for your Development Environment using Cmake...
-Visual Studio 2022 Projects are provided by default
-
-## Screenshots
-![Iron Monkey](Screenshots/IronMonkey.png)
-![PBR Test Scene](Screenshots/PBRTestScene.png)
-
-*In Visual Studio Manually set the startup project to be Sandbox and not ALL_BUILD*
+Currently the only build system available is with Visual Studio. CMake support was dropped in a random commit, but will be added soon (the engine is to be ported to linux).
