@@ -28,6 +28,11 @@ namespace Pistachio
             SafeRelease();
             ptr = nullptr;
         }
+        void operator=(const RHIPtr<T>& other)
+        {
+            ptr = other.ptr;
+            ptr->Hold();
+        }
         void operator=(T* other)
         {
             SafeRelease();

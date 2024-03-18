@@ -99,8 +99,6 @@ namespace Pistachio
 	{
 	public:
 		~RenderPass();
-		RenderPass() = default;
-		RenderPass(const RenderPass& other);
 		void SetPassArea(const RHI::Area2D& area);
 		void AddColorInput(AttachmentInfo* info);
 		void AddColorOutput(AttachmentInfo* info);
@@ -113,7 +111,7 @@ namespace Pistachio
 		friend class RenderGraph;
 		RHI::PipelineStage stage;
 		RHI::Area2D area;
-		RHI::PipelineStateObject* pso = nullptr;
+		RHIPtr<RHI::PipelineStateObject> pso = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
 		std::vector<BufferAttachmentInfo> bufferInputs;
@@ -135,7 +133,7 @@ namespace Pistachio
 		std::function<void(RHI::GraphicsCommandList* list)> pass_fn;
 	private:
 		friend class RenderGraph;
-		RHI::ComputePipeline* computePipeline = nullptr;
+		RHIPtr<RHI::ComputePipeline> computePipeline = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
 		std::vector<BufferAttachmentInfo> bufferInputs;

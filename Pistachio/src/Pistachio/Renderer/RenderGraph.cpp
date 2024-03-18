@@ -118,28 +118,11 @@ namespace Pistachio
     }
     void RenderPass::SetShader(Shader* shader)
     {
-        if (pso) pso->Release();
         pso = shader->GetCurrentPipeline();
         pso->Hold();
     }
     RenderPass::~RenderPass()
     {
-        if (pso) pso->Release();
-        pso = nullptr;
-    }
-    RenderPass::RenderPass(const RenderPass& other)
-    {
-        pass_fn = other.pass_fn;
-        stage= other.stage;
-        area= other.area;
-        pso= other.pso;
-        inputs=other.inputs;
-        outputs= other.outputs;
-        bufferInputs= other.bufferInputs;
-        bufferOutputs= other.bufferOutputs;
-        dsOutput = other.dsOutput;
-        signal = other.signal;
-        pso->Hold();
     }
     void RenderPass::SetPassArea(const RHI::Area2D& _area)
     {
@@ -164,7 +147,6 @@ namespace Pistachio
 
     ComputePass::~ComputePass()
     {
-        if (computePipeline) computePipeline->Release();
     }
 
     void ComputePass::AddColorInput(AttachmentInfo* info)
@@ -185,7 +167,6 @@ namespace Pistachio
     }
     void ComputePass::SetShader(ComputeShader* shader)
     {
-        if (computePipeline) computePipeline->Release();
         computePipeline = shader->pipeline;
         computePipeline->Hold();
     }
@@ -433,7 +414,7 @@ namespace Pistachio
                     }
                 }
                 currentList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, pass->stage, bufferBarrierCount, bufferBarriers, barrierCount, barriers);
-                if (pass->pso) currentList->SetPipelineState(pass->pso);
+                if (pass->pso.Get()) currentList->SetPipelineState(pass->pso.Get());
                 if (attachmentCount) currentList->BeginRendering(&rbDesc);
                 pass->pass_fn(currentList);
                 if (attachmentCount) currentList->EndRendering();
@@ -555,7 +536,7 @@ namespace Pistachio
                     }
                 }
                 currentList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::COMPUTE_SHADER_BIT, bufferBarrierCount, bufferBarriers, barrierCount, barriers);
-                currentList->SetComputePipeline(pass->computePipeline);
+                currentList->SetComputePipeline(pass->computePipeline.Get());
                 pass->pass_fn(currentList);
                 delete[] barriers;
                 delete[] bufferBarriers;
