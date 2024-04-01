@@ -156,7 +156,7 @@ namespace Pistachio {
 			std::vector<uint32_t>& freeHandlesVector,
 			RHI::Buffer** buffer,
 			uint32_t size, 
-			const void* initialData=nullptr);
+			const void* initialData = nullptr);
 	private:
 		static void (*CBInvalidated)();
 		//New Renderer

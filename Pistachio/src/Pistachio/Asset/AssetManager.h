@@ -23,6 +23,8 @@ namespace Pistachio
 		friend class Asset;
 	private:
 		Asset CreateAsset(const std::string& filename, ResourceType type);
+		//intended to only be used by engine developer. it will most likely leak memory otherwise
+		Asset FromResource(RefCountedObject* resource, const std::string& str_id, ResourceType type);
 	private:
 		std::unordered_map<std::string, UUID> pathUUIDMap;
 		std::unordered_map<UUID, RefCountedObject*> assetResourceMap;

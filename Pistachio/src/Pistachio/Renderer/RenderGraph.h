@@ -18,6 +18,10 @@ namespace Pistachio
 	class PISTACHIO_API RGBuffer
 	{
 	public:
+		RGBuffer() = default;
+		RGBuffer(const RGBuffer&) = default;
+		RGBuffer(RGBuffer&&) = default;
+		RGBuffer& operator=(const RGBuffer&) = default;
 	private:
 		friend class RenderGraph;
 		RGBuffer(RHI::Buffer* _buffer, uint32_t _offset, uint32_t _size,RHI::ResourceAcessFlags access, RHI::QueueFamily family) :
@@ -27,9 +31,6 @@ namespace Pistachio
 			offset(_offset),
 			size  (_size)
 		{}
-		RGBuffer() = default;
-		RGBuffer(const RGBuffer&) = default;
-		RGBuffer(RGBuffer&&) = default;
 		RHI::Buffer* buffer;
 		RHI::ResourceAcessFlags currentAccess;
 		RHI::QueueFamily currentFamily;
@@ -39,6 +40,10 @@ namespace Pistachio
 	class PISTACHIO_API RGTexture
 	{
 	public:
+		RGTexture() = default;
+		RGTexture(const RGTexture&) = default;
+		RGTexture(RGTexture&&) = default;
+		RGTexture& operator=(const RGTexture&) = default;
 		void InvalidateRTVHandle()
 		{
 			//todo invalidate should only destroy if the render graph created it, that is
@@ -62,9 +67,7 @@ namespace Pistachio
 			currentAccess(access),
 			currentFamily(family)
 		{}
-		RGTexture() = default;
-		RGTexture(const RGTexture&) = default;
-		RGTexture(RGTexture&&) = default;
+		
 		RHI::Texture* texture;
 		RHI::ResourceLayout current_layout;
 		uint32_t mipSlice;
@@ -75,7 +78,57 @@ namespace Pistachio
 		RTVHandle rtvHandle = { UINT32_MAX, UINT32_MAX };
 		DSVHandle dsvHandle = { UINT32_MAX, UINT32_MAX };//for output resources
 
-	};;
+	};
+	struct PISTACHIO_API RGTextureInstance
+	{
+		uint32_t texOffset;//original texture
+		uint32_t instID;
+		bool operator==(const RGTextureInstance& other) const
+		{
+			return (texOffset == other.texOffset) && (instID == instID);
+		}
+		bool operator!=(const RGTextureInstance& other) const
+		{
+			return !((*this) == other);
+		}
+		static const RGTextureInstance Invalid;
+	};
+	
+	struct PISTACHIO_API RGBufferInstance
+	{
+		uint32_t buffOffset;
+		uint32_t instID;
+		bool operator==(const RGBufferInstance& other) const
+		{
+			return (buffOffset == other.buffOffset) && (instID == instID);
+		}
+		bool operator!=(const RGBufferInstance& other) const
+		{
+			return !((*this) == other);
+		}
+		static const RGBufferInstance Invalid;
+	};
+	//instance 0 is used as default instance
+	struct RGTextureHandle 
+	{
+		std::vector<RGTexture>* originVector;
+		uint32_t offset;
+		uint32_t numInstances;
+		operator RGTextureInstance() const
+		{
+			return RGTextureInstance{ offset, 0 };
+		}
+	};
+	struct RGBufferHandle
+	{
+		std::vector<RGBuffer>* originVector;
+		uint32_t offset;
+		uint32_t numInstances;
+		operator RGBufferInstance() const
+		{
+			return RGBufferInstance{ offset, 0 };
+		}
+	};
 	enum class AttachmentUsage
 	{
 		Graphics,//I: Shader Read, O: Color attachment
@@ -85,13 +138,13 @@ namespace Pistachio
 	struct AttachmentInfo
 	{
 		RHI::Format format;
-		RGTexture* texture;
+		RGTextureInstance texture;
 		RHI::LoadOp loadOp = RHI::LoadOp::Clear;
 		AttachmentUsage usage = AttachmentUsage::Graphics;
 	};
 	struct BufferAttachmentInfo
 	{
-		RGBuffer* buffer;
+		RGBufferInstance buffer;
 		AttachmentUsage usage;
 	};
 
@@ -116,7 +169,7 @@ namespace Pistachio
 		std::vector<AttachmentInfo> outputs;
 		std::vector<BufferAttachmentInfo> bufferInputs;
 		std::vector<BufferAttachmentInfo> bufferOutputs;
-		AttachmentInfo dsOutput = { (RHI::Format)0,nullptr };
+		AttachmentInfo dsOutput = { RHI::Format::UNKNOWN,RGTextureInstance::Invalid };
 		bool signal = false;
 	};
 	//unlike the render-pass compute pipeline must be set
@@ -163,20 +216,21 @@ namespace Pistachio
 		ComputePass& AddComputePass(const char* passName);
 		void RemovePass(const char* passName);
 		void GetPass(const char* passName);
-		RGTexture* CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
-		RGTexture* CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED,RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family= RHI::QueueFamily::Ignored);
-		RGTexture* CreateTexture(RenderTexture* texture);
-		RGTexture* CreateTexture(DepthTexture* texture);
-		RGTexture* CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex);
-		RGBuffer* CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
+		RGTextureHandle CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
+		RGTextureHandle CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED,RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family= RHI::QueueFamily::Ignored);
+		RGTextureHandle CreateTexture(RenderTexture* texture);
+		RGTextureHandle CreateTexture(DepthTexture* texture);
+		RGTextureHandle CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex);
+		RGTextureInstance MakeUniqueInstance(RGTextureHandle texture);
+		RGBufferHandle CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
 		void Execute();
 	private:
 		void SortPasses();
 	private:
 		bool dirty = true;
 		RHI::Fence* fence;
-		std::vector<RGTexture*> textures;
-		std::vector<RGBuffer*> buffers;
+		std::vector<RGTexture> textures;
+		std::vector<RGBuffer> buffers;
 		std::vector<RenderPass> passes;
 		std::vector<ComputePass> computePasses;
 		std::vector<std::pair<RenderPass*, uint32_t>> passesSortedAndFence;

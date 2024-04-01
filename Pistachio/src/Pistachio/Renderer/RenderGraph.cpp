@@ -3,12 +3,10 @@
 #include "RenderGraph.h"
 namespace Pistachio
 {
+    const RGTextureInstance RGTextureInstance::Invalid = { UINT32_MAX,UINT32_MAX };
+    const RGBufferInstance RGBufferInstance::Invalid = { UINT32_MAX,UINT32_MAX };
     RenderGraph::~RenderGraph()
     {
-        for (auto tex : textures)
-        {
-            delete tex;
-        }
         for (uint32_t i = 0; i < numGFXCmdLists; i++)
         {
             cmdLists[i].list->Release();
@@ -70,28 +68,28 @@ namespace Pistachio
             computeCmdLists[i].list->Begin(RendererBase::commandAllocators[RendererBase::currentFrameIndex]);
         }
     }
-    RGTexture* RenderGraph::CreateTexture(RenderTexture* texture)
+    RGTextureHandle RenderGraph::CreateTexture(RenderTexture* texture)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags::NONE, RHI::QueueFamily::Ignored, 0, false, 0));
-        tex->rtvHandle = texture->RTView;
-        return tex;
+        auto tex = textures.emplace_back(RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags::NONE, RHI::QueueFamily::Ignored, 0, false, 0));
+        tex.rtvHandle = texture->RTView;
+        return RGTextureHandle{ &textures, (uint32_t)(textures.size() - 1) ,1};
     }
-    RGTexture* RenderGraph::CreateTexture(DepthTexture* texture)
+    RGTextureHandle RenderGraph::CreateTexture(DepthTexture* texture)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED,RHI::ResourceAcessFlags::NONE, RHI::QueueFamily::Ignored ,0, false, 0));
-        tex->dsvHandle = texture->DSView;
-        return tex;
+        auto tex = textures.emplace_back(RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED,RHI::ResourceAcessFlags::NONE, RHI::QueueFamily::Ignored ,0, false, 0));
+        tex.dsvHandle = texture->DSView;
+        return RGTextureHandle{ &textures, (uint32_t)(textures.size() - 1) ,1 };
     }
-    RGTexture* RenderGraph::CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex)
+    RGTextureHandle RenderGraph::CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags::NONE, RHI::QueueFamily::Ignored, 0, true, cubeIndex));
-        tex->rtvHandle = texture->RTViews[cubeIndex];
-        return tex;
+        auto tex = textures.emplace_back(RGTexture(texture->m_ID.Get(), RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags::NONE, RHI::QueueFamily::Ignored, 0, true, cubeIndex));
+        tex.rtvHandle = texture->RTViews[cubeIndex];
+        return RGTextureHandle{ &textures, (uint32_t)(textures.size() - 1),1 };
     }
-    RGBuffer* RenderGraph::CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::ResourceAcessFlags access, RHI::QueueFamily family)
+    RGBufferHandle RenderGraph::CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::ResourceAcessFlags access, RHI::QueueFamily family)
     {
-        auto buff = buffers.emplace_back(new RGBuffer(buffer, offset, size, access, family));
-        return buff;
+        auto buff = buffers.emplace_back(RGBuffer(buffer, offset, size, access, family));
+        return RGBufferHandle{ &buffers, (uint32_t)(buffers.size() - 1),1 };
     }
     RenderPass& RenderGraph::AddPass(RHI::PipelineStage stage, const char* name)
     {
@@ -106,15 +104,15 @@ namespace Pistachio
         dirty = true;
         return pass;
     }
-    RGTexture* RenderGraph::CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice, bool isArray , uint32_t arraySlice, RHI::ResourceLayout layout,RHI::ResourceAcessFlags flags , RHI::QueueFamily family)
+    RGTextureHandle RenderGraph::CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice, bool isArray , uint32_t arraySlice, RHI::ResourceLayout layout,RHI::ResourceAcessFlags flags , RHI::QueueFamily family)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture->m_ID.Get(), layout, flags, family,mipSlice, isArray, arraySlice));
-        return tex;
+        auto tex = textures.emplace_back(RGTexture(texture->m_ID.Get(), layout, flags, family,mipSlice, isArray, arraySlice));
+        return RGTextureHandle{ &textures, (uint32_t)(textures.size() - 1),1 };
     }
-    RGTexture* RenderGraph::CreateTexture(RHI::Texture* texture, uint32_t mipSlice, bool isArray, uint32_t arraySlice, RHI::ResourceLayout layout,RHI::ResourceAcessFlags flags, RHI::QueueFamily family)
+    RGTextureHandle RenderGraph::CreateTexture(RHI::Texture* texture, uint32_t mipSlice, bool isArray, uint32_t arraySlice, RHI::ResourceLayout layout,RHI::ResourceAcessFlags flags, RHI::QueueFamily family)
     {
-        auto tex = textures.emplace_back(new RGTexture(texture, layout, flags, family, mipSlice,isArray,arraySlice));
-        return tex;
+        auto tex = textures.emplace_back(RGTexture(texture, layout, flags, family, mipSlice,isArray,arraySlice));
+        return RGTextureHandle{ &textures, (uint32_t)(textures.size() - 1),1 };
     }
     void RenderPass::SetShader(Shader* shader)
     {
@@ -241,114 +239,120 @@ namespace Pistachio
             {
                 //transition all inputs to good state
                 RenderPass* pass = passesSortedAndFence[j].first;
-                RHI::TextureMemoryBarrier* barriers = new RHI::TextureMemoryBarrier[pass->inputs.size() + pass->outputs.size() + (pass->dsOutput.texture ? 1 : 0)];//alloca??
+                RHI::TextureMemoryBarrier* barriers = new RHI::TextureMemoryBarrier[pass->inputs.size() +
+                    pass->outputs.size() + 
+                    ((pass->dsOutput.texture != RGTextureInstance::Invalid) ? 1 : 0)];//alloca??
                 RHI::BufferMemoryBarrier* bufferBarriers = new RHI::BufferMemoryBarrier[pass->bufferInputs.size() + pass->bufferOutputs.size()];
                 RHI::RenderingBeginDesc rbDesc{};
                 rbDesc.numColorAttachments = pass->outputs.size();
                 rbDesc.renderingArea = pass->area;
-                RHI::RenderingAttachmentDesc* attachments = new RHI::RenderingAttachmentDesc[pass->outputs.size() + (pass->dsOutput.texture ? 1 : 0)];
+                RHI::RenderingAttachmentDesc* attachments = new RHI::RenderingAttachmentDesc[pass->outputs.size() + 
+                    ((pass->dsOutput.texture != RGTextureInstance::Invalid) ? 1 : 0)];
                 rbDesc.pColorAttachments = attachments;
                 uint32_t attachmentCount = 0;
                 uint32_t barrierCount = 0;
                 uint32_t bufferBarrierCount = 0;
                 for (auto& input : pass->inputs)
                 {
+                    RGTexture& tex = textures[input.texture.texOffset];
                     barriers[barrierCount].newLayout = InputLayout(input.usage);
                     barriers[barrierCount].AccessFlagsAfter = InputAccess(input.usage);
                     if (
-                        input.texture->current_layout != barriers[barrierCount].newLayout ||
-                        input.texture->currentAccess != barriers[barrierCount].AccessFlagsAfter ||
-                        input.texture->currentFamily != RHI::QueueFamily::Graphics
+                        tex.current_layout != barriers[barrierCount].newLayout ||
+                        tex.currentAccess != barriers[barrierCount].AccessFlagsAfter ||
+                        tex.currentFamily != RHI::QueueFamily::Graphics
                         )
                     {
                         //temporary
                         RHI::SubResourceRange range;
-                        range.FirstArraySlice = input.texture->IsArray ? input.texture->arraySlice : 0;
+                        range.FirstArraySlice = tex.IsArray ? tex.arraySlice : 0;
                         range.imageAspect = RHI::Aspect::COLOR_BIT;
-                        range.IndexOrFirstMipLevel = input.texture->mipSlice;
+                        range.IndexOrFirstMipLevel = tex.mipSlice;
                         range.NumArraySlices = 1;
                         range.NumMipLevels = 1;
                         //transition
-                        barriers[barrierCount].AccessFlagsBefore = input.texture->currentAccess;
-                        barriers[barrierCount].oldLayout = input.texture->current_layout;
-                        barriers[barrierCount].texture = input.texture->texture;
+                        barriers[barrierCount].AccessFlagsBefore = tex.currentAccess;
+                        barriers[barrierCount].oldLayout = tex.current_layout;
+                        barriers[barrierCount].texture = tex.texture;
                         barriers[barrierCount].subresourceRange = range;
-                        barriers[barrierCount].previousQueue = input.texture->currentFamily;
+                        barriers[barrierCount].previousQueue = tex.currentFamily;
                         barriers[barrierCount].nextQueue = RHI::QueueFamily::Graphics;
-                        input.texture->currentFamily = RHI::QueueFamily::Graphics;
-                        input.texture->current_layout = barriers[barrierCount].newLayout;
-                        input.texture->currentAccess = barriers[barrierCount].AccessFlagsAfter;
+                        tex.currentFamily = RHI::QueueFamily::Graphics;
+                        tex.current_layout = barriers[barrierCount].newLayout;
+                        tex.currentAccess = barriers[barrierCount].AccessFlagsAfter;
                         barrierCount++;
                     }
                 }
                 for (auto& output : pass->outputs)
                 {
+                    RGTexture& tex = textures[output.texture.texOffset];
                     if (output.usage == AttachmentUsage::Graphics)
                     {
                         attachments[attachmentCount].clearColor = { 0,0,0,0 };
                         attachments[attachmentCount].loadOp = output.loadOp;
                         attachments[attachmentCount].storeOp = RHI::StoreOp::Store;
-                        if (output.texture->rtvHandle.heapIndex == UINT32_MAX)
+                        if (tex.rtvHandle.heapIndex == UINT32_MAX)
                         {
                             RHI::RenderTargetViewDesc rtvDesc;
-                            rtvDesc.arraySlice = output.texture->arraySlice;
+                            rtvDesc.arraySlice = tex.arraySlice;
                             rtvDesc.format = output.format;
-                            rtvDesc.TextureArray = output.texture->IsArray;
-                            rtvDesc.textureMipSlice = output.texture->mipSlice;
-                            output.texture->rtvHandle = RendererBase::CreateRenderTargetView(output.texture->texture, &rtvDesc);
+                            rtvDesc.TextureArray = tex.IsArray;
+                            rtvDesc.textureMipSlice = tex.mipSlice;
+                            tex.rtvHandle = RendererBase::CreateRenderTargetView(tex.texture, &rtvDesc);
                         }
-                        attachments[attachmentCount].ImageView = RendererBase::GetCPUHandle(output.texture->rtvHandle);
+                        attachments[attachmentCount].ImageView = RendererBase::GetCPUHandle(tex.rtvHandle);
                         attachmentCount++;
                     }
                     barriers[barrierCount].newLayout = OutputLayout(output.usage);
                     barriers[barrierCount].AccessFlagsAfter = OutputAccess(output.usage);
                     if (
-                        output.texture->current_layout != barriers[barrierCount].newLayout ||
-                        output.texture->currentAccess != barriers[barrierCount].AccessFlagsAfter ||
-                        output.texture->currentFamily != RHI::QueueFamily::Graphics
+                        tex.current_layout != barriers[barrierCount].newLayout ||
+                        tex.currentAccess != barriers[barrierCount].AccessFlagsAfter ||
+                        tex.currentFamily != RHI::QueueFamily::Graphics
                         )
                     {
                         //temporary
                         RHI::SubResourceRange range;
-                        range.FirstArraySlice = output.texture->IsArray ? output.texture->arraySlice : 0;
+                        range.FirstArraySlice = tex.IsArray ? tex.arraySlice : 0;
                         range.imageAspect = RHI::Aspect::COLOR_BIT;
-                        range.IndexOrFirstMipLevel = output.texture->mipSlice;
+                        range.IndexOrFirstMipLevel = tex.mipSlice;
                         range.NumArraySlices = 1;
                         range.NumMipLevels = 1;
                         //transition
-                        barriers[barrierCount].AccessFlagsBefore = output.texture->currentAccess;
-                        barriers[barrierCount].oldLayout = output.texture->current_layout;
-                        barriers[barrierCount].texture = output.texture->texture;
+                        barriers[barrierCount].AccessFlagsBefore = tex.currentAccess;
+                        barriers[barrierCount].oldLayout = tex.current_layout;
+                        barriers[barrierCount].texture = tex.texture;
                         barriers[barrierCount].subresourceRange = range;
-                        barriers[barrierCount].previousQueue = output.texture->currentFamily;
+                        barriers[barrierCount].previousQueue = tex.currentFamily;
                         barriers[barrierCount].nextQueue = RHI::QueueFamily::Graphics;
-                        output.texture->currentFamily = RHI::QueueFamily::Graphics;
-                        output.texture->current_layout = barriers[barrierCount].newLayout;
-                        output.texture->currentAccess = barriers[barrierCount].AccessFlagsAfter;
+                        tex.currentFamily = RHI::QueueFamily::Graphics;
+                        tex.current_layout = barriers[barrierCount].newLayout;
+                        tex.currentAccess = barriers[barrierCount].AccessFlagsAfter;
                         barrierCount++;
                     }
                 }
-                if (pass->dsOutput.texture)
+                if (pass->dsOutput.texture != RGTextureInstance::Invalid)
                 {
+                    RGTexture& tex = textures[pass->dsOutput.texture.texOffset];
                     attachments[attachmentCount].clearColor = { 1,1,1,1 };
                     attachments[attachmentCount].loadOp = RHI::LoadOp::Clear;//todo
                     attachments[attachmentCount].storeOp = RHI::StoreOp::Store;
-                    if (pass->dsOutput.texture->dsvHandle.heapIndex == UINT32_MAX)
+                    if (tex.dsvHandle.heapIndex == UINT32_MAX)
                     {
                         RHI::DepthStencilViewDesc dsvDesc;
-                        dsvDesc.arraySlice = pass->dsOutput.texture->arraySlice;
+                        dsvDesc.arraySlice = tex.arraySlice;
                         dsvDesc.format = pass->dsOutput.format;
-                        dsvDesc.TextureArray = pass->dsOutput.texture->IsArray;
-                        dsvDesc.textureMipSlice = pass->dsOutput.texture->mipSlice;
-                        pass->dsOutput.texture->dsvHandle = RendererBase::CreateDepthStencilView(pass->dsOutput.texture->texture, &dsvDesc);
+                        dsvDesc.TextureArray = tex.IsArray;
+                        dsvDesc.textureMipSlice = tex.mipSlice;
+                        tex.dsvHandle = RendererBase::CreateDepthStencilView(tex.texture, &dsvDesc);
                     }
-                    attachments[attachmentCount].ImageView = RendererBase::GetCPUHandle(pass->dsOutput.texture->dsvHandle);
+                    attachments[attachmentCount].ImageView = RendererBase::GetCPUHandle(tex.dsvHandle);
                     rbDesc.pDepthStencilAttachment = &attachments[attachmentCount];
                     attachmentCount++;
                     if (
-                        pass->dsOutput.texture->current_layout != RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
-                        pass->dsOutput.texture->currentAccess != RHI::ResourceAcessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE ||
-                        pass->dsOutput.texture->currentFamily != RHI::QueueFamily::Graphics
+                        tex.current_layout != RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
+                        tex.currentAccess != RHI::ResourceAcessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE ||
+                        tex.currentFamily != RHI::QueueFamily::Graphics
                         )
                     {
                         //temporary
@@ -360,56 +364,58 @@ namespace Pistachio
                         range.NumMipLevels = 1;
                         //transition
                         barriers[barrierCount].AccessFlagsAfter = RHI::ResourceAcessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE;//maybe?
-                        barriers[barrierCount].AccessFlagsBefore = pass->dsOutput.texture->currentAccess;
+                        barriers[barrierCount].AccessFlagsBefore = tex.currentAccess;
                         barriers[barrierCount].newLayout = RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                        barriers[barrierCount].oldLayout = pass->dsOutput.texture->current_layout;
-                        barriers[barrierCount].texture = pass->dsOutput.texture->texture;
+                        barriers[barrierCount].oldLayout = tex.current_layout;
+                        barriers[barrierCount].texture = tex.texture;
                         barriers[barrierCount].subresourceRange = range;
-                        barriers[barrierCount].previousQueue = pass->dsOutput.texture->currentFamily;
+                        barriers[barrierCount].previousQueue = tex.currentFamily;
                         barriers[barrierCount].nextQueue = RHI::QueueFamily::Graphics;
-                        pass->dsOutput.texture->currentFamily = RHI::QueueFamily::Graphics;
-                        pass->dsOutput.texture->current_layout = RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                        pass->dsOutput.texture->currentAccess = RHI::ResourceAcessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE;
+                        tex.currentFamily = RHI::QueueFamily::Graphics;
+                        tex.current_layout = RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                        tex.currentAccess = RHI::ResourceAcessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE;
                         barrierCount++;
                     }
                 }
                 for (auto& input : pass->bufferInputs)
                 {
+                    RGBuffer& buff = buffers[input.buffer.buffOffset];
                     bufferBarriers[bufferBarrierCount].AccessFlagsAfter = InputAccess(input.usage);
                     if (
-                        input.buffer->currentAccess != bufferBarriers[bufferBarrierCount].AccessFlagsAfter ||
-                        input.buffer->currentFamily != RHI::QueueFamily::Compute
+                        buff.currentAccess != bufferBarriers[bufferBarrierCount].AccessFlagsAfter ||
+                        buff.currentFamily != RHI::QueueFamily::Compute
                         )
                     {
                         //transition
-                        bufferBarriers[bufferBarrierCount].AccessFlagsBefore = input.buffer->currentAccess;
-                        bufferBarriers[bufferBarrierCount].buffer = input.buffer->buffer;
-                        bufferBarriers[bufferBarrierCount].previousQueue = input.buffer->currentFamily;
+                        bufferBarriers[bufferBarrierCount].AccessFlagsBefore = buff.currentAccess;
+                        bufferBarriers[bufferBarrierCount].buffer = buff.buffer;
+                        bufferBarriers[bufferBarrierCount].previousQueue = buff.currentFamily;
                         bufferBarriers[bufferBarrierCount].nextQueue = RHI::QueueFamily::Compute;
-                        bufferBarriers[bufferBarrierCount].offset = input.buffer->offset;
-                        bufferBarriers[bufferBarrierCount].size = input.buffer->size;
-                        input.buffer->currentFamily = RHI::QueueFamily::Compute;
-                        input.buffer->currentAccess = bufferBarriers[bufferBarrierCount].AccessFlagsAfter;
+                        bufferBarriers[bufferBarrierCount].offset = buff.offset;
+                        bufferBarriers[bufferBarrierCount].size = buff.size;
+                        buff.currentFamily = RHI::QueueFamily::Compute;
+                        buff.currentAccess = bufferBarriers[bufferBarrierCount].AccessFlagsAfter;
                         bufferBarrierCount++;
                     }
                 }
                 for (auto& output : pass->bufferOutputs)
                 {
+                    RGBuffer& buff = buffers[output.buffer.buffOffset];
                     bufferBarriers[bufferBarrierCount].AccessFlagsAfter = OutputAccess(output.usage);
                     if (
-                        output.buffer->currentAccess != bufferBarriers[bufferBarrierCount].AccessFlagsAfter ||
-                        output.buffer->currentFamily != RHI::QueueFamily::Compute
+                        buff.currentAccess != bufferBarriers[bufferBarrierCount].AccessFlagsAfter ||
+                        buff.currentFamily != RHI::QueueFamily::Compute
                         )
                     {
                         //transition
-                        bufferBarriers[bufferBarrierCount].AccessFlagsBefore = output.buffer->currentAccess;
-                        bufferBarriers[bufferBarrierCount].buffer = output.buffer->buffer;
-                        bufferBarriers[bufferBarrierCount].previousQueue = output.buffer->currentFamily;
+                        bufferBarriers[bufferBarrierCount].AccessFlagsBefore = buff.currentAccess;
+                        bufferBarriers[bufferBarrierCount].buffer = buff.buffer;
+                        bufferBarriers[bufferBarrierCount].previousQueue = buff.currentFamily;
                         bufferBarriers[bufferBarrierCount].nextQueue = RHI::QueueFamily::Compute;
-                        bufferBarriers[bufferBarrierCount].offset = output.buffer->offset;
-                        bufferBarriers[bufferBarrierCount].size = output.buffer->size;
-                        output.buffer->currentFamily = RHI::QueueFamily::Compute;
-                        output.buffer->currentAccess = bufferBarriers[bufferBarrierCount].AccessFlagsAfter;
+                        bufferBarriers[bufferBarrierCount].offset = buff.offset;
+                        bufferBarriers[bufferBarrierCount].size = buff.size;
+                        buff.currentFamily = RHI::QueueFamily::Compute;
+                        buff.currentAccess = bufferBarriers[bufferBarrierCount].AccessFlagsAfter;
                         bufferBarrierCount++;
                     }
                 }
@@ -436,102 +442,106 @@ namespace Pistachio
                 uint32_t bufferBarrierCount = 0;
                 for (auto& input : pass->inputs)
                 {
+                    RGTexture& tex = textures[input.texture.texOffset];
                     barriers[barrierCount].newLayout = InputLayout(input.usage);
                     barriers[barrierCount].AccessFlagsAfter = InputAccess(input.usage);
                     if (
-                        input.texture->current_layout != barriers[barrierCount].newLayout ||
-                        input.texture->currentAccess != barriers[barrierCount].AccessFlagsAfter ||
-                        input.texture->currentFamily != RHI::QueueFamily::Compute
+                        tex.current_layout != barriers[barrierCount].newLayout ||
+                        tex.currentAccess != barriers[barrierCount].AccessFlagsAfter ||
+                        tex.currentFamily != RHI::QueueFamily::Compute
                         )
                     {
                         //temporary
                         RHI::SubResourceRange range;
-                        range.FirstArraySlice = input.texture->IsArray ? input.texture->arraySlice : 0;
+                        range.FirstArraySlice = tex.IsArray ? tex.arraySlice : 0;
                         range.imageAspect = RHI::Aspect::COLOR_BIT;
-                        range.IndexOrFirstMipLevel = input.texture->mipSlice;
+                        range.IndexOrFirstMipLevel = tex.mipSlice;
                         range.NumArraySlices = 1;
                         range.NumMipLevels = 1;
                         //transition
-                        barriers[barrierCount].AccessFlagsBefore = input.texture->currentAccess;
-                        barriers[barrierCount].oldLayout = input.texture->current_layout;
-                        barriers[barrierCount].texture = input.texture->texture;
+                        barriers[barrierCount].AccessFlagsBefore = tex.currentAccess;
+                        barriers[barrierCount].oldLayout = tex.current_layout;
+                        barriers[barrierCount].texture = tex.texture;
                         barriers[barrierCount].subresourceRange = range;
-                        barriers[barrierCount].previousQueue = input.texture->currentFamily;
+                        barriers[barrierCount].previousQueue = tex.currentFamily;
                         barriers[barrierCount].nextQueue = RHI::QueueFamily::Compute;
-                        input.texture->currentFamily = RHI::QueueFamily::Compute;
-                        input.texture->current_layout = barriers[barrierCount].newLayout;
-                        input.texture->currentAccess = barriers[barrierCount].AccessFlagsAfter;
+                        tex.currentFamily = RHI::QueueFamily::Compute;
+                        tex.current_layout = barriers[barrierCount].newLayout;
+                        tex.currentAccess = barriers[barrierCount].AccessFlagsAfter;
                         barrierCount++;
                     }
                 }
                 for (auto& output : pass->outputs)
                 {
+                    RGTexture& tex = textures[output.texture.texOffset];
                     barriers[barrierCount].newLayout = OutputLayout(output.usage);
                     barriers[barrierCount].AccessFlagsAfter = OutputAccess(output.usage);
                     if (
-                        output.texture->current_layout != barriers[barrierCount].newLayout ||
-                        output.texture->currentAccess != barriers[barrierCount].AccessFlagsAfter ||
-                        output.texture->currentFamily != RHI::QueueFamily::Compute
+                        tex.current_layout != barriers[barrierCount].newLayout ||
+                        tex.currentAccess != barriers[barrierCount].AccessFlagsAfter ||
+                        tex.currentFamily != RHI::QueueFamily::Compute
                         )
                     {
                         //temporary
                         RHI::SubResourceRange range;
-                        range.FirstArraySlice = output.texture->IsArray ? output.texture->arraySlice : 0;
+                        range.FirstArraySlice = tex.IsArray ? tex.arraySlice : 0;
                         range.imageAspect = RHI::Aspect::COLOR_BIT;
-                        range.IndexOrFirstMipLevel = output.texture->mipSlice;
+                        range.IndexOrFirstMipLevel = tex.mipSlice;
                         range.NumArraySlices = 1;
                         range.NumMipLevels = 1;
                         //transition
-                        barriers[barrierCount].AccessFlagsBefore = output.texture->currentAccess;
-                        barriers[barrierCount].oldLayout = output.texture->current_layout;
-                        barriers[barrierCount].texture = output.texture->texture;
+                        barriers[barrierCount].AccessFlagsBefore = tex.currentAccess;
+                        barriers[barrierCount].oldLayout = tex.current_layout;
+                        barriers[barrierCount].texture = tex.texture;
                         barriers[barrierCount].subresourceRange = range;
-                        barriers[barrierCount].previousQueue = output.texture->currentFamily;
+                        barriers[barrierCount].previousQueue = tex.currentFamily;
                         barriers[barrierCount].nextQueue = RHI::QueueFamily::Compute;
-                        output.texture->currentFamily = RHI::QueueFamily::Compute;
-                        output.texture->current_layout = barriers[barrierCount].newLayout;
-                        output.texture->currentAccess = barriers[barrierCount].AccessFlagsAfter;
+                        tex.currentFamily = RHI::QueueFamily::Compute;
+                        tex.current_layout = barriers[barrierCount].newLayout;
+                        tex.currentAccess = barriers[barrierCount].AccessFlagsAfter;
                         barrierCount++;
                     }
                 }
                 
                 for (auto& input : pass->bufferInputs) 
                 {
+                    RGBuffer& buff = buffers[input.buffer.buffOffset];
                     bufferBarriers[bufferBarrierCount].AccessFlagsAfter = InputAccess(input.usage);
                     if (
-                        input.buffer->currentAccess != bufferBarriers[bufferBarrierCount].AccessFlagsAfter ||
-                        input.buffer->currentFamily != RHI::QueueFamily::Compute
+                        buff.currentAccess != bufferBarriers[bufferBarrierCount].AccessFlagsAfter ||
+                        buff.currentFamily != RHI::QueueFamily::Compute
                         )
                     {
                         //transition
-                        bufferBarriers[bufferBarrierCount].AccessFlagsBefore = input.buffer->currentAccess;
-                        bufferBarriers[bufferBarrierCount].buffer = input.buffer->buffer;
-                        bufferBarriers[bufferBarrierCount].previousQueue = input.buffer->currentFamily;
+                        bufferBarriers[bufferBarrierCount].AccessFlagsBefore = buff.currentAccess;
+                        bufferBarriers[bufferBarrierCount].buffer = buff.buffer;
+                        bufferBarriers[bufferBarrierCount].previousQueue = buff.currentFamily;
                         bufferBarriers[bufferBarrierCount].nextQueue = RHI::QueueFamily::Compute;
-                        bufferBarriers[bufferBarrierCount].offset = input.buffer->offset;
-                        bufferBarriers[bufferBarrierCount].size = input.buffer->size;
-                        input.buffer->currentFamily = RHI::QueueFamily::Compute;
-                        input.buffer->currentAccess = bufferBarriers[bufferBarrierCount].AccessFlagsAfter;
+                        bufferBarriers[bufferBarrierCount].offset = buff.offset;
+                        bufferBarriers[bufferBarrierCount].size = buff.size;
+                        buff.currentFamily = RHI::QueueFamily::Compute;
+                        buff.currentAccess = bufferBarriers[bufferBarrierCount].AccessFlagsAfter;
                         bufferBarrierCount++;
                     }
                 }
                 for (auto& output : pass->bufferOutputs)
                 {
+                    RGBuffer& buff = buffers[output.buffer.buffOffset];
                     bufferBarriers[bufferBarrierCount].AccessFlagsAfter = OutputAccess(output.usage);
                     if (
-                        output.buffer->currentAccess != bufferBarriers[bufferBarrierCount].AccessFlagsAfter ||
-                        output.buffer->currentFamily != RHI::QueueFamily::Compute
+                        buff.currentAccess != bufferBarriers[bufferBarrierCount].AccessFlagsAfter ||
+                        buff.currentFamily != RHI::QueueFamily::Compute
                         )
                     {
                         //transition
-                        bufferBarriers[bufferBarrierCount].AccessFlagsBefore = output.buffer->currentAccess;
-                        bufferBarriers[bufferBarrierCount].buffer = output.buffer->buffer;
-                        bufferBarriers[bufferBarrierCount].previousQueue = output.buffer->currentFamily;
+                        bufferBarriers[bufferBarrierCount].AccessFlagsBefore = buff.currentAccess;
+                        bufferBarriers[bufferBarrierCount].buffer = buff.buffer;
+                        bufferBarriers[bufferBarrierCount].previousQueue = buff.currentFamily;
                         bufferBarriers[bufferBarrierCount].nextQueue = RHI::QueueFamily::Compute;
-                        bufferBarriers[bufferBarrierCount].offset = output.buffer->offset;
-                        bufferBarriers[bufferBarrierCount].size = output.buffer->size;
-                        output.buffer->currentFamily = RHI::QueueFamily::Compute;
-                        output.buffer->currentAccess = bufferBarriers[bufferBarrierCount].AccessFlagsAfter;
+                        bufferBarriers[bufferBarrierCount].offset = buff.offset;
+                        bufferBarriers[bufferBarrierCount].size = buff.size;
+                        buff.currentFamily = RHI::QueueFamily::Compute;
+                        buff.currentAccess = bufferBarriers[bufferBarrierCount].AccessFlagsAfter;
                         bufferBarrierCount++;
                     }
                 }
@@ -551,8 +561,8 @@ namespace Pistachio
         std::vector<ComputePass*> computePassesLeft;
         for (auto& pass : passes) { passesLeft.push_back(&pass); }
         for (auto& pass : computePasses) { computePassesLeft.push_back(&pass); }
-        std::vector<std::tuple<RGTexture*, PassType, uint32_t, void*>> readyOutputs;
-        std::vector<std::tuple<RGBuffer*, PassType, uint32_t, void*>> readyBufferOutputs;
+        std::vector<std::tuple<RGTextureInstance, PassType, uint32_t, void*>> readyOutputs;
+        std::vector<std::tuple<RGBufferInstance, PassType, uint32_t, void*>> readyBufferOutputs;
         computePassesSortedAndFence.clear();
         passesSortedAndFence.clear();
         while (passesLeft.size() + computePassesLeft.size())
@@ -570,7 +580,7 @@ namespace Pistachio
                 for (auto& input : pass->inputs)
                 {
                     if (auto pos = std::find_if(readyOutputs.begin(), readyOutputs.end(),
-                        [input, &fenceVal](const std::tuple<RGTexture*, PassType, uint64_t, void*>& output)
+                        [input, &fenceVal](const std::tuple<RGTextureInstance, PassType, uint64_t, void*>& output)
                         {
                             bool found = input.texture == std::get<0>(output);
                             bool diffFamily = (std::get<1>(output) != PassType::Graphics);
@@ -595,7 +605,7 @@ namespace Pistachio
                 for (auto& input : pass->bufferInputs)
                 {
                     if (auto pos = std::find_if(readyBufferOutputs.begin(), readyBufferOutputs.end(),
-                        [input, &fenceVal](const std::tuple<RGBuffer*, PassType, uint64_t, void*>& output)
+                        [input, &fenceVal](const std::tuple<RGBufferInstance, PassType, uint64_t, void*>& output)
                         {
                             bool found = input.buffer == std::get<0>(output);
                             bool diffFamily = (std::get<1>(output) != PassType::Graphics);
@@ -628,7 +638,7 @@ namespace Pistachio
                     {
                         readyBufferOutputs.push_back({ output.buffer, PassType::Graphics, fenceVal,pass });
                     }
-                    if (pass->dsOutput.texture)
+                    if (pass->dsOutput.texture != RGTextureInstance::Invalid)
                     {
                         readyOutputs.push_back({ pass->dsOutput.texture,PassType::Graphics,fenceVal,pass });
                     };
@@ -644,7 +654,7 @@ namespace Pistachio
                 for (auto& input : pass->inputs)
                 {
                     if (auto pos = std::find_if(readyOutputs.begin(), readyOutputs.end(),
-                        [input, &fenceVal](const std::tuple<RGTexture*, PassType, uint64_t, void*>& output)
+                        [input, &fenceVal](const std::tuple<RGTextureInstance, PassType, uint64_t, void*>& output)
                         {
                             bool found = input.texture == std::get<0>(output);
                             bool diffFamily = (std::get<1>(output) != PassType::Compute);
@@ -669,7 +679,7 @@ namespace Pistachio
                 for (auto& input : pass->bufferInputs)
                 {
                     if (auto pos = std::find_if(readyBufferOutputs.begin(), readyBufferOutputs.end(),
-                        [input, &fenceVal](const std::tuple<RGBuffer*, PassType, uint64_t, void*>& output)
+                        [input, &fenceVal](const std::tuple<RGBufferInstance, PassType, uint64_t, void*>& output)
                         {
                             bool found = input.buffer == std::get<0>(output);
                             bool diffFamily = (std::get<1>(output) != PassType::Compute);

@@ -156,6 +156,15 @@
     <ClCompile Include="src\Pistachio\Renderer\RenderTexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\ShaderAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\ShaderAssetCompiler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pistachio\Core\FileSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Pistachio\Core\Application.h">
@@ -1332,6 +1341,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pistachio\Renderer\RenderGraph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Renderer\ShaderAsset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Renderer\ShaderAssetCompiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Core\FileSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
