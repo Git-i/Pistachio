@@ -265,6 +265,8 @@ namespace Pistachio {
 		BYTE data[4] = { 255,255,255,255 };
 		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
 		LightSB.Bind(7);
+
+		shadowMapAtlas.CreateStack(1024, 1024, 1, RHI::Format::D32_FLOAT);
 		//Shader::SetVSBuffer(PassCB, 0);
 		//Shader::SetPSBuffer(MaterialCB, 1);
 		auto Windata = GetWindowDataPtr();

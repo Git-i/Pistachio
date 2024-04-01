@@ -194,4 +194,19 @@ namespace Pistachio
 			return Asset(uuid, type);
 		}
 	}
+	Asset AssetManager::FromResource(RefCountedObject* resource,const std::string& in, ResourceType type)
+	{
+		if (auto it = pathUUIDMap.find(in); it != pathUUIDMap.end())
+		{
+			assetResourceMap[it->second] = resource;
+			return Asset(it->second, type);
+		}
+		else
+		{
+			UUID uuid = UUID();
+			assetResourceMap[uuid] = resource;
+			pathUUIDMap[in] = uuid;
+			return Asset(uuid, type);
+		}
+	}
 }

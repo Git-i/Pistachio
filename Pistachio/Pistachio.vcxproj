@@ -123,6 +123,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClInclude Include="src\Pistachio\Asset\AssetManager.h" />
     <ClInclude Include="src\Pistachio\Asset\RefCountedObject.h" />
     <ClInclude Include="src\Pistachio\Core\Error.h" />
+    <ClInclude Include="src\Pistachio\Core\FileSystem.h" />
     <ClInclude Include="src\Pistachio\Core\Math.h" />
     <ClInclude Include="src\Pistachio\Core\Property.h" />
     <ClInclude Include="src\Pistachio\Core\UUID.h" />
@@ -516,6 +517,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClCompile Include="src\Pistachio\Allocators\AtlasAllocator.cpp" />
     <ClCompile Include="src\Pistachio\Allocators\FreeList.cpp" />
     <ClCompile Include="src\Pistachio\Asset\AssetManager.cpp" />
+    <ClCompile Include="src\Pistachio\Core\FileSystem.cpp" />
     <ClCompile Include="src\Pistachio\Core\UUID.cpp" />
     <ClCompile Include="src\Pistachio\Physics\Physics.cpp" />
     <ClCompile Include="src\Pistachio\Platform\Windows\WindowsPlatformUtils.cpp" />
