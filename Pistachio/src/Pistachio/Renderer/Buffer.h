@@ -35,12 +35,19 @@ namespace Pistachio {
 		unsigned int count;
 		RHIPtr<RHI::Buffer> ID;
 	};
+	enum class SBCreateFlags
+	{
+		None = 0,
+		AllowCPUAccess = 1,
+	};
+	ENUM_FLAGS(SBCreateFlags);
 	struct PISTACHIO_API StructuredBuffer
 	{
 		void Bind(std::uint32_t slot) const;
 		void Update(const void* data, std::uint32_t size, std::uint32_t offset);
-		static StructuredBuffer* Create(const void* data, std::uint32_t size);
-		void CreateStack(const void* data, std::uint32_t size);
+		static StructuredBuffer* Create(const void* data, std::uint32_t size, SBCreateFlags flags = SBCreateFlags::None);
+		void CreateStack(const void* data, std::uint32_t size, SBCreateFlags flags = SBCreateFlags::None);
+		RHI::Buffer* GetID() { return ID.Get(); }
 	private:
 		friend class Renderer;
 		RHIPtr<RHI::Buffer> ID;

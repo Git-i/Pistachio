@@ -6,21 +6,17 @@
 DirectX::XMMATRIX Pistachio::Renderer::viewproj = DirectX::XMMatrixIdentity();
 DirectX::XMVECTOR Pistachio::Renderer::m_campos = DirectX::XMVectorZero();
 Pistachio::RenderTexture Pistachio::Renderer::BrdfTex;
-Pistachio::ShaderLibrary Pistachio::Renderer::shaderlib = Pistachio::ShaderLibrary();
-Pistachio::ConstantBuffer Pistachio::Renderer::MaterialCB = Pistachio::ConstantBuffer();
-Pistachio::StructuredBuffer Pistachio::Renderer::LightSB;
-std::vector<Pistachio::ConstantBuffer> Pistachio::Renderer::TransformationBuffer;
-Pistachio::PassConstants Pistachio::Renderer::passConstants;
-Pistachio::ConstantBuffer Pistachio::Renderer::PassCB = {};
 Pistachio::RenderCubeMap Pistachio::Renderer::skybox = Pistachio::RenderCubeMap();
 Pistachio::RenderCubeMap Pistachio::Renderer::irradianceSkybox = Pistachio::RenderCubeMap();
 Pistachio::RenderCubeMap Pistachio::Renderer::prefilterSkybox = { Pistachio::RenderCubeMap() };
+Pistachio::StructuredBuffer Pistachio::Renderer::computeShaderMiscBuffer;
 std::vector<Pistachio::RegularLight>   Pistachio::Renderer::RegularLightData = {};
 std::vector<Pistachio::ShadowCastingLight>   Pistachio::Renderer::ShadowLightData = {};
 std::vector<std::uint8_t> Pistachio::Renderer::LightSBCPU;
+std::unordered_map<std::string, Pistachio::ComputeShader*> Pistachio::Renderer::computeShaders;
+std::unordered_map<std::string, Pistachio::Shader*> Pistachio::Renderer::shaders;
 Pistachio::Renderer::CamerData Pistachio::Renderer::CameraData = {};
 Pistachio::Texture2D Pistachio::Renderer::whiteTexture = Pistachio::Texture2D();
-Pistachio::Material Pistachio::Renderer::DefaultMaterial = Pistachio::Material();
 Pistachio::Material* Pistachio::Renderer::currentMat = nullptr;
 Pistachio::Shader* Pistachio::Renderer::currentShader = nullptr;
 Pistachio::SetInfo Pistachio::Renderer::eqShaderVS[6];
@@ -67,102 +63,110 @@ static const uint32_t INITIAL_NUM_OBJECTS = 20;
 namespace Pistachio {
 	void Renderer::Init(const char* skyboxFile)
 	{
-		//Create constant and structured buffers needed for each frame in flight
 		PT_PROFILE_FUNCTION();
-		PT_CORE_INFO("Initializing Renderer");
-
-		//vertex buffer
-		PT_CORE_INFO("Creating Vertex Buffer");
-		RHI::BufferDesc bufferDesc;
-		bufferDesc.size = VB_INITIAL_SIZE;
-		bufferDesc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
-		RHI::AutomaticAllocationInfo bufferAllocInfo;
-		bufferAllocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		RendererBase::device->CreateBuffer(&bufferDesc, &meshVertices, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic);
-		//index buffer
-		PT_CORE_INFO("Creating Index Buffer");
-		bufferDesc.size = IB_INITIAL_SIZE;
-		bufferDesc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
-		RendererBase::device->CreateBuffer(&bufferDesc, &meshIndices, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic);
-		//set constants for vb and ib
-		vbCapacity = VB_INITIAL_SIZE;
-		vbFreeFastSpace = VB_INITIAL_SIZE;
-		vbFreeSpace = VB_INITIAL_SIZE;
-		//---------------------------
-		ibCapacity = IB_INITIAL_SIZE;
-		ibFreeFastSpace = IB_INITIAL_SIZE;
-		ibFreeSpace = IB_INITIAL_SIZE;
-		//Create Free lists
-		vbFreeList = FreeList(VB_INITIAL_SIZE);
-		ibFreeList = FreeList(IB_INITIAL_SIZE);
-		cbFreeList = FreeList(RendererUtils::ConstantBufferElementSize(sizeof(TransformData)) * INITIAL_NUM_OBJECTS);
-
-		cbCapacity = RendererUtils::ConstantBufferElementSize(sizeof(TransformData)) * INITIAL_NUM_OBJECTS;
-		cbFreeFastSpace = cbCapacity;
-		cbFreeSpace = cbCapacity;
-		for (uint32_t i = 0; i < 3; i++)
 		{
-			PT_CORE_INFO("Initializing Frame Resources {0} of 3", i+1);
-			PT_CORE_INFO("Creating Constant Buffer(s)");
-			resources[i].transformBuffer.CreateStack(nullptr, cbCapacity);//better utilise the free 256 bytes
-			resources[i].passCB.CreateStack(nullptr, RendererUtils::ConstantBufferElementSize(sizeof(PassConstants)));//we should still have about 50 free bytes
-			PT_CORE_INFO("Creating Structured Buffer(s)");
-			resources[i].LightSB.CreateStack(nullptr, sizeof(ShadowCastingLight) * INITIAL_NUM_LIGHTS);
-			RendererBase::device->CreateDynamicDescriptor(
-				RendererBase::heap, 
-				&resources[i].transformBufferDesc, 
-				RHI::DescriptorType::ConstantBufferDynamic, 
-				RHI::ShaderStage::Vertex, 
-				resources[i].transformBuffer.ID.Get(),
-				0,
-				256);
+			//Create constant and structured buffers needed for each frame in flight
+			PT_CORE_INFO("Initializing Renderer");
+
+			//vertex buffer
+			PT_CORE_INFO("Creating Vertex Buffer");
+			RHI::BufferDesc bufferDesc;
+			bufferDesc.size = VB_INITIAL_SIZE;
+			bufferDesc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
+			RHI::AutomaticAllocationInfo bufferAllocInfo;
+			bufferAllocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
+			RendererBase::device->CreateBuffer(&bufferDesc, &meshVertices, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic);
+			//index buffer
+			PT_CORE_INFO("Creating Index Buffer");
+			bufferDesc.size = IB_INITIAL_SIZE;
+			bufferDesc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
+			RendererBase::device->CreateBuffer(&bufferDesc, &meshIndices, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic);
+			//set constants for vb and ib
+			vbCapacity = VB_INITIAL_SIZE;
+			vbFreeFastSpace = VB_INITIAL_SIZE;
+			vbFreeSpace = VB_INITIAL_SIZE;
+			//---------------------------
+			ibCapacity = IB_INITIAL_SIZE;
+			ibFreeFastSpace = IB_INITIAL_SIZE;
+			ibFreeSpace = IB_INITIAL_SIZE;
+			//Create Free lists
+			vbFreeList = FreeList(VB_INITIAL_SIZE);
+			ibFreeList = FreeList(IB_INITIAL_SIZE);
+			cbFreeList = FreeList(RendererUtils::ConstantBufferElementSize(sizeof(TransformData)) * INITIAL_NUM_OBJECTS);
+
+			cbCapacity = RendererUtils::ConstantBufferElementSize(sizeof(TransformData)) * INITIAL_NUM_OBJECTS;
+			cbFreeFastSpace = cbCapacity;
+			cbFreeSpace = cbCapacity;
+			for (uint32_t i = 0; i < 3; i++)
+			{
+				PT_CORE_INFO("Initializing Frame Resources {0} of 3", i + 1);
+				PT_CORE_INFO("Creating Constant Buffer(s)");
+				resources[i].transformBuffer.CreateStack(nullptr, cbCapacity);//better utilise the free 256 bytes
+				resources[i].passCB.CreateStack(nullptr, RendererUtils::ConstantBufferElementSize(sizeof(PassConstants)));//we should still have about 50 free bytes
+				PT_CORE_INFO("Creating Structured Buffer(s)");
+				resources[i].LightSB.CreateStack(nullptr, sizeof(ShadowCastingLight) * INITIAL_NUM_LIGHTS);
+				RendererBase::device->CreateDynamicDescriptor(
+					RendererBase::heap,
+					&resources[i].transformBufferDesc,
+					RHI::DescriptorType::ConstantBufferDynamic,
+					RHI::ShaderStage::Vertex,
+					resources[i].transformBuffer.ID.Get(),
+					0,
+					256);
+			}
 		}
 		
-		brdfSampler = SamplerState::Create(SamplerStateDesc::Default);
-		SamplerStateDesc sDesc = SamplerStateDesc::Default;
-		sDesc.AddressU = sDesc.AddressV = sDesc.AddressW = TextureAddress::Border;
-		sDesc.ComparisonEnable = true;
-		sDesc.func = ComparisonFunc::LessOrEqual;
-		shadowSampler = SamplerState::Create(sDesc);
-		brdfSampler->Bind(1);
-		shadowSampler->Bind(2);
+		{
+			//Old code
+			brdfSampler = SamplerState::Create(SamplerStateDesc::Default);
+			SamplerStateDesc sDesc = SamplerStateDesc::Default;
+			sDesc.AddressU = sDesc.AddressV = sDesc.AddressW = TextureAddress::Border;
+			sDesc.ComparisonEnable = true;
+			sDesc.func = ComparisonFunc::LessOrEqual;
+			shadowSampler = SamplerState::Create(sDesc);
+			brdfSampler->Bind(1);
+			shadowSampler->Bind(2);
 
-		RendererBase::SetCullMode(CullMode::Front);
-		sDesc.AddressU = sDesc.AddressV = sDesc.AddressW = TextureAddress::Wrap;
-		sDesc.ComparisonEnable = false;
-		SamplerState* ss = SamplerState::Create(sDesc);
-		ss->Bind();
+			RendererBase::SetCullMode(CullMode::Front);
+			sDesc.AddressU = sDesc.AddressV = sDesc.AddressW = TextureAddress::Wrap;
+			sDesc.ComparisonEnable = false;
+			SamplerState* ss = SamplerState::Create(sDesc);
+			ss->Bind();
+		}
 
-		RHI::SamplerDesc sampler;
-		sampler.AddressU = RHI::AddressMode::Clamp;
-		sampler.AddressV = RHI::AddressMode::Clamp;
-		sampler.AddressW = RHI::AddressMode::Clamp;
-		sampler.anisotropyEnable = false;
-		sampler.compareEnable = false;
-		sampler.magFilter = RHI::Filter::Linear;
-		sampler.minFilter = RHI::Filter::Linear;
-		sampler.mipFilter = RHI::Filter::Linear;
-		sampler.maxLOD = 0;
-		sampler.minLOD = 0;
-		sampler.mipLODBias = 0;
+		{
+			RHI::SamplerDesc sampler;
+			sampler.AddressU = RHI::AddressMode::Clamp;
+			sampler.AddressV = RHI::AddressMode::Clamp;
+			sampler.AddressW = RHI::AddressMode::Clamp;
+			sampler.anisotropyEnable = false;
+			sampler.compareEnable = false;
+			sampler.magFilter = RHI::Filter::Linear;
+			sampler.minFilter = RHI::Filter::Linear;
+			sampler.mipFilter = RHI::Filter::Linear;
+			sampler.maxLOD = 0;
+			sampler.minLOD = 0;
+			sampler.mipLODBias = 0;
 
-		defaultSampler = RendererBase::CreateSampler(&sampler);
+			defaultSampler = RendererBase::CreateSampler(&sampler);
+		}
+
+		computeShaderMiscBuffer.CreateStack(nullptr, sizeof(uint32_t));
 
 		RHI::BlendMode blendMode{};
 		blendMode.BlendAlphaToCoverage = false;
 		blendMode.IndependentBlend = true;
 		blendMode.blendDescs[0].blendEnable = false;
 		RHI::DepthStencilMode dsMode{};
-		dsMode.DepthEnable = false;
-		dsMode.StencilEnable = false;
+		Pistachio::Helpers::FillDepthStencilMode(&dsMode);
 		RHI::RasterizerMode rsMode{};
 		rsMode.cullMode = RHI::CullMode::None;
 		rsMode.fillMode = RHI::FillMode::Solid;
 		rsMode.topology = RHI::PrimitiveTopology::TriangleList;
 		ShaderCreateDesc ShaderDesc{};
-		ShaderDesc.VS = {(char*)"resources/shaders/vertex/Compiled/equirectangular_to_cubemap_vs",0};
-		ShaderDesc.PS = {(char*)"resources/shaders/pixel/Compiled/equirectangular_to_cubemap_fs" ,0};
-		ShaderDesc.shaderMode = RHI::ShaderMode::File;
+		Pistachio::Helpers::ZeroAndFillShaderDesc(&ShaderDesc, 
+			"resources/shaders/vertex/Compiled/equirectangular_to_cubemap_vs", 
+			"resources/shaders/pixel/Compiled/equirectangular_to_cubemap_fs");
 		ShaderDesc.BlendModes = &blendMode;
 		ShaderDesc.DepthStencilModes = &dsMode;
 		ShaderDesc.RasterizerModes = &rsMode;
@@ -171,9 +175,7 @@ namespace Pistachio {
 		ShaderDesc.numRasterizerModes = 1;
 		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
-		ShaderDesc.NumRenderTargets = 1;
 		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
-
 		eqShader = Shader::Create(&ShaderDesc);
 		eqShader->GetPSShaderBinding(eqShaderPS, 1);
 		for(uint32_t i = 0; i < 6; i++)
@@ -191,100 +193,103 @@ namespace Pistachio {
 			prefilterShader->GetVSShaderBinding(prefilterShaderVS[i], 2);
 		prefilterSkybox.CreateStack(128, 128, 5, RHI::Format::R16G16B16A16_FLOAT,RHI::TextureUsage::CopyDst);
 
-		RHI::DepthStencilMode dsModeEnabledLEqual;
-		dsModeEnabledLEqual.DepthEnable = true;
-		dsModeEnabledLEqual.DepthFunc = RHI::ComparisonFunc::LessEqual;
-		dsModeEnabledLEqual.DepthWriteMask = RHI::DepthWriteMask::All;
-		dsModeEnabledLEqual.StencilEnable = false;
-
-		//Fill the shader library
-		ShaderDesc.VS = {(char*)"resources/shaders/vertex/Compiled/VertexShader",0};
-		ShaderDesc.PS = { (char*)"resources/shaders/pixel/Compiled/gbuffer_write",0 };
-		ShaderDesc.DepthStencilModes = &dsModeEnabledLEqual;
-		ShaderDesc.NumRenderTargets = 3;
-		ShaderDesc.RTVFormats[0] = RHI::Format::R8G8B8A8_UNORM;
-		ShaderDesc.RTVFormats[1] = ShaderDesc.RTVFormats[2] = RHI::Format::R16G16B16A16_FLOAT;
-		ShaderDesc.DSVFormat = RHI::Format::D32_FLOAT;
-		//blend mode doesnt change for gbuffer shader
-		RHI::RootParameterDesc rpDesc[3];
-		rpDesc[0].type = RHI::RootParameterType::DynamicDescriptor;
-		rpDesc[0].dynamicDescriptor.setIndex = 1;
-		rpDesc[0].dynamicDescriptor.stage = RHI::ShaderStage::Vertex;
-		rpDesc[0].dynamicDescriptor.type = RHI::DescriptorType::ConstantBufferDynamic;
-		RHI::DescriptorRange range;
-		range.BaseShaderRegister = 0;
-		range.numDescriptors = 1;
-		range.stage = RHI::ShaderStage::Vertex;
-		range.type = RHI::DescriptorType::ConstantBuffer;
-		rpDesc[1].type = RHI::RootParameterType::DescriptorTable;
-		rpDesc[2].type = RHI::RootParameterType::DescriptorTable;
-		rpDesc[1].descriptorTable.setIndex = 0;
-		rpDesc[1].descriptorTable.numDescriptorRanges = 1;
-		rpDesc[1].descriptorTable.ranges = &range;
-		RHI::DescriptorRange ranges[6];
-		for (int i = 0; i < 6; i++) ranges[i].BaseShaderRegister = i;
-		ranges[0].type = RHI::DescriptorType::SampledTexture;
-		ranges[1].type = RHI::DescriptorType::SampledTexture;
-		ranges[2].type = RHI::DescriptorType::SampledTexture;
-		ranges[3].type = RHI::DescriptorType::SampledTexture;
-		ranges[0].numDescriptors = 
-		ranges[1].numDescriptors = 
-		ranges[2].numDescriptors = 
-		ranges[3].numDescriptors = 
-		ranges[4].numDescriptors = 
-		ranges[5].numDescriptors = 1;
-		ranges[0].stage =
-		ranges[1].stage =
-		ranges[2].stage =
-		ranges[3].stage =
-		ranges[4].stage =
-		ranges[5].stage = RHI::ShaderStage::Pixel;
-		ranges[4].type = RHI::DescriptorType::Sampler;
-		ranges[5].type = RHI::DescriptorType::ConstantBuffer;
-		rpDesc[2].descriptorTable.numDescriptorRanges = 6;
-		rpDesc[2].descriptorTable.ranges = ranges;
-		rpDesc[2].descriptorTable.setIndex = 2;
-		RHI::RootSignatureDesc rsDesc;
-		rsDesc.numRootParameters = 3;
-		rsDesc.rootParameters = rpDesc;
-		RHI::DescriptorSetLayout* layouts[3]{};
-		RHI::RootSignature* rs;
-		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
-		shaderlib.Add("GBuffer-Shader", std::shared_ptr<Shader>(Shader::CreateWithRs(&ShaderDesc,rs,layouts,3)));
-		rs->Release();
-		ShaderDesc.VS = { (char*)"resources/shaders/vertex/Compiled/VertexShader", 0 };
-		ShaderDesc.PS = { nullptr,0 };
-		ShaderDesc.NumRenderTargets = 0;
-		shaderlib.Add("Shadow-Shader", std::shared_ptr<Shader>(Shader::Create(&ShaderDesc)));
-		//for this we dont need depth testing
-		ShaderDesc.DepthStencilModes = &dsMode;
-		ShaderDesc.NumRenderTargets = 1;
-		ShaderDesc.VS = { (char*)"resources/shaders/vertex/Compiled/vertex_shader_no_transform",0 };
-		ShaderDesc.PS = { (char*)"resources/shaders/pixel/Compiled/DefferedShading_fs",0 };
-		shaderlib.Add("PBR-Deferred-Shader", std::shared_ptr<Shader>(Shader::Create(&ShaderDesc)));
+		
 		BYTE data[4] = { 255,255,255,255 };
 		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
-		LightSB.Bind(7);
 
 		shadowMapAtlas.CreateStack(1024, 1024, 1, RHI::Format::D32_FLOAT);
-		//Shader::SetVSBuffer(PassCB, 0);
-		//Shader::SetPSBuffer(MaterialCB, 1);
-		auto Windata = GetWindowDataPtr();
-		RendererBase::ChangeViewport(((WindowData*)(Windata))->width, ((WindowData*)(Windata))->height);
-		RendererBase::SetCullMode(CullMode::Back);
-		ChangeSkybox(skyboxFile);
-		//auto mainTarget = RendererBase::GetmainRenderTargetView();
-		//RendererBase::Getd3dDeviceContext()->OMSetRenderTargets(1, &mainTarget, RendererBase::GetDepthStencilView());
-		delete ss;
-		//fbo.BindResource(8);
-		//shadowMapAtlas.Create(4096);
-		//DefaultMaterial.Initialize();
-		//DefaultMaterial.diffuseColor = Vector4(1);
-		//DefaultMaterial.metallic = 0.f;
-		//DefaultMaterial.roughness = 1.f;
-		//DefaultMaterial.Update();
-		
 
+		computeShaders["Build Clusters"] = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/CFBuildClusters_cs",0 }, RHI::ShaderMode::File);
+		computeShaders["Filter Clusters"] = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/CFActiveClusters_cs",0 }, RHI::ShaderMode::File);
+		computeShaders["Tighten Clusters"] = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/CFTightenList_cs",0 }, RHI::ShaderMode::File);
+		computeShaders["Cull Lights"] = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/CFCullLights_cs",0 }, RHI::ShaderMode::File);
+		
+		RHI::RootParameterDesc rpDesc[5];
+		RHI::DescriptorRange FrameCBRange;
+		Pistachio::Helpers::FillDescriptorRange(&FrameCBRange, 1, 0, RHI::ShaderStage::Vertex | RHI::ShaderStage::Pixel, RHI::DescriptorType::ConstantBuffer);
+		Pistachio::Helpers::FillDynamicDescriptorRootParam(rpDesc + 0, 0, RHI::DescriptorType::ConstantBufferDynamic, RHI::ShaderStage::Vertex);
+		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 1, 1, 1, &FrameCBRange);
+
+
+		RHI::DescriptorRange RendererPsRanges[10];
+		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 0, 1, 0, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//brdf
+		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 1, 1, 1, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//prefilter
+		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 2, 1, 2, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//irradiance
+		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 3, 1, 3, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//shadow map
+		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 4, 1, 4, RHI::ShaderStage::Pixel, RHI::DescriptorType::StructuredBuffer);//light grid
+		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 5, 1, 5, RHI::ShaderStage::Pixel, RHI::DescriptorType::StructuredBuffer);//lights
+		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 6, 1, 6, RHI::ShaderStage::Pixel, RHI::DescriptorType::StructuredBuffer);//light index list
+		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 7, 1, 7, RHI::ShaderStage::Pixel, RHI::DescriptorType::Sampler);//brdf sampler
+		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 8, 1, 8, RHI::ShaderStage::Pixel, RHI::DescriptorType::Sampler);//shadow sampler
+		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 9, 1, 9, RHI::ShaderStage::Pixel, RHI::DescriptorType::Sampler);//texture sampler
+		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 2, 10, 2, RendererPsRanges);
+
+		RHI::DescriptorRange materialRanges[4];
+		Pistachio::Helpers::FillDescriptorRange(materialRanges + 0, 1, 0, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//diffuse
+		Pistachio::Helpers::FillDescriptorRange(materialRanges + 1, 1, 1, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//metallic
+		Pistachio::Helpers::FillDescriptorRange(materialRanges + 2, 1, 2, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//roughness
+		Pistachio::Helpers::FillDescriptorRange(materialRanges + 3, 1, 3, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//normal
+		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 3, 4, 3, materialRanges);
+
+		Pistachio::Helpers::FillDynamicDescriptorRootParam(rpDesc + 4, 4, RHI::DescriptorType::ConstantBufferDynamic, RHI::ShaderStage::Pixel);
+
+		RHI::RootSignatureDesc rsDesc;
+		rsDesc.numRootParameters = 5;
+		rsDesc.rootParameters = rpDesc;
+
+		RHI::RootSignature* rs;
+		RHI::DescriptorSetLayout* layouts[5]{};
+		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
+
+		Pistachio::Helpers::FillDepthStencilMode(&dsMode, true, RHI::DepthWriteMask::None);
+		Pistachio::Helpers::BlendModeDisabledBlend(&blendMode);
+		Pistachio::Helpers::FillRaseterizerMode(&rsMode);
+		Pistachio::Helpers::ZeroAndFillShaderDesc(&ShaderDesc, 
+			"resources/shaders/vertex/Compiled/VertexShader", 
+			"resources/shaders/pixel/Compiled/CFPBRShader_ps", 1, 1, &dsMode,1, &blendMode,1,&rsMode);
+		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
+		ShaderDesc.DSVFormat = RHI::Format::D32_FLOAT;
+		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
+		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
+
+		ShaderAsset* fwdShader = new ShaderAsset();
+		fwdShader->shader.CreateStackRs(&ShaderDesc, rs, layouts, 4);
+		fwdShader->paramBufferSize = 12;
+		fwdShader->parametersMap["Diffuse"] = ParamInfo{ 0,ParamType::Float };
+		fwdShader->parametersMap["Metallic"] = ParamInfo{ 4,ParamType::Float };
+		fwdShader->parametersMap["Roughness"] = ParamInfo{ 8,ParamType::Float };
+		fwdShader->bindingsMap["Diffuse Texture"] = 0;
+		fwdShader->bindingsMap["Metallic Texture"] = 1;
+		fwdShader->bindingsMap["Roughness Texture"] = 2;
+		fwdShader->bindingsMap["Normal Texture"] = 3;
+		fwdShader->hold();//keep alive
+		GetAssetManager()->FromResource(fwdShader, "Default Shader", Pistachio::ResourceType::Shader);
+		rs->Release();
+		for (int i = 0; i < 5; i++)
+		{
+			if (layouts[i]) layouts[i]->Release();
+		}
+		Pistachio::Helpers::FillDescriptorRange(&FrameCBRange, 1, 0, RHI::ShaderStage::Vertex, RHI::DescriptorType::ConstantBuffer);
+		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 0, 1, 1, &FrameCBRange);
+		Pistachio::Helpers::FillDynamicDescriptorRootParam(rpDesc + 1, 0, RHI::DescriptorType::ConstantBufferDynamic, RHI::ShaderStage::Vertex);
+		rsDesc.numRootParameters = 2;
+
+		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
+
+		//Z-Prepass
+		Pistachio::Helpers::FillDepthStencilMode(&dsMode);
+		Pistachio::Helpers::BlendModeDisabledBlend(&blendMode);
+		Pistachio::Helpers::FillRaseterizerMode(&rsMode);
+		Pistachio::Helpers::ZeroAndFillShaderDesc(&ShaderDesc,
+			"resources/shaders/vertex/Compiled/StandaloneVertexShader",
+			nullptr, 0, 1, &dsMode, 1, &blendMode, 1, &rsMode);
+		ShaderDesc.DSVFormat = RHI::Format::D32_FLOAT;
+		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
+		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
+		shaders["Z-Prepass"] = Shader::CreateWithRs(&ShaderDesc, rs, layouts, 2);
+		shaders["Shadow Shader"] = shaders["Z-Prepass"];
+		
+		ChangeSkybox(skyboxFile);
 	}
 	void Renderer::ChangeSkybox(const char* filename)
 	{
@@ -351,8 +356,8 @@ namespace Pistachio {
 		irradianceShaderPS.UpdateTextureBinding(skybox.GetView(), 0);
 		irradianceShaderPS.UpdateSamplerBinding(defaultSampler, 1);
 
-		Pistachio::RGTexture* skyboxFaces[6];
-		Pistachio::RGTexture* irradianceSkyboxFaces[6];
+		Pistachio::RGTextureHandle skyboxFaces[6];
+		Pistachio::RGTextureHandle irradianceSkyboxFaces[6];
 		for (int i = 0; i < 6; i++)
 		{
 			skyboxFaces[i] = skyboxRG.CreateTexture(&skybox, i);
@@ -421,8 +426,10 @@ namespace Pistachio {
 		}
 		//todo
 		static RenderCubeMap prefilterMipLevels[5];
-		RGTexture* prefilterRGTextures[5*6];
-		RGTexture* prefilterDstTextures[5 * 6];
+		RGTextureHandle prefilterRGTextures[5*6];
+		RGTextureHandle prefilterDstTexture;
+		prefilterDstTexture = skyboxRG.CreateTexture((Texture*)&prefilterSkybox,0, true, 0,6,5);
+		//skyboxRG.textures[prefilterDstTexture.offset].currentFamily = RHI::QueueFamily::Graphics;
 		const uint32_t mipLevels = 5;
 		uint32_t mipFaceIndex =0;
 		for (uint32_t mip = 0; mip < mipLevels; mip++)
@@ -435,7 +442,6 @@ namespace Pistachio {
 			for (uint32_t i = 0; i < 6; i++)
 			{
 				prefilterRGTextures [mipFaceIndex] = skyboxRG.CreateTexture(&prefilterMipLevels[mip], i);
-				prefilterDstTextures[mipFaceIndex] = skyboxRG.CreateTexture((Texture*)&prefilterSkybox, mip, true, i);
 				auto& prefilterPass = skyboxRG.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Render To Texture");
 				for (uint32_t j = 0; j < 6; j++)
 				{
@@ -454,7 +460,7 @@ namespace Pistachio {
 				prefilterPass.pass_fn = [&, i, mip,mipWidth,mipHeight](RHI::GraphicsCommandList* list)
 					{
 						RHI::Viewport vp;
-						vp.height = vp.width = mipWidth;
+						vp.height = vp.width = (float)mipWidth;
 						vp.minDepth = 0;
 						vp.maxDepth = 1;
 						vp.x = vp.y = 0;
@@ -483,13 +489,13 @@ namespace Pistachio {
 				input.texture = prefilterRGTextures[j];
 				input.usage = AttachmentUsage::Copy;
 				copyPass.AddColorInput(&input);
-				AttachmentInfo output;
-				output.format = RHI::Format::R16G16B16A16_FLOAT;
-				output.loadOp = RHI::LoadOp::Load;
-				output.texture = prefilterDstTextures[j];
-				output.usage = AttachmentUsage::Copy;
-				copyPass.AddColorOutput(&output);
 			}
+			AttachmentInfo output;
+			output.format = RHI::Format::R16G16B16A16_FLOAT;
+			output.loadOp = RHI::LoadOp::Load;
+			output.texture = prefilterDstTexture;
+			output.usage = AttachmentUsage::Copy;
+			copyPass.AddColorOutput(&output);
 			copyPass.pass_fn = [&,mip](RHI::GraphicsCommandList* list)
 				{
 					uint32_t mipSize = (int)(128 * std::pow(0.5, mip));
@@ -505,6 +511,14 @@ namespace Pistachio {
 					dstRange.IndexOrFirstMipLevel = mip;
 					dstRange.NumArraySlices = 6;
 					dstRange.NumMipLevels = 1;
+					RHI::TextureMemoryBarrier barr;
+					barr.AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
+					barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+					barr.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
+					barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
+					barr.texture = prefilterSkybox.m_ID.Get();
+					barr.subresourceRange = dstRange;
+					//list->PipelineBarrier(RHI::PipelineStage::ALL_GRAPHICS_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, 0, 1, &barr);
 					list->CopyTextureRegion(srcRange, dstRange, { 0,0,0 }, { 0,0,0 }, { mipSize,mipSize,1 }, prefilterMipLevels[mip].m_ID.Get(), prefilterSkybox.m_ID.Get());
 				};
 		}
@@ -569,113 +583,14 @@ namespace Pistachio {
 		//Pistachio::RendererBase::SetCullMode(CullMode::Front);
 		////BrdfTex.Bind();
 		////RendererBase::DrawIndexed(planebuffer);
-		skyboxRG.NewFrame();
 		skyboxRG.Execute();
 		skyboxRG.SubmitToQueue();
 		RendererBase::fence_vals[RendererBase::currentFrameIndex] = ++RendererBase::currentFrameIndex;
 		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
 	}
-	void Renderer::AddLight(const Light& light)
-	{
-		PT_PROFILE_FUNCTION();
-		RegularLightData.push_back(light);
-		passConstants.numRegularlights++;
-	}
-	void Renderer::AddShadowCastingLight(const ShadowCastingLight& light)
-	{
-		PT_PROFILE_FUNCTION();
-		ShadowLightData.push_back(light);
-		passConstants.numShadowlights++;
-
-	}
-	void Renderer::BeginScene(PerspectiveCamera* cam) {
-		PT_PROFILE_FUNCTION();
-		viewproj = cam->GetViewProjectionMatrix();
-		auto campos = cam->GetPosition();
-		//BrdfTex.BindResource(0, 1, 0);
-		//ifbo.BindResource(1);
-		//prefilter.BindResource(2);
-		CameraData.viewProjection = viewproj;
-		CameraData.viewPos = {campos.x,campos.y, campos.z, 1.f};
-		uint32_t regularLightByteSize = sizeof(RegularLight) * RegularLightData.size(), shadowLightByteSize = sizeof(ShadowCastingLight) * ShadowLightData.size();
-		LightSBCPU.resize(shadowLightByteSize + regularLightByteSize);
-		if (regularLightByteSize)
-			memcpy(&LightSBCPU[0], RegularLightData.data(), regularLightByteSize);
-		if (shadowLightByteSize)
-			memcpy(&LightSBCPU[regularLightByteSize], ShadowLightData.data(), shadowLightByteSize);
-		if(LightSBCPU.size())
-			LightSB.Update(LightSBCPU.data(), shadowLightByteSize + regularLightByteSize,0);
-		UpdatePassConstants();
-		
-		whiteTexture.Bind(3);
-		whiteTexture.Bind(4);
-		whiteTexture.Bind(5);
-	}
-	void Renderer::BeginScene(RuntimeCamera* cam, const DirectX::XMMATRIX& transform) {
-		PT_PROFILE_FUNCTION();
-		DirectX::XMFLOAT4 campos;
-		DirectX::XMStoreFloat4(&campos, transform.r[3]);
-		DirectX::XMMATRIX view = DirectX::XMMatrixInverse(nullptr, transform);
-		viewproj = DirectX::XMMatrixMultiplyTranspose(view, cam->GetProjection());
-		//ID3D11ShaderResourceView* pBrdfSRV = (ID3D11ShaderResourceView*)BrdfTex.GetSRV().ptr;
-		//RendererBase::Getd3dDeviceContext()->PSSetShaderResources(0, 1, &pBrdfSRV);
-		//ifbo.BindResource(1);
-		//prefilter.BindResource(2);
-		CameraData.viewProjection = viewproj;
-		CameraData.view = DirectX::XMMatrixTranspose(view);
-		CameraData.viewPos = campos;
-		uint32_t regularLightByteSize = sizeof(RegularLight) * RegularLightData.size(), shadowLightByteSize = sizeof(ShadowCastingLight) * ShadowLightData.size();
-		LightSBCPU.resize(shadowLightByteSize + regularLightByteSize);
-		if (regularLightByteSize)
-			memcpy(&LightSBCPU[0], RegularLightData.data(), regularLightByteSize);
-		if (shadowLightByteSize)
-			memcpy(&LightSBCPU[regularLightByteSize], ShadowLightData.data(), shadowLightByteSize);
-		if (LightSBCPU.size())
-			LightSB.Update(LightSBCPU.data(), shadowLightByteSize + regularLightByteSize,0);
-		UpdatePassConstants();
-		whiteTexture.Bind(3);
-		whiteTexture.Bind(4);
-		whiteTexture.Bind(5);
-		currentMat = nullptr;
-	}
-	void Renderer::BeginScene(EditorCamera& cam)
-	{
-		PT_PROFILE_FUNCTION();
-		DirectX::XMFLOAT4 campos;
-		DirectX::XMStoreFloat4(&campos, cam.GetPosition());
-		viewproj = DirectX::XMMatrixTranspose(cam.GetViewProjection());
-		//ID3D11ShaderResourceView* pBrdfSRV = (ID3D11ShaderResourceView*)BrdfTex.GetSRV().ptr;
-		//RendererBase::Getd3dDeviceContext()->PSSetShaderResources(0, 1, &pBrdfSRV);
-		CameraData.viewProjection = viewproj;
-		CameraData.view = DirectX::XMMatrixTranspose(cam.GetViewMatrix());
-		CameraData.viewPos = campos;
-		uint32_t regularLightByteSize = sizeof(RegularLight) * RegularLightData.size(), shadowLightByteSize = sizeof(ShadowCastingLight) * ShadowLightData.size();
-		LightSBCPU.resize(shadowLightByteSize + regularLightByteSize);
-		if (regularLightByteSize)
-			memcpy(&LightSBCPU[0], RegularLightData.data(), regularLightByteSize);
-		if(shadowLightByteSize)
-			memcpy(&LightSBCPU[regularLightByteSize], ShadowLightData.data(), shadowLightByteSize);
-		if (LightSBCPU.size())
-			LightSB.Update(LightSBCPU.data(), shadowLightByteSize + regularLightByteSize,0);
-		UpdatePassConstants();
-		//ifbo.BindResource(1);
-		//prefilter.BindResource(2);
-		whiteTexture.Bind(3);
-		whiteTexture.Bind(4);
-		whiteTexture.Bind(5);
-		LightSB.Bind(7);
-		//fbo.BindResource(8);
-		currentMat = nullptr;
-		currentShader = nullptr;
-	}
 	void Renderer::EndScene()
 	{
 		PT_PROFILE_FUNCTION()
-		RegularLightData.clear();
-		ShadowLightData.clear();
-		LightSBCPU.clear();
-		passConstants.numRegularlights = 0;
-		passConstants.numShadowlights = 0;
 		auto data = ((WindowData*)GetWindowDataPtr());
 		RendererBase::EndFrame();
 	}
@@ -683,37 +598,6 @@ namespace Pistachio {
 		delete brdfSampler;
 		delete shadowSampler;
 		RendererBase::Shutdown();
-	}
-	void Renderer::Submit(Mesh* mesh, Shader* shader, Material* mat, int ID)
-	{
-		PT_PROFILE_FUNCTION();
-		//auto& VB = mesh->GetVertexBuffer(); 
-		//auto& IB = mesh->GetIndexBuffer();
-		//Buffer buffer = { &VB,&IB };
-		if ((mat == currentMat));
-		else
-		{
-			//mat->Bind();
-			currentMat = mat;
-		}
-		if (shader == currentShader);
-		else
-		{
-			//shader->Bind(ShaderType::Vertex);
-			//shader->Bind(ShaderType::Pixel);
-			currentShader = shader;
-		}
-		//RendererBase::DrawIndexed(buffer);
-	}
-	void Renderer::UpdatePassConstants()
-	{
-		PT_PROFILE_FUNCTION();
-		passConstants.EyePosW.x = CameraData.viewPos.x;
-		passConstants.EyePosW.y = CameraData.viewPos.y; 
-		passConstants.EyePosW.z = CameraData.viewPos.z;
-		DirectX::XMStoreFloat4x4(&passConstants.View, CameraData.view);
-		DirectX::XMStoreFloat4x4(&passConstants.ViewProj, CameraData.viewProjection);
-		PassCB.Update(&passConstants, sizeof(PassConstants),0);
 	}
 	const RendererVBHandle Renderer::AllocateVertexBuffer(uint32_t size,const void* initialData)
 	{
@@ -723,6 +607,22 @@ namespace Pistachio {
 	{
 		auto [a,b] = AllocateBuffer(ibFreeList, ibFreeSpace, ibFreeFastSpace, ibCapacity, &Renderer::GrowMeshIndexBuffer, &Renderer::DefragmentMeshIndexBuffer,ibHandleOffsets,ibUnusedHandles,&meshIndices, size, initialData);
 		return { a,b };
+	}
+	ComputeShader* Renderer::GetBuiltinComputeShader(const std::string& name)
+	{
+		if (auto it = computeShaders.find(name); it != computeShaders.end())
+		{
+			return it->second;
+		}
+		return nullptr;
+	}
+	Shader* Renderer::GetBuiltinShader(const std::string& name)
+	{
+		if (auto it = shaders.find(name); it != shaders.end())
+		{
+			return it->second;
+		}
+		return nullptr;
 	}
 	const RendererCBHandle Renderer::AllocateConstantBuffer(uint32_t size)
 	{
@@ -810,12 +710,12 @@ namespace Pistachio {
 		if (freeHandlesVector.empty())
 		{
 			offsetsVector.push_back(offset);
-			return offsetsVector.size() - 1;
+			return(uint32_t)( offsetsVector.size() - 1);
 		}
 		uint32_t handle = freeHandlesVector[freeHandlesVector.size()-1];
 		offsetsVector[handle] = offset;
 		freeHandlesVector.pop_back();
-		return handle;
+		return (uint32_t)handle;
 	}
 	void Renderer::GrowMeshVertexBuffer(uint32_t minSize)
 	{

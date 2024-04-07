@@ -32,7 +32,7 @@ namespace Pistachio {
 			break;
 		case Pistachio::TextureAddress::Wrap: return D3D11_TEXTURE_ADDRESS_WRAP;
 			break;
-		default:
+		default: return D3D11_TEXTURE_ADDRESS_BORDER;
 			break;
 		}
 	}

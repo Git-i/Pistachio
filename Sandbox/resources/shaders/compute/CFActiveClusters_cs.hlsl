@@ -7,9 +7,9 @@ struct inputStruct
     uint3 numClusters; //number of threads used to dispatch
     float _pad0;
 };
-ConstantBuffer<inputStruct> inputBuffer;
-Texture2D<float> zprepass;
-RWByteAddressBuffer clusterActive;//these are actually bools
+ConstantBuffer<inputStruct> inputBuffer : register(b0, space1);
+Texture2D<float> zprepass : register(t0, space0);
+RWStructuredBuffer<uint> clusterActive : register(u1, space0); //these are actually bools
 
 uint getSlice(float z)
 {
@@ -24,5 +24,5 @@ void main( uint3 DTid : SV_DispatchThreadID )
     float2 tileSize = float2(inputBuffer.screenSize) / float2(inputBuffer.numClusters.xy);
     float3 cluster = float3(float2(DTid.xy) / tileSize, slice);
     uint index = cluster.x + (cluster.y * inputBuffer.numClusters.x) + (cluster.z * inputBuffer.numClusters.x * inputBuffer.numClusters.y);
-    clusterActive.Store(index * 4, 1);
+    clusterActive[index] =  1;
 }

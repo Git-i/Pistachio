@@ -1,9 +1,9 @@
-cbuffer CBuf2 : register(b1)
+cbuffer CBuf2 : register(b0, space0)
 {
     matrix transform;
     matrix normalmatrix;
 };
-cbuffer shadowCbuf : register(b0)
+cbuffer FrameCB : register(b0,space1)
 {
     float4x4 View;
     float4x4 InvView;
@@ -21,18 +21,7 @@ cbuffer shadowCbuf : register(b0)
     matrix lightSpaceMatrix[16];
     float4 numlights;
 }
-struct VS_OUT
+float4 main( float4 pos : POSITION ) : SV_Position
 {
-    matrix lsm[4] : LSM;
-    float4 pos : SV_Position;
-};
-VS_OUT main( float4 pos : POSITION ) 
-{
-    VS_OUT vso;
-    vso.lsm[0] = lightSpaceMatrix[0];
-    vso.lsm[1] = lightSpaceMatrix[1];
-    vso.lsm[2] = lightSpaceMatrix[2];
-    vso.lsm[3] = lightSpaceMatrix[3];
-    vso.pos = mul(pos, transform);
-    return vso;
+    return mul(mul(pos, transform), ViewProj);
 }

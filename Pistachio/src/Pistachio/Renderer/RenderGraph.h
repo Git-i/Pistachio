@@ -29,13 +29,15 @@ namespace Pistachio
 			currentAccess(access),
 			currentFamily(family),
 			offset(_offset),
-			size  (_size)
+			size  (_size),
+			numInstances(1)
 		{}
 		RHI::Buffer* buffer;
 		RHI::ResourceAcessFlags currentAccess;
 		RHI::QueueFamily currentFamily;
 		uint32_t offset;
 		uint32_t size;
+		uint32_t numInstances;
 	};
 	class PISTACHIO_API RGTexture
 	{
@@ -58,25 +60,32 @@ namespace Pistachio
 		//}
 	private:
 		friend class RenderGraph;
-		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, RHI::ResourceAcessFlags access, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice) :
+		friend class Renderer;
+		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, RHI::ResourceAcessFlags access, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice, uint32_t numSlices,uint32_t numMips) :
 			texture(_texture),
 			current_layout(layout),
 			mipSlice(MipSlice),
 			IsArray(isArray),
 			arraySlice(Slice),
 			currentAccess(access),
-			currentFamily(family)
+			currentFamily(family),
+			numInstances(1),
+			sliceCount(numSlices),
+			mipSliceCount(numMips)
 		{}
 		
 		RHI::Texture* texture;
 		RHI::ResourceLayout current_layout;
 		uint32_t mipSlice;
+		uint32_t mipSliceCount;
 		bool IsArray;
 		uint32_t arraySlice;
+		uint32_t sliceCount;
 		RHI::ResourceAcessFlags currentAccess;
 		RHI::QueueFamily currentFamily;
 		RTVHandle rtvHandle = { UINT32_MAX, UINT32_MAX };
 		DSVHandle dsvHandle = { UINT32_MAX, UINT32_MAX };//for output resources
+		uint32_t numInstances;
 
 	};
 	struct PISTACHIO_API RGTextureInstance
@@ -113,7 +122,6 @@ namespace Pistachio
 	{
 		std::vector<RGTexture>* originVector;
 		uint32_t offset;
-		uint32_t numInstances;
 		operator RGTextureInstance() const
 		{
 			return RGTextureInstance{ offset, 0 };
@@ -123,7 +131,6 @@ namespace Pistachio
 	{
 		std::vector<RGBuffer>* originVector;
 		uint32_t offset;
-		uint32_t numInstances;
 		operator RGBufferInstance() const
 		{
 			return RGBufferInstance{ offset, 0 };
@@ -164,6 +171,7 @@ namespace Pistachio
 		friend class RenderGraph;
 		RHI::PipelineStage stage;
 		RHI::Area2D area;
+		const char* name;//temp
 		RHIPtr<RHI::PipelineStateObject> pso = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
@@ -216,17 +224,19 @@ namespace Pistachio
 		ComputePass& AddComputePass(const char* passName);
 		void RemovePass(const char* passName);
 		void GetPass(const char* passName);
-		RGTextureHandle CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
-		RGTextureHandle CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED,RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family= RHI::QueueFamily::Ignored);
+		RGTextureHandle CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,uint32_t numSlices = 1, uint32_t numMips = 1, RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
+		RGTextureHandle CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0, uint32_t numSlices = 1,uint32_t numMips = 1, RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED,RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family= RHI::QueueFamily::Ignored);
 		RGTextureHandle CreateTexture(RenderTexture* texture);
 		RGTextureHandle CreateTexture(DepthTexture* texture);
-		RGTextureHandle CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex);
+		RGTextureHandle CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex, uint32_t numSlices = 1);
 		RGTextureInstance MakeUniqueInstance(RGTextureHandle texture);
+		RGBufferInstance MakeUniqueInstance(RGBufferHandle buffer);
 		RGBufferHandle CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
 		void Execute();
 	private:
 		void SortPasses();
 	private:
+		friend class Renderer;
 		bool dirty = true;
 		RHI::Fence* fence;
 		std::vector<RGTexture> textures;

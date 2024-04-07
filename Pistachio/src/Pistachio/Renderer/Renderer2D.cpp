@@ -108,7 +108,7 @@ namespace Pistachio {
 	void Renderer2D::EndScene()
 	{
 		PT_PROFILE_FUNCTION();
-		int size = (unsigned char*)s_Data.QuadVerticesPtr - (unsigned char*)s_Data.QuadVerticesBase;
+		uint32_t size = (uint32_t)((unsigned char*)s_Data.QuadVerticesPtr - (unsigned char*)s_Data.QuadVerticesBase);
 		if (size) {
 			s_Data.quadVB->SetData(s_Data.QuadVerticesBase, size);
 			Flush();

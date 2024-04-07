@@ -20,7 +20,6 @@ struct PSINTPUT
     float depthViewSpace : SM_LAYER;
     int numlights : NUM_LIGHTS;
     float shadowMapSize : SM_SIZE;
-    float4 lightSpacePositions[4] : LS_POS;
     float4 pos : SV_Position;
 };
 

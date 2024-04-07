@@ -52,7 +52,7 @@ namespace Pistachio{
 			NumNegativeScaleComps = 0;
 			for (int i = 0; i < 3; i++)
 				if (((float*)&Scale)[i] < 0) NumNegativeScaleComps++;
-			int PID = parent.GetComponent<ParentComponent>().parentID;
+			int64_t PID = parent.GetComponent<ParentComponent>().parentID;
 			DirectX::XMMATRIX parentTransform = PID >= 0 ? (parent.GetComponent<TransformComponent>().GetTransform({ (entt::entity)PID, parent.m_Scene})) : parent.GetComponent<TransformComponent>().GetLocalTransform();
 			return (DirectX::XMMatrixScalingFromVector(Scale) * DirectX::XMMatrixRotationQuaternion(Rotation) * DirectX::XMMatrixTranslationFromVector(Translation)) * parentTransform;
 		}
@@ -70,9 +70,9 @@ namespace Pistachio{
 	struct PISTACHIO_API MeshRendererComponent {
 		Asset Model;
 		Asset material;
-		std::size_t cbIndex = 0;
 		int modelIndex = 0;
 		bool bMaterialDirty = true;
+		RendererCBHandle handle;
 		~MeshRendererComponent() = default;
 		MeshRendererComponent() = default;
 		MeshRendererComponent(const MeshRendererComponent& other) = default;

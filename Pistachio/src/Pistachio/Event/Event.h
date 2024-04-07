@@ -15,7 +15,7 @@ namespace Pistachio {
 		EntityCreated, EntityDestroyed, EntityReparented
 	};
 
-	enum EventCategory : char
+	enum EventCategory : uint16_t
 	{
 		None = 0,
 		EventCategoryApplication = 1,

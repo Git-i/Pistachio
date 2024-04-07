@@ -36,10 +36,10 @@ namespace Pistachio
 		~ShaderAsset();
 		static ShaderAsset* Create(const char* filename);
 		ParamInfo GetParameterInfo(const std::string& paramName);
-		void BindSkyboxSet(const SetInfo& info);
 		inline Shader* GetShader() { return &shader; }
 		inline uint32_t GetParamBufferSize() { return paramBufferSize; }
 	private:
+		friend class Renderer;
 		uint32_t paramBufferSize;
 		std::unordered_map<std::string, ParamInfo> parametersMap;
 		std::unordered_map<std::string, uint32_t> bindingsMap;

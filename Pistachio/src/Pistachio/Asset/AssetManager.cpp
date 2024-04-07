@@ -92,14 +92,12 @@ namespace Pistachio
 	inline int Pistachio::RefCountedObject::hold() const
 	{
 		m_count_++;
-		std::cout << "rc object held, new count is :" << m_count_ << std::endl;
 		return m_count_;
 	}
 	inline int RefCountedObject::release() const
 	{
 		assert(m_count_ > 0);
 		m_count_--;
-		std::cout << "rc object released, new count is :" << m_count_ << std::endl;
 		return m_count_;
 	}
 	inline int RefCountedObject::count()
@@ -163,7 +161,7 @@ namespace Pistachio
 		}
 		return nullptr;
 	}
-	ShaderAsset* AssetManager::GetShaderResource(Asset& a)
+	ShaderAsset* AssetManager::GetShaderResource(const Asset& a)
 	{
 		auto it = assetResourceMap.find(a.m_uuid);
 		if (it != assetResourceMap.end())

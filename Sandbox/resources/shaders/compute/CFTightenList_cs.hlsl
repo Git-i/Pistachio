@@ -3,18 +3,18 @@ struct inputStruct
 {
     uint3 csDimensions;
 };
-RWByteAddressBuffer IsclusterActive; //the last element of this struct is a uint counter
-ConstantBuffer<inputStruct> inputBuffer;
-RWStructuredBuffer<uint> activeClusters;
+ConstantBuffer<inputStruct> inputBuffer  : register(b0, space1);
+StructuredBuffer<uint> IsclusterActive : register(t0, space0);
+RWStructuredBuffer<uint> counterBuffer   : register(u1, space0);
+RWStructuredBuffer<uint> activeClusters  : register(u2, space0);
 [numthreads(1, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
     uint index = DTid.x + (DTid.y * inputBuffer.csDimensions.x) + (DTid.z * inputBuffer.csDimensions.x * inputBuffer.csDimensions.y);
-    uint counterIndex = inputBuffer.csDimensions.x * inputBuffer.csDimensions.y * inputBuffer.csDimensions.z;
-    if (IsclusterActive.Load(index * 4))
+    if (IsclusterActive[index] == 1)
     {
         uint counterVal;
-        IsclusterActive.InterlockedAdd(counterIndex * 4, 1, counterVal);
+        InterlockedAdd(counterBuffer[0], 1, counterVal);
         activeClusters[counterVal] = index;
     }
 }

@@ -12,7 +12,7 @@ namespace Pistachio
         RHIPtr(const RHIPtr& other)
         {
             ptr = other.ptr;
-            ptr->Hold();
+            SafeHold();
         }
         RHIPtr(T* other)
         {
@@ -31,7 +31,7 @@ namespace Pistachio
         void operator=(const RHIPtr<T>& other)
         {
             ptr = other.ptr;
-            ptr->Hold();
+            SafeHold();
         }
         void operator=(T* other)
         {
@@ -65,6 +65,10 @@ namespace Pistachio
         {
             if(ptr && ptr->GetRefCount())
                 ptr->Release();
+        }
+        void SafeHold()
+        {
+            if (ptr) ptr->Hold();
         }
         T* ptr;
     };

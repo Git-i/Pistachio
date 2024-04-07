@@ -99,3 +99,5 @@ namespace Pistachio {
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "Comdlg32.lib")
 
+#pragma warning( once : 4251 )
+

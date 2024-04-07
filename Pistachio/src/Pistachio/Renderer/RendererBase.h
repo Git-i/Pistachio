@@ -78,6 +78,8 @@ namespace Pistachio {
 		static RHI::Texture* GetBackBufferTexture(uint32_t index);
 		static RHI::Texture* GetDefaultDepthTexture();
 		static uint32_t GetCurrentRTVIndex();
+		static uint32_t GetCurrentFrameIndex();
+		static const constexpr uint32_t numFramesInFlight = 3;
 		//static ID3D11RenderTargetView* GetmainRenderTargetView() { return g_mainRenderTargetView.Get(); }
 		//static ID3D11DepthStencilView* GetDepthStencilView(){ return pDSV.Get(); }
 	private:
@@ -97,6 +99,7 @@ namespace Pistachio {
 		// thereby limiting the ability to queue updates effectively
 		static RHI::CommandAllocator* stagingCommandAllocator; 
 		static RHI::CommandAllocator* commandAllocators[3];
+		static RHI::CommandAllocator* computeCommandAllocators[3];
 		static RHI::Instance* instance;
 		static RHI::SwapChain* swapChain;
 		static RHI::CommandQueue* directQueue;

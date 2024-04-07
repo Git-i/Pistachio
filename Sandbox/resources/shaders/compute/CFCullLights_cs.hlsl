@@ -3,6 +3,7 @@ struct LightGridEntry
     uint offset;
     uint shadow_offset;
     uint size;
+    uint _pad0;
 };
 struct ClusterAABB
 {
@@ -18,15 +19,16 @@ struct inputStruct
     uint numTotalLights;
     float4x4 viewMatrix;
 };
-StructuredBuffer<ClusterAABB> clustersBuffer;
-StructuredBuffer<uint> activeClusters;
-ConstantBuffer<inputStruct> inputBuffer;
+ConstantBuffer<inputStruct> inputBuffer : register(b0, space1);
 
-StructuredBuffer<float4> lightList;
+StructuredBuffer<ClusterAABB> clustersBuffer : register(t0, space0);
+StructuredBuffer<uint> activeClusters : register(t1, space0);
 
-RWStructuredBuffer<uint> countBuffer; //the count buffer is a cpu visible buffer, that is used for counting
-RWStructuredBuffer<uint> lightIndexList;
-RWStructuredBuffer<LightGridEntry> lightGrid;
+StructuredBuffer<float4> lightList : register(t2, space0);
+
+RWStructuredBuffer<uint> countBuffer         : register(u3, space0); //the count buffer is a cpu visible buffer, that is used for counting
+RWStructuredBuffer<uint> lightIndexList      : register(u4, space0);
+RWStructuredBuffer<LightGridEntry> lightGrid : register(u5, space0);
 
 static const uint RegularLightStepSize = 64 / 16;
 static const uint ShadowLightStepSize = 336 / 16;
@@ -152,7 +154,7 @@ void main( uint3 DTid : SV_DispatchThreadID, uint3 groupIdx : SV_GroupID, uint l
     }
     //GroupMemoryBarrierWithGroupSync();  wait till all data has been put into the index list |?
     lightGrid[clusterIndex].offset = grpData.offset;
-    lightGrid[clusterIndex].shadow_offset = grpData.offset = grpData.numRegularLights;
+    lightGrid[clusterIndex].shadow_offset = grpData.numRegularLights;
     lightGrid[clusterIndex].size = grpData.numVisiblelights;
     
 }

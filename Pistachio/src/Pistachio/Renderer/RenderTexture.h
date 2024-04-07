@@ -39,6 +39,7 @@ namespace Pistachio {
 	public:
 		static DepthTexture* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
 		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		RHI::TextureView* GetView() { return m_view; }
 		RHI::Format GetFormat() const override;
 		uint32_t GetWidth() const override;
 		uint32_t GetHeight() const override;

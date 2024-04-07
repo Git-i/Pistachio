@@ -92,8 +92,7 @@ namespace Pistachio
     }
     void Texture2D::CreateStack(const char* path, RHI::Format format, TextureFlags flags)
     {
-        PT_PROFILE_FUNCTION()
-            HRESULT Hr;
+        PT_PROFILE_FUNCTION();
         int Width, Height, nChannels;
         void* data;
         if (format == RHI::Format::R16G16B16A16_FLOAT || format == RHI::Format::R32G32B32A32_FLOAT )
