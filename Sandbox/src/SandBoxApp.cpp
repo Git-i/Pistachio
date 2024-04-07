@@ -36,7 +36,6 @@ public:
 		PT_PROFILE_FUNCTION();
 		this->delta = delta;
 		frame++;
-		tex->InvalidateRTVHandle();
 		//tex->SetResource(Pistachio::RendererBase::GetBackBufferTexture(Pistachio::RendererBase::GetCurrentRTVIndex()));
 		graph.NewFrame();
 		graph.Execute();
@@ -230,7 +229,7 @@ private:
 	Pistachio::RendererCBHandle backgroundCB;
 	Pistachio::SetInfo envShaderVS;
 	Pistachio::SetInfo envShaderPS;
-	Pistachio::RGTexture* tex;
+	Pistachio::RGTextureHandle tex;
 	Pistachio::RenderGraph graph;
 	Pistachio::RendererCBHandle cBuf1;
 	Pistachio::RendererCBHandle cBuf2;

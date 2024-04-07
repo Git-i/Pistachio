@@ -1,5 +1,4 @@
 #pragma once
-#include <stdfloat>
 #include "Buffer.h"
 #include "Shader.h"
 #include "../Core/Error.h"

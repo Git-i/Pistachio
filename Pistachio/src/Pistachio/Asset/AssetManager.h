@@ -19,9 +19,10 @@ namespace Pistachio
 		Material* GetMaterialResource(Asset& a);
 		Texture2D* GetTexture2DResource(Asset& a);
 		Model* GetModelResource(Asset& a);
-		ShaderAsset* GetShaderResource(Asset& a);
+		ShaderAsset* GetShaderResource(const Asset& a);
 		friend class Asset;
 	private:
+		friend class Renderer;
 		Asset CreateAsset(const std::string& filename, ResourceType type);
 		//intended to only be used by engine developer. it will most likely leak memory otherwise
 		Asset FromResource(RefCountedObject* resource, const std::string& str_id, ResourceType type);

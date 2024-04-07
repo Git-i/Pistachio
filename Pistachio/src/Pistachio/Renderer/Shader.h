@@ -140,7 +140,7 @@ namespace Pistachio {
 		case BufferLayoutFormat::FLOAT:  return 4;
 		case BufferLayoutFormat::UINT:   return 4;
 		case BufferLayoutFormat::INT:    return 4;
-		default:
+		default: return 0;
 			break;
 		}
 	}
@@ -191,6 +191,7 @@ namespace Pistachio {
 
 		std::uint32_t setIndex;
 		RHI::DescriptorSet* set;
+		void UpdateBufferBinding(RHI::Buffer* buff, uint32_t offset, uint32_t size, RHI::DescriptorType type, uint32_t slot);
 		void UpdateBufferBinding(BufferBindingUpdateDesc* desc, uint32_t slot);
 		void UpdateTextureBinding(RHI::TextureView* view, uint32_t slot);
 		void UpdateSamplerBinding(SamplerHandle handle, uint32_t slot);
@@ -208,8 +209,10 @@ namespace Pistachio {
 	public:
 		ComputeShader() {};
 		~ComputeShader();
+		void Bind(RHI::GraphicsCommandList* list);
 		static ComputeShader* Create(const RHI::ShaderCode& code, RHI::ShaderMode mode);
 		void GetShaderBinding(SetInfo& info, uint32_t setIndex);
+		void ApplyShaderBinding(RHI::GraphicsCommandList* list, const SetInfo& info);
 		static ComputeShader* CreateWithRs(const RHI::ShaderCode& code, RHI::ShaderMode mode, RHI::RootSignature* rSig);
 	private:
 		friend class ComputePass;
@@ -241,13 +244,15 @@ namespace Pistachio {
 		uint32_t SetBlendMode(RHI::BlendMode* mode, ShaderModeSetFlags flags);
 		RHI::PipelineStateObject* GetCurrentPipeline() { return PSOs[currentPSO]; }
 	private:
-		void CreateStackRs(ShaderCreateDesc* desc,RHI::RootSignature* rs);
+		void Initialize(ShaderCreateDesc* desc,RHI::RootSignature* rs);
 		void CreateStack(ShaderCreateDesc* desc);
+		void CreateStackRs(ShaderCreateDesc* desc, RHI::RootSignature* rs, RHI::DescriptorSetLayout** layouts, uint32_t numLayouts);
 		void CreateSetInfos(RHI::ShaderReflection* VSreflection, RHI::ShaderReflection* PSreflection);
 		void FillSetInfo(RHI::ShaderReflection* reflection,ShaderSetInfos& info);
 		void CreateRootSignature();
 	private:
 		friend class ShaderAsset;
+		friend class Renderer;
 		std::unordered_map<PSOHash, RHI::PipelineStateObject*> PSOs;
 		ShaderSetInfos m_VSinfo;
 		ShaderSetInfos m_PSinfo;
@@ -269,14 +274,55 @@ namespace Pistachio {
 		PSOHash currentPSO;
 		RHI::ShaderMode mode;
 	};
-	class PISTACHIO_API ShaderLibrary
+	namespace Helpers
 	{
-	public:
-		void Add(const std::string& name,const Ref<Shader>& Shader);
-		Ref<Shader> Get(const std::string& name);
-	private:
-		std::unordered_map<std::string, Ref<Shader>> m_Shaders;
-	};
+		/*
+		* Zeroes out and Fills a Shader Create Desc with a bunch of valid parameters
+		* Things to note:
+		*	Shader Mode is File
+		*	Depth Stencil, Blend and Render Target modes are not filled
+		*	Texture formats are not filled
+		*	Input Description is Filled
+		*/
+		void ZeroAndFillShaderDesc(ShaderCreateDesc* desc,
+			const char* VS = nullptr,
+			const char* PS = nullptr,
+			uint32_t numRenderTargets = 1,
+			uint32_t numDSModes = 0,
+			RHI::DepthStencilMode* dsModes = nullptr,
+			uint32_t numBlendModes = 0,
+			RHI::BlendMode* blendModes = nullptr,
+			uint32_t numRasterizerModes = 0,
+			RHI::RasterizerMode* rsModes = nullptr,
+			const char* GS = nullptr,
+			const char* HS = nullptr,
+			const char* DS = nullptr);
+		void FillDepthStencilMode(RHI::DepthStencilMode* mode,
+			bool depthEnabled = true,
+			RHI::DepthWriteMask mask = RHI::DepthWriteMask::All,
+			RHI::ComparisonFunc depthFunc = RHI::ComparisonFunc::LessEqual,
+			bool stencilEnable = false,
+			uint8_t stencilReadMask = 0,
+			uint8_t stencilWriteMask = 0,
+			RHI::DepthStencilOp* front = nullptr,
+			RHI::DepthStencilOp* back = nullptr);
+		void BlendModeDisabledBlend(RHI::BlendMode* mode);
+		void FillRaseterizerMode(RHI::RasterizerMode* mode,
+			RHI::FillMode fillMode = RHI::FillMode::Solid,
+			RHI::CullMode cullMode = RHI::CullMode::Back,
+			RHI::PrimitiveTopology topology = RHI::PrimitiveTopology::TriangleList,
+			bool multiSample = false,
+			bool antiAliasedLine = false,
+			bool conservativeRaster = false,
+			int depthBias = 0,
+			float depthBiasClamp = 0,
+			float ssDepthBias = 0,
+			bool depthClip = false);
+		void FillDescriptorSetRootParam(RHI::RootParameterDesc* rpDesc, uint32_t numRanges, uint32_t setIndex, RHI::DescriptorRange* ranges);
+		void FillDynamicDescriptorRootParam(RHI::RootParameterDesc* rpDesc, uint32_t setIndex, RHI::DescriptorType type, RHI::ShaderStage stage);
+		void FillDescriptorRange(RHI::DescriptorRange* range, uint32_t numDescriptors, uint32_t shaderRegister, RHI::ShaderStage stage, RHI::DescriptorType type);
+
+	}
 }
 
 

@@ -75,7 +75,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;$(SolutionDir)Pistachio\vendor\physx\lib;$(SolutionDir)\x64\Debug-Vulkan;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)bin\Debug-x64\Pistachio-Editor
+      <Command>copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)bin\Debug-x64\Sandbox
 copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)EditorCSharp\bin\Debug\net7.0
 copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleApp1\bin\Debug\net8.0-windows</Command>
     </PostBuildEvent>

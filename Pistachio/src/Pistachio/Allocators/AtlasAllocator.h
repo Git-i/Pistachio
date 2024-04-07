@@ -38,8 +38,8 @@ namespace Pistachio
         void DeFragment();
         Region GetRegion(std::uint32_t id);
         inline iVector2 GetPortionSize()const { return m_portion_size; }
-        inline uint32_t GetTotalArea() const { return ((m_portion_size.x * m_portions[0].size()) * (m_portion_size.y * m_portions.size())); }
-        inline iVector2 GetMaxSize() const { return iVector2(m_portions[0].size(), m_portions.size()); }
+        inline uint32_t GetTotalArea() const { return (uint32_t)(((m_portion_size.x * m_portions[0].size()) * (m_portion_size.y * m_portions.size()))); }
+        inline iVector2 GetMaxSize() const { return iVector2((uint32_t)m_portions[0].size(), (uint32_t)m_portions.size()); }
     private:
         uint32_t id = 0;
         std::unordered_map<uint32_t, Region> indexRegionMap;

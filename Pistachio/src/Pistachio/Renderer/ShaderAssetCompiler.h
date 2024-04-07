@@ -37,8 +37,6 @@ namespace Pistachio
 				HRESULT hr = DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&library));
 				if (FAILED(hr))
 				{
-					float f;
-					//convert f to big edian
 					PT_CORE_ERROR("Couldn't Initialize Shader Compiler");
 					library = nullptr;
 				}

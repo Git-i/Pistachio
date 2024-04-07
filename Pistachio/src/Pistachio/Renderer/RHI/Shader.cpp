@@ -70,7 +70,7 @@ namespace Pistachio {
 			break;
 		case Pistachio::BufferLayoutFormat::INT:return RHI::Format::R32_SINT;
 			break;
-		default:
+		default: return RHI::Format::UNKNOWN;
 			break;
 		}
 	}
@@ -104,7 +104,7 @@ namespace Pistachio {
 		resultBuffer.primitiveTopologyType = (unsigned int)desc->rasterizerMode.topology;
 		resultBuffer.slopeScaledDepthBias = desc->rasterizerMode.slopeScaledDepthBias;
 		//encode all 6 even if independent blend
-		for (int i = 0; i < desc->numRenderTargets; i++)
+		for (uint32_t i = 0; i < desc->numRenderTargets; i++)
 		{
 			resultBuffer.rtblends[i].enabled = desc->blendMode.blendDescs[i].blendEnable || desc->blendMode.blendDescs[i].logicOpEnable;
 			if (!resultBuffer.rtblends[i].enabled) continue;
@@ -287,34 +287,39 @@ namespace Pistachio {
 	Shader* Shader::CreateWithRs(ShaderCreateDesc* desc, RHI::RootSignature* rs,RHI::DescriptorSetLayout** layouts, uint32_t numLayouts)
 	{
 		Shader* shader = new Shader;
+		shader->CreateStackRs(desc, rs, layouts, numLayouts);
+		return shader;
+	}
+	void Shader::CreateStackRs(ShaderCreateDesc* desc, RHI::RootSignature* rs, RHI::DescriptorSetLayout** in_layouts, uint32_t in_numLayouts)
+	{
 		RHI::ShaderReflection* VSReflection = nullptr;
 		RHI::ShaderReflection* PSReflection = nullptr;
 		if (desc->VS.data)
 		{
-			shader->VS = desc->VS;
+			VS = desc->VS;
 			if (desc->shaderMode == RHI::ShaderMode::File) RHI::ShaderReflection::CreateFromFile(desc->VS.data, &VSReflection);
 			else RHI::ShaderReflection::CreateFromMemory(desc->VS.data, desc->VS.size, &VSReflection);
 		}
 		if (desc->PS.data)
 		{
-			shader->PS = desc->PS;
+			PS = desc->PS;
 			if (desc->shaderMode == RHI::ShaderMode::File) RHI::ShaderReflection::CreateFromFile(desc->PS.data, &PSReflection);
 			else RHI::ShaderReflection::CreateFromMemory(desc->PS.data, desc->PS.size, &PSReflection);
 		}
-		shader->HS = desc->HS;
-		shader->GS = desc->GS;
-		shader->DS = desc->DS;
-		shader->CreateSetInfos(VSReflection, PSReflection);
-		VSReflection->Release();
-		PSReflection->Release();
-		shader->CreateStackRs(desc, rs);
-		shader->layouts = new RHI::DescriptorSetLayout * [numLayouts];
-		for (uint32_t i = 0; i < numLayouts; i++)
+		HS = desc->HS;
+		GS = desc->GS;
+		DS = desc->DS;
+		CreateSetInfos(VSReflection, PSReflection);
+		if(VSReflection) VSReflection->Release();
+		if(PSReflection) PSReflection->Release();
+		Initialize(desc, rs);
+		numLayouts = in_numLayouts;
+		layouts = new RHI::DescriptorSetLayout * [numLayouts];
+		for (uint32_t i = 0; i < in_numLayouts; i++)
 		{
-			shader->layouts[i] = layouts[i];
+			layouts[i] = in_layouts[i];
 			if (layouts[i]) layouts[i]->Hold();
 		}
-		return shader;
 	}
 
 	void Shader::Bind(RHI::GraphicsCommandList* list)
@@ -404,6 +409,8 @@ namespace Pistachio {
 		}
 	}
 
+
+
 	void Shader::GetVSShaderBinding(SetInfo& info, uint32_t setIndex)
 	{
 		uint32_t index = UINT32_MAX;
@@ -433,7 +440,7 @@ namespace Pistachio {
 	}
 
 	
-	void Shader::CreateStackRs(ShaderCreateDesc* desc, RHI::RootSignature* signature)
+	void Shader::Initialize(ShaderCreateDesc* desc, RHI::RootSignature* signature)
 	{
 		RHI::PipelineStateObjectDesc PSOdesc;
 		//intialize state that doesn't change
@@ -518,7 +525,7 @@ namespace Pistachio {
 		DS = desc->DS;
 		mode = desc->shaderMode;
 		CreateRootSignature();
-		CreateStackRs(desc, rootSig);
+		Initialize(desc, rootSig);
 		rootSig->Release();//we can safely release this reference to the RS because CreateStackRs holds one
 	}
 
@@ -642,29 +649,29 @@ namespace Pistachio {
 		{
 			param.descriptorTable.ranges = &ranges[(size_t)param.descriptorTable.ranges];
 		}
-		RSdesc.numRootParameters = rootParams.size();
+		RSdesc.numRootParameters = (uint32_t)rootParams.size();
 		RSdesc.rootParameters = rootParams.data();
-		numLayouts = rootParams.size();
+		numLayouts = (uint32_t)rootParams.size();
 		layouts = new RHI::DescriptorSetLayout*[numLayouts];
 		RendererBase::Getd3dDevice()->CreateRootSignature(&RSdesc, &rootSig, layouts);
 	}
 
 
 
-	void ShaderLibrary::Add(const std::string& name, const Ref<Shader>& Shader)
+	void SetInfo::UpdateBufferBinding(RHI::Buffer* buff, uint32_t offset, uint32_t size, RHI::DescriptorType type, uint32_t slot)
 	{
-		PT_PROFILE_FUNCTION();
-		PT_CORE_ASSERT(m_Shaders.find(name) == m_Shaders.end());
-		m_Shaders[name] = Shader;
+		RHI::DescriptorBufferInfo info;
+		info.buffer = buff;
+		info.offset = offset;
+		info.range = size;
+		RHI::DescriptorSetUpdateDesc updateDesc;
+		updateDesc.arrayIndex = 0;
+		updateDesc.binding = slot;
+		updateDesc.numDescriptors = 1;
+		updateDesc.type = type;
+		updateDesc.bufferInfos = &info;
+		RendererBase::Getd3dDevice()->UpdateDescriptorSets(1, &updateDesc, set);
 	}
-	Ref<Shader> ShaderLibrary::Get(const std::string& name)
-	{
-		PT_PROFILE_FUNCTION();
-		PT_CORE_ASSERT(m_Shaders.find(name) != m_Shaders.end());
-		return m_Shaders[name];
-	}
-
-
 
 	void SetInfo::UpdateBufferBinding(BufferBindingUpdateDesc* desc, uint32_t slot)
 	{
@@ -734,6 +741,12 @@ namespace Pistachio {
 		delete[] layouts;
 	}
 
+	void ComputeShader::Bind(RHI::GraphicsCommandList* list)
+	{
+		//set the root signature too
+		list->SetComputePipeline(pipeline);
+	}
+
 	void ComputeShader::GetShaderBinding(SetInfo& info, uint32_t setIndex)
 	{
 		uint32_t index = UINT32_MAX;
@@ -743,6 +756,11 @@ namespace Pistachio {
 		}
 		info = m_info.sets[index];
 		RendererBase::device->CreateDescriptorSets(RendererBase::heap, 1, layouts[index], &info.set);
+	}
+
+	void ComputeShader::ApplyShaderBinding(RHI::GraphicsCommandList* list, const SetInfo& info)
+	{
+		list->BindComputeDescriptorSet(rSig, info.set, info.setIndex);
 	}
 
 	ComputeShader* ComputeShader::CreateWithRs(const RHI::ShaderCode& code, RHI::ShaderMode mode, RHI::RootSignature* rSig)
@@ -793,12 +811,12 @@ namespace Pistachio {
 				range.type = bindings[j].resourceType;
 				range.stage = RHI::ShaderStage::Compute;
 			}
-			rootParams.push_back(desc);
 			desc.descriptorTable.ranges = ranges.data();
+			rootParams.push_back(desc);
 			RHI::RootSignatureDesc rsDesc;
-			rsDesc.numRootParameters = rootParams.size();
+			rsDesc.numRootParameters = (uint32_t)rootParams.size();
 			rsDesc.rootParameters = rootParams.data();
-			numLayouts = rootParams.size();
+			numLayouts = (uint32_t)rootParams.size();
 			layouts = new RHI::DescriptorSetLayout*[numLayouts];
 			RendererBase::device->CreateRootSignature(&rsDesc, &rSig, layouts);
 		}
@@ -832,3 +850,77 @@ namespace Pistachio {
 
 }
 
+void Pistachio::Helpers::ZeroAndFillShaderDesc(ShaderCreateDesc* desc, const char* VS, const char* PS, uint32_t numRenderTargets,  uint32_t numDSModes, RHI::DepthStencilMode* dsMode, uint32_t numBlendModes, RHI::BlendMode* blendModes, uint32_t numRasterizerModes, RHI::RasterizerMode* rsModes, const char* GS,const char* HS,   const char* DS)
+{
+	memset(desc, 0, sizeof(ShaderCreateDesc));
+	desc->VS = RHI::ShaderCode{ (char*)VS, 0 };
+	desc->PS = RHI::ShaderCode{ (char*)PS, 0 };
+	desc->GS = RHI::ShaderCode{ (char*)GS, 0 };
+	desc->HS = RHI::ShaderCode{ (char*)HS, 0 };
+	desc->DS = RHI::ShaderCode{ (char*)DS, 0 };
+	desc->NumRenderTargets = numRenderTargets;
+	desc->numDepthStencilModes = numDSModes;
+	desc->numBlendModes = numBlendModes;
+	desc->DepthStencilModes = dsMode;
+	desc->BlendModes = blendModes;
+	desc->RasterizerModes = rsModes;
+	desc->numRasterizerModes = numRasterizerModes;
+	desc->shaderMode = RHI::ShaderMode::File;
+}
+
+void Pistachio::Helpers::FillDepthStencilMode(RHI::DepthStencilMode* mode, bool depthEnabled, RHI::DepthWriteMask mask, RHI::ComparisonFunc depthFunc, bool stencilEnable, uint8_t stencilReadMask, uint8_t stencilWriteMask, RHI::DepthStencilOp* front, RHI::DepthStencilOp* back)
+{
+	mode->DepthEnable = depthEnabled;
+	mode->DepthWriteMask = mask;
+	mode->DepthFunc = depthFunc;
+	if(front) mode->FrontFace = *front;
+	if(back) mode->BackFace = *back;
+	mode->StencilEnable = stencilEnable;
+	mode->StencilReadMask = stencilReadMask;
+	mode->StencilWriteMask = stencilWriteMask;
+}
+
+void Pistachio::Helpers::BlendModeDisabledBlend(RHI::BlendMode* mode)
+{
+	mode->BlendAlphaToCoverage = false;
+	mode->IndependentBlend = true;
+	mode->blendDescs[0].blendEnable = false;
+}
+
+void Pistachio::Helpers::FillRaseterizerMode(RHI::RasterizerMode* mode, RHI::FillMode fillMode, RHI::CullMode cullMode, RHI::PrimitiveTopology topology, bool multiSample, bool antiAliasedLine, bool conservativeRaster, int depthBias, float depthBiasClamp, float ssDepthBias, bool depthClip)
+{
+	mode->AntialiasedLineEnable = antiAliasedLine;
+	mode->conservativeRaster = conservativeRaster;
+	mode->cullMode = cullMode;
+	mode->depthBias = depthBias;
+	mode->depthBiasClamp = depthBiasClamp;
+	mode->depthClipEnable = depthClip;
+	mode->fillMode = fillMode;
+	mode->multisampleEnable = multiSample;
+	mode->slopeScaledDepthBias = ssDepthBias;
+	mode->topology = topology;
+}
+
+void Pistachio::Helpers::FillDescriptorSetRootParam(RHI::RootParameterDesc* rpDesc, uint32_t numRanges, uint32_t setIndex, RHI::DescriptorRange* ranges)
+{
+	rpDesc->type = RHI::RootParameterType::DescriptorTable;
+	rpDesc->descriptorTable.numDescriptorRanges = numRanges;
+	rpDesc->descriptorTable.ranges = ranges;
+	rpDesc->descriptorTable.setIndex = setIndex;
+}
+
+void Pistachio::Helpers::FillDescriptorRange(RHI::DescriptorRange* range, uint32_t numDescriptors, uint32_t shaderRegister, RHI::ShaderStage stage, RHI::DescriptorType type)
+{
+	range->BaseShaderRegister = shaderRegister;
+	range->numDescriptors = numDescriptors;
+	range->stage = stage;
+	range->type = type;
+}
+
+void Pistachio::Helpers::FillDynamicDescriptorRootParam(RHI::RootParameterDesc* rpDesc, uint32_t setIndex, RHI::DescriptorType type, RHI::ShaderStage stage)
+{
+	rpDesc->type = RHI::RootParameterType::DynamicDescriptor;
+	rpDesc->dynamicDescriptor.setIndex = setIndex;
+	rpDesc->dynamicDescriptor.stage = stage;
+	rpDesc->dynamicDescriptor.type = type;
+}

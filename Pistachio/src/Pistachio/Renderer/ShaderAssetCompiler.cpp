@@ -10,12 +10,12 @@ namespace Pistachio
 	IDxcCompiler* ShaderAssetCompiler::compiler = nullptr;
 	static inline bool starts_with(const std::string_view& view, const char* string)
 	{
-		uint32_t length = strlen(string);
+		size_t length = strlen(string);
 		return strncmp(view.data(), string, length) == 0;
 	}
 	static inline bool ends_with(const std::string_view& view, const char* string)
 	{
-		uint32_t length = strlen(string);
+		size_t length = strlen(string);
 		return strncmp(view.data() + view.size() - length, string, length) == 0;
 	}
 	static inline void ltrim(std::string& s) {
@@ -64,7 +64,7 @@ namespace Pistachio
 			views.emplace_back(str.c_str() + old_pos, str.length() - old_pos);
 		}
 		std::string_view operator[](uint32_t index) { return views[index]; }
-		uint32_t GetCount() { return views.size(); }
+		uint32_t GetCount() { return (uint32_t)views.size(); }
 	private:
 		std::vector<std::string_view> views;
 	};
@@ -310,11 +310,11 @@ namespace Pistachio
 		* str-size, binding-name, binding index [nb-times]
 		* spirv-code size, spirv-code, dxil-code size, dxil-code
 		*/
-		uint32_t paramsOffsetSize = Pistachio::Edian::ConvertToBigEndian(paramsOffset.size());
+		uint32_t paramsOffsetSize = Pistachio::Edian::ConvertToBigEndian((uint32_t)paramsOffset.size());
 		outFile.write((const char*)&paramsOffsetSize, sizeof(uint32_t));
 		for (auto& [param, info] : paramsOffset)
 		{
-			uint32_t size = Pistachio::Edian::ConvertToBigEndian(param.size());
+			uint32_t size = Pistachio::Edian::ConvertToBigEndian((uint32_t)param.size());
 			outFile.write((const char*)&size, sizeof(uint32_t));
 			outFile.write(param.c_str(), param.size());
 			uint32_t offset = Pistachio::Edian::ConvertToBigEndian(info.offset);
@@ -322,18 +322,18 @@ namespace Pistachio
 			uint32_t type = Pistachio::Edian::ConvertToBigEndian((uint32_t)info.type);
 			outFile.write((const char*)&type, sizeof(uint32_t));
 		}
-		uint32_t textureIndexSize = Pistachio::Edian::ConvertToBigEndian(textureIndex.size());
+		uint32_t textureIndexSize = Pistachio::Edian::ConvertToBigEndian((uint32_t)textureIndex.size());
 		outFile.write((const char*)&textureIndexSize, sizeof(uint32_t));
 		for (auto& [texture, index] : textureIndex)
 		{
-			uint32_t size = Pistachio::Edian::ConvertToBigEndian(texture.size());
+			uint32_t size = Pistachio::Edian::ConvertToBigEndian((uint32_t)texture.size());
 			outFile.write((const char*)&size, sizeof(uint32_t));
 			outFile.write(texture.c_str(), texture.size());
 			uint32_t indexEdian = Pistachio::Edian::ConvertToBigEndian(index);
 			outFile.write((const char*)&indexEdian, sizeof(uint32_t));
 		}
 		IDxcBlobEncoding* blob;
-		library->CreateBlobWithEncodingFromPinned(ostream.str().c_str(), ostream.str().size(), CP_UTF8, &blob);
+		library->CreateBlobWithEncodingFromPinned(ostream.str().c_str(), (uint32_t)ostream.str().size(), CP_UTF8, &blob);
 		wchar_t filename_ws[512];
 		mbstowcs(filename_ws, filename, 511);
 		//spirv compile
@@ -360,7 +360,7 @@ namespace Pistachio
 		result->GetStatus(&hr);
 		IDxcBlob* spvCode;
 		result->GetResult(&spvCode);
-		uint32_t spirvSize = Pistachio::Edian::ConvertToBigEndian(spvCode->GetBufferSize());
+		uint32_t spirvSize = Pistachio::Edian::ConvertToBigEndian((uint32_t)spvCode->GetBufferSize());
 		outFile.write((char*)&spirvSize, sizeof(uint32_t));
 		outFile.write((char*)spvCode->GetBufferPointer(), spvCode->GetBufferSize());
 		spvCode->Release();
@@ -384,7 +384,7 @@ namespace Pistachio
 		}
 		IDxcBlob* dxilCode;
 		result->GetResult(&dxilCode);
-		uint32_t dxilSize = dxilCode->GetBufferSize();
+		uint32_t dxilSize = (uint32_t)dxilCode->GetBufferSize();
 		outFile.write((char*)&dxilSize, sizeof(uint32_t));
 		outFile.write((char*)dxilCode->GetBufferPointer(), dxilSize);
 		dxilCode->Release();

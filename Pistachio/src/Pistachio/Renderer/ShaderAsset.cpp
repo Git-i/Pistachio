@@ -89,13 +89,13 @@ namespace Pistachio
         if (vs.size() <= 0)
         {
             std::ifstream vertexShaderFile("resources/shaders/vertex/Compiled/VertexShader", std::ios::binary | std::ios::ate);
-            uint32_t vsSize = vertexShaderFile.tellg();
+            size_t vsSize = vertexShaderFile.tellg();
             vs.resize(vsSize);
             vertexShaderFile.seekg(0, std::ios::beg);
             vertexShaderFile.read(vs.data(), vsSize);
-            RHI::ShaderReflection::CreateFromMemory(vs.data(), vs.size(), &VSReflection);
+            RHI::ShaderReflection::CreateFromMemory(vs.data(), (uint32_t)vs.size(), &VSReflection);
         }
-        RHI::ShaderReflection::CreateFromMemory(code.data(), code.size(), &PSReflection);
+        RHI::ShaderReflection::CreateFromMemory(code.data(), (uint32_t)code.size(), &PSReflection);
         RHI::BlendMode blendMode{};
         blendMode.BlendAlphaToCoverage = false;
         blendMode.IndependentBlend = true;
@@ -164,7 +164,7 @@ namespace Pistachio
             range.stage = RHI::ShaderStage::Pixel;
             range.type = RHI::DescriptorType::SampledTexture;
         }
-        rpDesc[3].descriptorTable.numDescriptorRanges = customRange.size();
+        rpDesc[3].descriptorTable.numDescriptorRanges = (uint32_t)customRange.size();
         rpDesc[3].descriptorTable.ranges = customRange.data();
         rpDesc[3].descriptorTable.setIndex = 3;
 
@@ -181,7 +181,7 @@ namespace Pistachio
         RHI::DescriptorSetLayout* layouts[5];
         RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
 
-        returnVal->shader.CreateStackRs(&desc, rs);
+        returnVal->shader.Initialize(&desc, rs);
         returnVal->shader.layouts = new RHI::DescriptorSetLayout * [4];
         for (uint32_t i = 0; i < 4; i++)
         {

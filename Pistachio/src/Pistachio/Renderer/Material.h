@@ -19,8 +19,10 @@ namespace Pistachio
 		template<typename ParamTy> void ChangeParam(const std::string& name, const ParamTy& value);
 		static Material* Create(const char* filepath);
 		void SetShader(Asset shader);
+		const Asset& GetShader() { return shader; }
 		//Unsafe: use only if you wrote this engine or know what you're doing
 		template<typename ParamTy> void ChangeParam(uint32_t size,const ParamTy* value, uint32_t offset);
+		void Bind(RHI::GraphicsCommandList* list);
 	private:
 		friend class MaterialSerializer;
 		RendererCBHandle parametersBuffer;

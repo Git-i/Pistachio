@@ -11,6 +11,7 @@ RHI::GraphicsCommandList* Pistachio::RendererBase::mainCommandList;
 RHI::GraphicsCommandList* Pistachio::RendererBase::stagingCommandList;
 RHI::CommandAllocator*    Pistachio::RendererBase::stagingCommandAllocator;
 RHI::CommandAllocator*    Pistachio::RendererBase::commandAllocators[3];
+RHI::CommandAllocator*    Pistachio::RendererBase::computeCommandAllocators[3];
 RHI::Instance*            Pistachio::RendererBase::instance;
 RHI::SwapChain*           Pistachio::RendererBase::swapChain;
 RHI::CommandQueue*        Pistachio::RendererBase::directQueue;
@@ -82,16 +83,29 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION();
 		RHICreateInstance(&instance);
 		//todo implement device selection
+		PT_CORE_INFO("Initializing RendererBase");
 		RHI::PhysicalDevice* physicalDevice;
 		RHI::PhysicalDeviceDesc physicalDeviceDesc;
 		instance->GetPhysicalDevice(0, &physicalDevice);
 		physicalDevice->GetDesc(&physicalDeviceDesc);
-		std::wcout << physicalDeviceDesc.Description << std::endl;
+		PT_DEBUG_REGION
+		(
+		uint32_t num_devices =  instance->GetNumPhysicalDevices();
+		PT_CORE_INFO("Found {0} physical devices: ", num_devices);
+		for (uint32_t i = 0; i < num_devices; i++)
+		{
+			RHI::PhysicalDevice* pDevice;
+			instance->GetPhysicalDevice(i, &pDevice);
+			RHI::PhysicalDeviceDesc pDDesc;
+			pDevice->GetDesc(&pDDesc);
+			std::wcout << pDDesc.Description << " [" << i << ']' << std::endl;
+		}
+		)
 
 		RHI::Surface surface;
 
 		RHI::CommandQueueDesc commandQueueDesc[2] {};
-		commandQueueDesc[0].CommandListType = RHI::CommandListType::Direct; // 1 direct cmd queue for now
+		commandQueueDesc[0].CommandListType = RHI::CommandListType::Direct;
 		commandQueueDesc[0].Priority = 1.f;//only really used in vulkan
 		commandQueueDesc[1].CommandListType = RHI::CommandListType::Compute;
 		commandQueueDesc[1].Priority = 1.f;
@@ -183,6 +197,8 @@ namespace Pistachio {
 		RESULT res = device->CreateCommandAllocators(RHI::CommandListType::Direct, 3, commandAllocators);
 		if (res != 0) PT_CORE_INFO("Main allocator creation failed with code :{0}", res);
 		else PT_CORE_INFO("Created main command allocators");
+		device->CreateCommandAllocators(RHI::CommandListType::Compute, 3, computeCommandAllocators);
+		PT_CORE_INFO("Created compute command allicators");
 		device->CreateCommandAllocators(RHI::CommandListType::Direct, 1, &stagingCommandAllocator);
 		PT_CORE_INFO("Created staging command allocator(s)");
 		device->CreateCommandList(RHI::CommandListType::Direct, stagingCommandAllocator, &stagingCommandList);
@@ -253,12 +269,12 @@ namespace Pistachio {
 	void RendererBase::ChangeViewport(int width, int height, int x, int y)
 	{
 		RHI::Viewport vp;
-		vp.width = width;
-		vp.height = height;
+		vp.width =  (float)width;
+		vp.height = (float)height;
 		vp.minDepth = 0;
 		vp.maxDepth = 1;
-		vp.x = x;
-		vp.y = y;
+		vp.x = (float)x;
+		vp.y = (float)y;
 		mainCommandList->SetViewports(1, &vp);
 	}
 	void RendererBase::CreateTarget()
@@ -310,7 +326,7 @@ namespace Pistachio {
 		else
 		{
 			uint32_t remainder = currentOffset % offsetFactor;
-			if (remainder) requiredOffset = currentOffset;
+			if (remainder == 0) requiredOffset = currentOffset;
 			else requiredOffset = currentOffset + offsetFactor - remainder;
 		}
 		//check if we have enough space to queue the write
@@ -554,10 +570,11 @@ namespace Pistachio {
 		return retVal;
 	}
 	RHI::SwapChain*      RendererBase::GetSwapChain() { return swapChain; }
-	RHI::DescriptorHeap* RendererBase::GetRTVDescriptorHeap() { return MainRTVheap; };
+	RHI::DescriptorHeap* RendererBase::GetRTVDescriptorHeap() { return MainRTVheap; }
 	uint32_t             RendererBase::GetCurrentRTVIndex() { return currentRTVindex; }
+	uint32_t             RendererBase::GetCurrentFrameIndex() { return currentFrameIndex;}
 	RHI::DescriptorHeap* RendererBase::GetDSVDescriptorHeap(){return dsvHeap;}
 	RHI::DescriptorHeap* RendererBase::GetMainDescriptorHeap() { return heap; }
-	RHI::Texture* RendererBase::GetBackBufferTexture(uint32_t index) { return backBufferTextures[index]; }
-	RHI::Texture* RendererBase::GetDefaultDepthTexture() { return depthTexture; }
+	RHI::Texture*        RendererBase::GetBackBufferTexture(uint32_t index) { return backBufferTextures[index]; }
+	RHI::Texture*        RendererBase::GetDefaultDepthTexture() { return depthTexture; }
 }

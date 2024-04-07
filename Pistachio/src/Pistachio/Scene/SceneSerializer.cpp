@@ -296,8 +296,8 @@ namespace Pistachio {
 				{
 					auto& lc = DeserializedEntity.AddComponent<LightComponent>();
 					lc.color = lightComponent["Color"].as<DirectX::XMFLOAT3>();
-					lc.Intensity = lightComponent["Intensity"].as<int>();
-					lc.Type = (LightType)lightComponent["Type"].as<int>();
+					lc.Intensity = lightComponent["Intensity"].as<float>();
+					lc.Type = (LightType)lightComponent["Type"].as<float>();
 				}
 				auto rigidbodycomponent = entity["RigidBodyComponent"];
 				if (rigidbodycomponent)

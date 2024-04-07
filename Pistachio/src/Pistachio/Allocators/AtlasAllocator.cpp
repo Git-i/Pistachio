@@ -61,7 +61,7 @@ namespace Pistachio
     {
         bool retVal = true;
 
-        for (int k = 0; k < span; k++)
+        for (uint32_t k = 0; k < span; k++)
         {
             if (row[k + offsetFromRowStart].used)
             {
@@ -86,7 +86,7 @@ namespace Pistachio
                 if ((row.size() - j) < numPortions.x)
                     continue;
                 bool Avail = true;
-                for (int k = 0; k < numPortions.y; k++)
+                for (uint32_t k = 0; k < numPortions.y; k++)
                 {
                     if (i + k >= m_portions.size())
                         break;
@@ -115,9 +115,9 @@ namespace Pistachio
         }
         if (allocated == true)
         {
-            for (int k = 0; k < numPortions.y; k++)
+            for (uint32_t k = 0; k < numPortions.y; k++)
             {
-                for (int l = 0; l < numPortions.x; l++)
+                for (uint32_t l = 0; l < numPortions.x; l++)
                 {
                     m_portions[bestPos.y / m_portion_size.y + k][bestPos.x / m_portion_size.x + l].used = true;
                 }
@@ -148,9 +148,9 @@ namespace Pistachio
         if (id == 0) return;
         if (auto findit = indexRegionMap.find(id); findit == indexRegionMap.end()) return; //id doesnt exist
         Region region = indexRegionMap.at(id);
-        for (int k = 0; k < region.size.y / m_portion_size.y; k++)
+        for (uint32_t k = 0; k < region.size.y / m_portion_size.y; k++)
         {
-            for (int l = 0; l < region.size.x / m_portion_size.x; l++)
+            for (uint32_t l = 0; l < region.size.x / m_portion_size.x; l++)
             {
                 m_portions[region.offset.y / m_portion_size.y + k][region.offset.x / m_portion_size.x + l].used = false;
             }

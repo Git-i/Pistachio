@@ -12,11 +12,37 @@ namespace physx {
 	class PxScene;
 }
 namespace Pistachio {
+	struct PISTACHIO_API alignas(16) PassConstants
+	{
+		DirectX::XMFLOAT4X4 View;
+		DirectX::XMFLOAT4X4 InvView;
+		DirectX::XMFLOAT4X4 Proj;
+		DirectX::XMFLOAT4X4 InvProj;
+		DirectX::XMFLOAT4X4 ViewProj;
+		DirectX::XMFLOAT4X4 InvViewProj;
+		DirectX::XMFLOAT2 RenderTargetSize;
+		DirectX::XMFLOAT2 InvRenderTargetSize;
+		float NearZ;
+		float FarZ;
+		float TotalTime;
+		float DeltaTime;
+		DirectX::XMFLOAT3 EyePosW;
+		float scale;
+		DirectX::XMFLOAT3 numClusters;
+		float bias;
+		uint32_t numRegularLights;
+		uint32_t numShadowLights;
+		uint32_t numDirectionalRegularLights;
+		uint32_t numDirectionalShadowLights;
+	};
 	class Entity;
 	struct PISTACHIO_API SceneDesc
 	{
-		DirectX::XMFLOAT2 Resolution;
-		SceneDesc() : Resolution({1920, 1080}) {}
+		Vector2 Resolution;
+		uint32_t clusterX;
+		uint32_t clusterY;
+		uint32_t clusterZ;
+		SceneDesc() : Resolution(1920,1080), clusterX(16), clusterY(9), clusterZ(24) {}
 	};
 	class PISTACHIO_API Scene {
 	public:
@@ -54,10 +80,23 @@ namespace Pistachio {
 		friend class SceneSerializer;
 		unsigned int m_viewportWidth, m_ViewportHeight;
 		RenderGraph graph;
-		RenderTexture gBufferNormal;
-		RenderTexture gBufferColor;
-		RenderTexture gBufferPosition;
-		RenderTexture finalRender;
+		uint32_t lightListSize;
+		uint32_t clustersDim[3];
+		uint32_t sceneResolution[2];
+		//consider fusing these two
+		PassConstants passConstants;
+		StructuredBuffer clusterAABB;
+		StructuredBuffer activeClustersBuffer;
+		StructuredBuffer sparseActiveClustersBuffer_lightIndices;
+		StructuredBuffer lightList;
+		StructuredBuffer lightGrid;
+		SetInfo passCBinfo[RendererBase::numFramesInFlight];
+		SetInfo buildClusterInfo;
+		SetInfo activeClusterInfo;
+		SetInfo tightenListInfo;
+		SetInfo cullLightsInfo;
+		DepthTexture zPrepass;
+		ConstantBuffer passCB[RendererBase::numFramesInFlight];
 	};
 
 }

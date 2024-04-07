@@ -85,14 +85,16 @@ namespace Pistachio {
 		result->CreateStack(indices, size,stride);
 		return result;
 	}
-	void StructuredBuffer::CreateStack(const void* data, std::uint32_t size)
+	void StructuredBuffer::CreateStack(const void* data, std::uint32_t size, SBCreateFlags flags)
 	{
 		PT_PROFILE_FUNCTION();
 		RHI::BufferDesc bufferDesc;
 		bufferDesc.size = size;
 		bufferDesc.usage = RHI::BufferUsage::StructuredBuffer;
 		RHI::AutomaticAllocationInfo info;
-		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential; //to allow writing ??
+		info.access_mode = ((flags & SBCreateFlags::AllowCPUAccess)==SBCreateFlags::None) ? 
+			RHI::AutomaticAllocationCPUAccessMode::None :
+			RHI::AutomaticAllocationCPUAccessMode::Sequential;
 		RendererBase::Getd3dDevice()->CreateBuffer(&bufferDesc, &ID, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
 		if (data)
 		{
@@ -114,7 +116,7 @@ namespace Pistachio {
 		memcpy((((char*)writePointer) + offset), data, size);
 		ID->UnMap();
 	}
-	StructuredBuffer* StructuredBuffer::Create(const void* data, std::uint32_t size)
+	StructuredBuffer* StructuredBuffer::Create(const void* data, std::uint32_t size, SBCreateFlags flags)
 	{
 		PT_PROFILE_FUNCTION();
 		StructuredBuffer* result = new StructuredBuffer;

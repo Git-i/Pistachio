@@ -14,8 +14,8 @@ struct ClusterAABB
     float4 minPoint;
     float4 maxPoint;
 };
-RWStructuredBuffer<ClusterAABB> clustersBuffer;
-ConstantBuffer<inputStruct> inputBuffer;
+RWStructuredBuffer<ClusterAABB> clustersBuffer : register(u0, space0);
+ConstantBuffer<inputStruct> inputBuffer : register(b0, space1);
 
 float4 screen2view(float4 screen)
 {
@@ -62,4 +62,6 @@ void main( uint3 DTid : SV_DispatchThreadID )
     
     float3 minPointAABB = min(min(minPointNear, minPointFar), min(maxPointNear, maxPointFar));
     float3 maxPointAABB = max(max(minPointNear, minPointFar), max(maxPointNear, maxPointFar));
+    clustersBuffer[index].minPoint = float4(minPointAABB, 0.0);
+    clustersBuffer[index].maxPoint = float4(maxPointAABB, 0.0);
 }
