@@ -131,22 +131,46 @@ namespace Pistachio {
 		lightList.CreateStack(nullptr, lightListSize, SBCreateFlags::AllowCPUAccess);
 		lightGrid.CreateStack(nullptr, numClusters * sizeof(uint32_t) * 4);
 		zPrepass.CreateStack(resolution.x, resolution.y, 1, RHI::Format::D32_FLOAT);
+		finalRender.CreateStack(resolution.x, resolution.y, 1, RHI::Format::R16G16B16A16_FLOAT);
 
 		ComputeShader* shd_buildClusters = Renderer::GetBuiltinComputeShader("Build Clusters");
 		ComputeShader* shd_activeClusters = Renderer::GetBuiltinComputeShader("Filter Clusters");
 		ComputeShader* shd_tightenList = Renderer::GetBuiltinComputeShader("Tighten Clusters");
 		ComputeShader* shd_cullLights = Renderer::GetBuiltinComputeShader("Cull Lights");
+		Shader* shd_default = Renderer::GetBuiltinShader("Z-Prepass");
+		Shader* shd_fwd = assetMan->GetShaderResource(assetMan->CreateShaderAsset("Default Shader"))->GetShader();
 		for (uint32_t i = 0; i < RendererBase::numFramesInFlight; i++)
 		{
 			passCB[i].CreateStack(nullptr, sizeof(PassConstants));
-			shd_buildClusters->GetShaderBinding(passCBinfo[i], 1);
+			shd_buildClusters->GetShaderBinding(passCBinfoCMP[i], 1);
+			shd_default->GetVSShaderBinding(passCBinfoGFX[i], 1);
+			shd_fwd->GetVSShaderBinding(passCBinfoVS_PS[i], 1);
+
 			BufferBindingUpdateDesc bbud;
 			bbud.buffer = passCB[i].GetID();
 			bbud.size = sizeof(PassConstants);
 			bbud.type = RHI::DescriptorType::ConstantBuffer;
 			bbud.offset = 0;
-			passCBinfo[i].UpdateBufferBinding(&bbud, 0);
+			passCBinfoCMP[i].UpdateBufferBinding(&bbud, 0);
+			passCBinfoGFX[i].UpdateBufferBinding(&bbud, 0);
+			passCBinfoVS_PS[i].UpdateBufferBinding(&bbud, 0);
+			
 		}
+
+		shd_fwd->GetPSShaderBinding(sceneInfo, 2);
+		sceneInfo.UpdateTextureBinding(Renderer::whiteTexture.GetView(), 0);
+		sceneInfo.UpdateTextureBinding(Renderer::irradianceSkybox.GetView(), 1);
+		sceneInfo.UpdateTextureBinding(Renderer::prefilterSkybox.GetView(), 2);
+		sceneInfo.UpdateTextureBinding(Renderer::shadowMapAtlas.GetView(), 3);
+
+		sceneInfo.UpdateBufferBinding(lightGrid.GetID(), 0, numClusters * sizeof(uint32_t) * 4, RHI::DescriptorType::StructuredBuffer, 4);
+		sceneInfo.UpdateBufferBinding(lightList.GetID(), 0, lightListSize, RHI::DescriptorType::StructuredBuffer, 5);
+		sceneInfo.UpdateBufferBinding(sparseActiveClustersBuffer_lightIndices.GetID(), 0, sizeof(uint32_t) * numClusters * 50, RHI::DescriptorType::StructuredBuffer, 6);
+
+		sceneInfo.UpdateSamplerBinding(Renderer::defaultSampler, 7);
+		sceneInfo.UpdateSamplerBinding(Renderer::defaultSampler, 8);
+		sceneInfo.UpdateSamplerBinding(Renderer::defaultSampler, 9);
+
 		shd_buildClusters->GetShaderBinding(buildClusterInfo, 0);
 		buildClusterInfo.UpdateBufferBinding(clusterAABB.GetID(), 0, clusterAABBsize, RHI::DescriptorType::CSBuffer, 0);
 		shd_activeClusters->GetShaderBinding(activeClusterInfo, 0);
@@ -165,6 +189,7 @@ namespace Pistachio {
 		cullLightsInfo.UpdateBufferBinding(lightGrid.GetID(), 0, numClusters * sizeof(uint32_t) * 4, RHI::DescriptorType::CSBuffer, 5);
 
 		RGTextureHandle depthTex = graph.CreateTexture(&zPrepass);
+		RGTextureHandle finalRenderTex = graph.CreateTexture(&finalRender);
 		RGTextureHandle shadowMap = graph.CreateTexture(&Renderer::shadowMapAtlas);
 		RGBufferHandle clustersBuffer = graph.CreateBuffer(clusterAABB.GetID(), 0, clusterBufferSize);
 		RGBufferHandle sparseActiveClusterBuffer = graph.CreateBuffer(sparseActiveClustersBuffer_lightIndices.GetID(), 0, sizeof(uint32_t) * numClusters * 50);
@@ -186,11 +211,22 @@ namespace Pistachio {
 			zprepass.SetShader(Renderer::GetBuiltinShader("Z-Prepass"));
 			zprepass.pass_fn = [this](RHI::GraphicsCommandList* list) 
 				{
+					RHI::Viewport vp;
+					vp.height = sceneResolution[1];
+					vp.width = sceneResolution[0];
+					vp.minDepth = 0;
+					vp.maxDepth = 1;
+					vp.x = vp.y = 0;
+					list->SetViewports(1, &vp);
+					RHI::Area2D rect = { 0,0,sceneResolution[0],sceneResolution[1]};
+					list->SetScissorRects(1, &rect);
 					Shader* shd = Renderer::GetBuiltinShader("Z-Prepass");
 					list->SetRootSignature(shd->GetRootSignature());
-					shd->ApplyBinding(list, passCBinfo[RendererBase::GetCurrentFrameIndex()]);
+					shd->ApplyBinding(list, passCBinfoGFX[RendererBase::GetCurrentFrameIndex()]);
 					AssetManager* assetMan = GetAssetManager();
 					auto mesh_transform = m_Registry.view<MeshRendererComponent, TransformComponent>();
+					list->BindVertexBuffers(0, 1, &Renderer::meshVertices->ID);
+					list->BindIndexBuffer(Renderer::meshIndices, 0);
 					for (auto entity : mesh_transform)
 					{
 						auto[meshc, transform] = mesh_transform.get(entity);
@@ -208,7 +244,7 @@ namespace Pistachio {
 			a_info.usage = AttachmentUsage::Graphics;
 			a_info.texture = shadowMap;
 			dirShadow.SetDepthStencilOutput(&a_info);
-			dirShadow.SetPassArea({ {0,0}, resolution });
+			dirShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });
 			//dirShadow.SetShader(nullptr);
 			dirShadow.pass_fn = [](RHI::GraphicsCommandList* list) {};
 		}
@@ -217,9 +253,9 @@ namespace Pistachio {
 			a_info.format = RHI::Format::D32_FLOAT;//?
 			a_info.loadOp = RHI::LoadOp::Load;//dont clear the shadow map
 			a_info.usage = AttachmentUsage::Graphics;
-			a_info.texture = depthTex;
+			a_info.texture = shadowMap;
 			sptShadow.SetDepthStencilOutput(&a_info);
-			sptShadow.SetPassArea({ {0,0}, resolution });
+			sptShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });;
 			//sptShadow.SetShader(nullptr);
 			sptShadow.pass_fn = [](RHI::GraphicsCommandList* list) {};
 		}
@@ -228,9 +264,9 @@ namespace Pistachio {
 			a_info.format = RHI::Format::D32_FLOAT;//?
 			a_info.loadOp = RHI::LoadOp::Load;
 			a_info.usage = AttachmentUsage::Graphics;
-			a_info.texture = depthTex;
+			a_info.texture = shadowMap;
 			pntShadow.SetDepthStencilOutput(&a_info);
-			pntShadow.SetPassArea({ {0,0}, resolution });
+			pntShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });;
 			//pntShadow.SetShader(nullptr);
 			pntShadow.pass_fn = [](RHI::GraphicsCommandList* list) {};
 		}
@@ -243,7 +279,7 @@ namespace Pistachio {
 			buildClusters.pass_fn = [this](RHI::GraphicsCommandList* list) 
 				{
 					ComputeShader* shd = Renderer::GetBuiltinComputeShader("Build Clusters");
-					shd->ApplyShaderBinding(list, passCBinfo[RendererBase::GetCurrentFrameIndex()]);
+					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
 					shd->ApplyShaderBinding(list, buildClusterInfo);
 					list->Dispatch(clustersDim[0], clustersDim[1], clustersDim[2]);
 				};
@@ -262,7 +298,7 @@ namespace Pistachio {
 			filterClusters.pass_fn = [this](RHI::GraphicsCommandList* list)
 				{
 					ComputeShader* shd = Renderer::GetBuiltinComputeShader("Filter Clusters");
-					shd->ApplyShaderBinding(list, passCBinfo[RendererBase::GetCurrentFrameIndex()]);
+					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
 					shd->ApplyShaderBinding(list, activeClusterInfo);
 					list->Dispatch(sceneResolution[0], sceneResolution[1], 1);
 				};
@@ -280,7 +316,7 @@ namespace Pistachio {
 			tightenCluster.pass_fn = [this](RHI::GraphicsCommandList* list)
 				{
 					ComputeShader* shd = Renderer::GetBuiltinComputeShader("Tighten Clusters");
-					shd->ApplyShaderBinding(list, passCBinfo[RendererBase::GetCurrentFrameIndex()]);
+					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
 					shd->ApplyShaderBinding(list, tightenListInfo);
 					list->Dispatch(clustersDim[0], clustersDim[1], clustersDim[2]);
 				};
@@ -300,7 +336,7 @@ namespace Pistachio {
 			cullLights.pass_fn = [this](RHI::GraphicsCommandList* list)
 				{
 					ComputeShader* shd = Renderer::GetBuiltinComputeShader("Cull Lights");
-					shd->ApplyShaderBinding(list, passCBinfo[RendererBase::GetCurrentFrameIndex()]);
+					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
 					shd->ApplyShaderBinding(list, cullLightsInfo);
 					list->Dispatch(clustersDim[0], clustersDim[1], clustersDim[2]);
 				};
@@ -319,12 +355,28 @@ namespace Pistachio {
 			a_info.loadOp = RHI::LoadOp::Load;
 			a_info.usage = AttachmentUsage::Graphics;
 			fwdShading.AddColorInput(&a_info);
+			a_info.format = RHI::Format::R16G16B16A16_FLOAT;
+			a_info.texture = finalRenderTex;
+			a_info.loadOp = RHI::LoadOp::Clear;
+			fwdShading.AddColorOutput(&a_info);
 			//fwdShading.SetShader(); we dont set shader because of custom shader support
 			fwdShading.SetPassArea({ { 0,0},resolution });
 			fwdShading.pass_fn = [this](RHI::GraphicsCommandList* list)
 				{
+					RHI::Viewport vp;
+					vp.height = sceneResolution[1];
+					vp.width = sceneResolution[0];
+					vp.minDepth = 0;
+					vp.maxDepth = 1;
+					vp.x = vp.y = 0;
+					list->SetViewports(1, &vp);
+					RHI::Area2D rect = { 0,0,sceneResolution[0],sceneResolution[1] };
+					list->SetScissorRects(1, &rect);
 					AssetManager* assetMan = GetAssetManager();
 					auto mesh_transform = m_Registry.view<MeshRendererComponent, TransformComponent>();
+					list->BindVertexBuffers(0, 1, &Renderer::meshVertices->ID);
+					list->BindIndexBuffer(Renderer::meshIndices, 0);
+					
 					for (auto entity : mesh_transform)
 					{
 						auto [meshc, transform] = mesh_transform.get(entity);
@@ -333,7 +385,8 @@ namespace Pistachio {
 						Shader* shd = assetMan->GetShaderResource(mtl->GetShader())->GetShader();
 						Model* model = assetMan->GetModelResource(meshc.Model);
 						Mesh& mesh = model->meshes[meshc.modelIndex];
-						shd->ApplyBinding(list, passCBinfo[RendererBase::GetCurrentFrameIndex()]);
+						shd->ApplyBinding(list, passCBinfoVS_PS[RendererBase::GetCurrentFrameIndex()]);
+						shd->ApplyBinding(list, sceneInfo);
 						list->BindDynamicDescriptor(shd->GetRootSignature(), Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
 						Renderer::Submit(list, mesh.GetVBHandle(), mesh.GetIBHandle(), sizeof(Vertex));
 					}
@@ -492,7 +545,7 @@ namespace Pistachio {
 		}
 		return Entity();
 	}
-	
+	/*
 	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
 	{
 		PT_PROFILE_FUNCTION();
@@ -505,7 +558,7 @@ namespace Pistachio {
 		  5. proceed with clustered forward shading, using our list if culled lights and our shadow atlas
 
 		  After Sorting Mesh Components Of Course
-		*/
+		*....
 		//todo add a quality setting features
 		static std::vector<ShadowCastingLight> shadowCastingLights;
 		static std::vector<bool> shadow_dirty; //todo: do this better
@@ -808,6 +861,12 @@ namespace Pistachio {
 		
 		//Pistachio::Renderer::Submit(cube,envshader, &Renderer::DefaultMaterial, -1);
 		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Back);
+	}*/
+
+	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
+	{
+		graph.Execute();
+		graph.SubmitToQueue();
 	}
 	void Scene::OnUpdateRuntime(float delta)
 	{

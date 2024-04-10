@@ -21,11 +21,11 @@ namespace Pistachio
 		Model* GetModelResource(Asset& a);
 		ShaderAsset* GetShaderResource(const Asset& a);
 		friend class Asset;
+		//intended to only be used by engine developer. it will most likely leak memory otherwise
+		Asset FromResource(RefCountedObject* resource, const std::string& str_id, ResourceType type);
 	private:
 		friend class Renderer;
 		Asset CreateAsset(const std::string& filename, ResourceType type);
-		//intended to only be used by engine developer. it will most likely leak memory otherwise
-		Asset FromResource(RefCountedObject* resource, const std::string& str_id, ResourceType type);
 	private:
 		std::unordered_map<std::string, UUID> pathUUIDMap;
 		std::unordered_map<UUID, RefCountedObject*> assetResourceMap;

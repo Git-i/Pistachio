@@ -24,20 +24,19 @@ namespace Pistachio
 		RGBuffer& operator=(const RGBuffer&) = default;
 	private:
 		friend class RenderGraph;
-		RGBuffer(RHI::Buffer* _buffer, uint32_t _offset, uint32_t _size,RHI::ResourceAcessFlags access, RHI::QueueFamily family) :
+		RGBuffer(RHI::Buffer* _buffer, uint32_t _offset, uint32_t _size, RHI::QueueFamily family) :
 			buffer(_buffer),
-			currentAccess(access),
 			currentFamily(family),
 			offset(_offset),
 			size  (_size),
 			numInstances(1)
 		{}
 		RHI::Buffer* buffer;
-		RHI::ResourceAcessFlags currentAccess;
 		RHI::QueueFamily currentFamily;
 		uint32_t offset;
 		uint32_t size;
 		uint32_t numInstances;
+		RHI::GraphicsCommandList* producer = nullptr;
 	};
 	class PISTACHIO_API RGTexture
 	{
@@ -61,13 +60,12 @@ namespace Pistachio
 	private:
 		friend class RenderGraph;
 		friend class Renderer;
-		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, RHI::ResourceAcessFlags access, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice, uint32_t numSlices,uint32_t numMips) :
+		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice, uint32_t numSlices,uint32_t numMips) :
 			texture(_texture),
 			current_layout(layout),
 			mipSlice(MipSlice),
 			IsArray(isArray),
 			arraySlice(Slice),
-			currentAccess(access),
 			currentFamily(family),
 			numInstances(1),
 			sliceCount(numSlices),
@@ -81,11 +79,11 @@ namespace Pistachio
 		bool IsArray;
 		uint32_t arraySlice;
 		uint32_t sliceCount;
-		RHI::ResourceAcessFlags currentAccess;
 		RHI::QueueFamily currentFamily;
 		RTVHandle rtvHandle = { UINT32_MAX, UINT32_MAX };
 		DSVHandle dsvHandle = { UINT32_MAX, UINT32_MAX };//for output resources
 		uint32_t numInstances;
+		RHI::GraphicsCommandList* producer;
 
 	};
 	struct PISTACHIO_API RGTextureInstance
@@ -224,16 +222,18 @@ namespace Pistachio
 		ComputePass& AddComputePass(const char* passName);
 		void RemovePass(const char* passName);
 		void GetPass(const char* passName);
-		RGTextureHandle CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,uint32_t numSlices = 1, uint32_t numMips = 1, RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
-		RGTextureHandle CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0, uint32_t numSlices = 1,uint32_t numMips = 1, RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED,RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family= RHI::QueueFamily::Ignored);
+		RGTextureHandle CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,uint32_t numSlices = 1, uint32_t numMips = 1, RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::QueueFamily family = RHI::QueueFamily::Graphics);
+		RGTextureHandle CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0, uint32_t numSlices = 1,uint32_t numMips = 1, RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::QueueFamily family= RHI::QueueFamily::Graphics);
 		RGTextureHandle CreateTexture(RenderTexture* texture);
 		RGTextureHandle CreateTexture(DepthTexture* texture);
 		RGTextureHandle CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex, uint32_t numSlices = 1);
 		RGTextureInstance MakeUniqueInstance(RGTextureHandle texture);
 		RGBufferInstance MakeUniqueInstance(RGBufferHandle buffer);
-		RGBufferHandle CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::ResourceAcessFlags access = RHI::ResourceAcessFlags::NONE, RHI::QueueFamily family = RHI::QueueFamily::Ignored);
+		RGBufferHandle CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::QueueFamily family = RHI::QueueFamily::Graphics);
 		void Execute();
 	private:
+		inline void ExecuteGFXLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList);
+		inline void ExecuteCMPLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList);
 		void SortPasses();
 	private:
 		friend class Renderer;
@@ -247,6 +247,7 @@ namespace Pistachio
 		std::vector<std::pair<ComputePass*, uint32_t>> computePassesSortedAndFence;
 		std::vector<std::pair<uint32_t, PassAction>> levelTransitionIndices;
 		std::vector<std::pair<uint32_t, PassAction>> computeLevelTransitionIndices;
+		uint64_t maxFence = 0;
 		RGCommandList* cmdLists = 0;
 		uint32_t numGFXCmdLists;
 		RGCommandList* computeCmdLists = 0;

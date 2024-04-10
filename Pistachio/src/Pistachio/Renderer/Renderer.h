@@ -36,6 +36,7 @@ namespace Pistachio {
 		ConstantBuffer passCB; //updates every frame contains
 		StructuredBuffer LightSB;
 		RHI::DynamicDescriptor* transformBufferDesc;
+		RHI::DynamicDescriptor* transformBufferDescPS;
 	};
 	struct PISTACHIO_API Light {
 		DirectX::XMFLOAT3 position;// for directional lights this is direction
@@ -96,6 +97,7 @@ namespace Pistachio {
 		static RenderCubeMap& GetSkybox();
 		static SamplerHandle GetDefaultSampler();
 		static const RHI::DynamicDescriptor* GetCBDesc();
+		static const RHI::DynamicDescriptor* GetCBDescPS();
 		static RHI::Buffer* GetVertexBuffer();
 		static RHI::Buffer* GetIndexBuffer();
 		static RHI::Buffer* GetConstantBuffer();

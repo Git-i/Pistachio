@@ -62,13 +62,15 @@ namespace Pistachio {
 		mainCommandList->End();
 		directQueue->ExecuteCommandLists(&mainCommandList->ID, 1);
 		fence_vals[currentFrameIndex] = ++currentFenceVal;
-		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
 		swapChain->Present(currentRTVindex);
+		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
+		//cycle frame Index
 		currentRTVindex = (currentRTVindex + 1) % 2;
 		currentFrameIndex = (currentFrameIndex + 1) % 3;
 		//prep for next frame
 		mainFence->Wait(fence_vals[currentFrameIndex]);
 		commandAllocators[currentFrameIndex]->Reset();
+		computeCommandAllocators[currentFrameIndex]->Reset();
 		mainCommandList->Begin(commandAllocators[currentFrameIndex]);
 		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
 		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::COLOR_ATTACHMENT_WRITE;

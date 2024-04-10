@@ -115,12 +115,16 @@ namespace Pistachio
 		
 		return mat;
 	}
+	void Material::SetShader(Asset _shader)
+	{
+		shader = _shader;
+	}
 	void Material::Bind(RHI::GraphicsCommandList* list)
 	{
 		ShaderAsset* shader_asset = GetAssetManager()->GetShaderResource(shader);
 		Shader* shd = shader_asset->GetShader();
 		shd->Bind(list);
 		shd->ApplyBinding(list, mtlInfo);
-		list->BindDynamicDescriptor(shd->GetRootSignature(), Renderer::GetCBDesc(), 4, Renderer::GetCBOffset(parametersBuffer));
+		list->BindDynamicDescriptor(shd->GetRootSignature(), Renderer::GetCBDescPS(), 4, Renderer::GetCBOffset(parametersBuffer));
 	}
 }
