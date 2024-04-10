@@ -431,7 +431,7 @@ namespace Pistachio {
 			if (m_PSinfo.sets[i].setIndex == setIndex) index = i;
 		}
 		info = m_PSinfo.sets[index];
-		RendererBase::device->CreateDescriptorSets(RendererBase::heap, 1, layouts[index + m_VSinfo.sets.size()], &info.set);
+		RendererBase::device->CreateDescriptorSets(RendererBase::heap, 1, layouts[setIndex], &info.set);
 	}
 
 	void Shader::ApplyBinding(RHI::GraphicsCommandList* list,const SetInfo& info)

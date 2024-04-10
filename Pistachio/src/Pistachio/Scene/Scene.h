@@ -90,12 +90,16 @@ namespace Pistachio {
 		StructuredBuffer sparseActiveClustersBuffer_lightIndices;
 		StructuredBuffer lightList;
 		StructuredBuffer lightGrid;
-		SetInfo passCBinfo[RendererBase::numFramesInFlight];
+		SetInfo passCBinfoGFX[RendererBase::numFramesInFlight];
+		SetInfo passCBinfoCMP[RendererBase::numFramesInFlight];
+		SetInfo passCBinfoVS_PS[RendererBase::numFramesInFlight];
 		SetInfo buildClusterInfo;
 		SetInfo activeClusterInfo;
 		SetInfo tightenListInfo;
 		SetInfo cullLightsInfo;
+		SetInfo sceneInfo;
 		DepthTexture zPrepass;
+		RenderTexture finalRender;
 		ConstantBuffer passCB[RendererBase::numFramesInFlight];
 	};
 

@@ -113,6 +113,14 @@ namespace Pistachio {
 					resources[i].transformBuffer.ID.Get(),
 					0,
 					256);
+				RendererBase::device->CreateDynamicDescriptor(
+					RendererBase::heap,
+					&resources[i].transformBufferDescPS,
+					RHI::DescriptorType::ConstantBufferDynamic,
+					RHI::ShaderStage::Pixel,
+					resources[i].transformBuffer.ID.Get(),
+					0,
+					256);
 			}
 		}
 		
@@ -253,7 +261,7 @@ namespace Pistachio {
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
 
 		ShaderAsset* fwdShader = new ShaderAsset();
-		fwdShader->shader.CreateStackRs(&ShaderDesc, rs, layouts, 4);
+		fwdShader->shader.CreateStackRs(&ShaderDesc, rs, layouts, 5);
 		fwdShader->paramBufferSize = 12;
 		fwdShader->parametersMap["Diffuse"] = ParamInfo{ 0,ParamType::Float };
 		fwdShader->parametersMap["Metallic"] = ParamInfo{ 4,ParamType::Float };
@@ -270,8 +278,8 @@ namespace Pistachio {
 			if (layouts[i]) layouts[i]->Release();
 		}
 		Pistachio::Helpers::FillDescriptorRange(&FrameCBRange, 1, 0, RHI::ShaderStage::Vertex, RHI::DescriptorType::ConstantBuffer);
-		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 0, 1, 1, &FrameCBRange);
-		Pistachio::Helpers::FillDynamicDescriptorRootParam(rpDesc + 1, 0, RHI::DescriptorType::ConstantBufferDynamic, RHI::ShaderStage::Vertex);
+		Pistachio::Helpers::FillDynamicDescriptorRootParam(rpDesc + 0, 0, RHI::DescriptorType::ConstantBufferDynamic, RHI::ShaderStage::Vertex);
+		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 1, 1, 1, &FrameCBRange);
 		rsDesc.numRootParameters = 2;
 
 		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
@@ -429,7 +437,6 @@ namespace Pistachio {
 		RGTextureHandle prefilterRGTextures[5*6];
 		RGTextureHandle prefilterDstTexture;
 		prefilterDstTexture = skyboxRG.CreateTexture((Texture*)&prefilterSkybox,0, true, 0,6,5);
-		//skyboxRG.textures[prefilterDstTexture.offset].currentFamily = RHI::QueueFamily::Graphics;
 		const uint32_t mipLevels = 5;
 		uint32_t mipFaceIndex =0;
 		for (uint32_t mip = 0; mip < mipLevels; mip++)
@@ -511,82 +518,35 @@ namespace Pistachio {
 					dstRange.IndexOrFirstMipLevel = mip;
 					dstRange.NumArraySlices = 6;
 					dstRange.NumMipLevels = 1;
-					RHI::TextureMemoryBarrier barr;
-					barr.AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
-					barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
-					barr.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
-					barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
-					barr.texture = prefilterSkybox.m_ID.Get();
-					barr.subresourceRange = dstRange;
-					//list->PipelineBarrier(RHI::PipelineStage::ALL_GRAPHICS_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, 0, 1, &barr);
+					
 					list->CopyTextureRegion(srcRange, dstRange, { 0,0,0 }, { 0,0,0 }, { mipSize,mipSize,1 }, prefilterMipLevels[mip].m_ID.Get(), prefilterSkybox.m_ID.Get());
 				};
 		}
-		////RendererBase::Getd3dDeviceContext()->GenerateMips((ID3D11ShaderResourceView*)fbo.GetID().ptr);
+		RHI::SubResourceRange Range;
+		Range.FirstArraySlice = 0;
+		Range.imageAspect = RHI::Aspect::COLOR_BIT;
+		Range.IndexOrFirstMipLevel = 0;
+		Range.NumArraySlices = 6;
+		Range.NumMipLevels = 1;
+		RHI::TextureMemoryBarrier barr[2];
+		barr[0].AccessFlagsBefore = RHI::ResourceAcessFlags::SHADER_WRITE;
+		barr[0].AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
+		barr[0].newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
+		barr[0].oldLayout = RHI::ResourceLayout::UNDEFINED;
+		barr[0].texture = irradianceSkybox.m_ID.Get();
+		barr[0].subresourceRange = barr[1].subresourceRange = Range;
+		barr[1].AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+		barr[1].AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
+		barr[1].newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
+		barr[1].oldLayout = RHI::ResourceLayout::UNDEFINED;
+		barr[1].texture = prefilterSkybox.m_ID.Get();
+		barr[1].subresourceRange.NumMipLevels = 5;
+		
 
-		//struct {
-		//	DirectX::XMMATRIX viewproj;
-		//	DirectX::XMMATRIX transform;
-		//	float roughness;
-		//}PrefilterShaderConstBuffer;
-		////prefilterShader->Bind();
-		//unsigned int maxMipLevels = 5;
-		//RenderTexture texture = {};
-		////prefilter.CreateStack(128, 128, 5);
-		//RenderTextureDesc desc;
-		//desc.miplevels = 1;
-		//desc.Attachments = { TextureFormat::RGBA16F };
-		//ConstantBuffer pfCB;
-		//pfCB.Create(&PrefilterShaderConstBuffer, sizeof(PrefilterShaderConstBuffer));
-		//for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
-		//{
-		//	unsigned int mipWidth =  (int)(128 * std::pow(0.5, mip));
-		//	unsigned int mipHeight = (int)(128 * std::pow(0.5, mip));
-		//	for (int i = 0; i < 6; ++i)
-		//	{
-		//		desc.width = mipWidth;
-		//		desc.height = mipHeight;
-		//		//texture.CreateStack(desc);
-		//	}
-		//	// reisze framebuffer according to mip-level size.
-		//	RendererBase::ChangeViewport(mipWidth, mipHeight);
-		//	D3D11_BOX sourceRegion;
-		//	for (unsigned int i = 0; i < 6; ++i)
-		//	{
-
-		//		PrefilterShaderConstBuffer.viewproj = DirectX::XMMatrixTranspose(captureViews[i] * captureProjection);
-		//		PrefilterShaderConstBuffer.transform = DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity());
-		//		PrefilterShaderConstBuffer.roughness = (float)mip / (float)(maxMipLevels - 1);
-		//		pfCB.Update(&PrefilterShaderConstBuffer, sizeof(PrefilterShaderConstBuffer), 0);
-		//		//prefilterShader.SetVSBuffer(pfCB, 0);
-		//		//texture.Bind();
-		//		//texture.Clear(clearcolor, 0);
-		//		//fbo.BindResource(1);
-		//		//RendererBase::DrawIndexed(buffer);
-
-		//		sourceRegion.left = 0;
-		//		sourceRegion.right = mipWidth;
-		//		sourceRegion.top = 0;
-		//		sourceRegion.bottom = mipHeight;
-		//		sourceRegion.front = 0;
-		//		sourceRegion.back = 1;
-		//		//Texture2D lmao = texture.GetRenderTexture(0);
-		//		//prefilter.GetResource().CopyIntoRegion(lmao, 0, 0, sourceRegion.left, sourceRegion.right, sourceRegion.top, sourceRegion.bottom, mip, i);
-		//	}
-		//}
-		//Pistachio::RenderTextureDesc descBRDF;
-		//descBRDF.Attachments = { TextureFormat::RGBA16F };
-		//descBRDF.height = 512;
-		//descBRDF.width = 512;
-		////BrdfTex.CreateStack(descBRDF);
-		////brdfShader->Bind();
-		//Pistachio::RendererBase::SetCullMode(CullMode::Front);
-		////BrdfTex.Bind();
-		////RendererBase::DrawIndexed(planebuffer);
 		skyboxRG.Execute();
+		skyboxRG.cmdLists[0].list->PipelineBarrier(RHI::PipelineStage::ALL_GRAPHICS_BIT, RHI::PipelineStage::TOP_OF_PIPE_BIT, 0, 0, 1, barr);
+		skyboxRG.cmdLists[0].list->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT,     RHI::PipelineStage::TOP_OF_PIPE_BIT,0,0,1,barr+1);
 		skyboxRG.SubmitToQueue();
-		RendererBase::fence_vals[RendererBase::currentFrameIndex] = ++RendererBase::currentFrameIndex;
-		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
 	}
 	void Renderer::EndScene()
 	{
@@ -909,6 +869,10 @@ namespace Pistachio {
 	const RHI::DynamicDescriptor* Pistachio::Renderer::GetCBDesc()
 	{
 		return resources[RendererBase::currentFrameIndex].transformBufferDesc;
+	}
+	const RHI::DynamicDescriptor* Renderer::GetCBDescPS()
+	{
+		return resources[RendererBase::currentFrameIndex].transformBufferDescPS;
 	}
 	const uint32_t Pistachio::Renderer::GetCBOffset(const RendererCBHandle handle)
 	{

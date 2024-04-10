@@ -23,7 +23,7 @@ namespace Pistachio
 		//Unsafe: use only if you wrote this engine or know what you're doing
 		template<typename ParamTy> void ChangeParam(uint32_t size,const ParamTy* value, uint32_t offset);
 		void Bind(RHI::GraphicsCommandList* list);
-	private:
+	public:
 		friend class MaterialSerializer;
 		RendererCBHandle parametersBuffer;
 		std::vector<Asset> m_textures;
