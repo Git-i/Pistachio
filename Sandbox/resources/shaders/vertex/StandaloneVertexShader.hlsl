@@ -12,14 +12,15 @@ cbuffer FrameCB : register(b0,space1)
     float4x4 ViewProj;
     float4x4 InvViewProj;
     float4 EyePosW;
-    float2 RenderTargetSize;
-    float2 InvRenderTargetSize;
+    float2 screenSize;
+    float2 InvScreenSize;
     float NearZ;
     float FarZ;
     float TotalTime;
     float DeltaTime;
-    matrix lightSpaceMatrix[16];
-    float4 numlights;
+    float scale;
+    float bias;
+    float3 numClusters;
 }
 float4 main( float4 pos : POSITION ) : SV_Position
 {

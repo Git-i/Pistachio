@@ -69,8 +69,8 @@ namespace Pistachio {
 	
 	struct PISTACHIO_API TransformData
 	{
-		DirectX::XMMATRIX transform;
-		DirectX::XMMATRIX normal;
+		DirectX::XMFLOAT4X4 transform;
+		DirectX::XMFLOAT4X4 normal;
 	};
 	class PISTACHIO_API Renderer {
 	public:

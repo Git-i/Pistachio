@@ -22,6 +22,8 @@ namespace Pistachio
     RenderGraph::RenderGraph()
     {
         RendererBase::device->CreateFence(&fence, 0);
+        RendererBase::device->CreateDebugBuffer(&dbgBufferGFX);
+        RendererBase::device->CreateDebugBuffer(&dbgBufferCMP);
     }
     void RenderGraph::SubmitToQueue()
     {
@@ -32,6 +34,7 @@ namespace Pistachio
         uint32_t cmpIndex = 0;
         //if(levelTransitionIndices.size()) RendererBase::directQueue->WaitForFence(fence, passesSortedAndFence[0].second + maxFence);
         //if(computeLevelTransitionIndices.size()) RendererBase::computeQueue->WaitForFence(fence, computePassesSortedAndFence[0].second + maxFence);
+
         while (gfxIndex < levelTransitionIndices.size() && cmpIndex < computeLevelTransitionIndices.size())
         {
             uint32_t gfx = gfxIndex == 0 ? 0 : levelTransitionIndices[gfxIndex - 1].first;
@@ -42,15 +45,19 @@ namespace Pistachio
                 cmdLists[gfxIndex].list->End();
                 RendererBase::directQueue->ExecuteCommandLists(&cmdLists[gfxIndex].list->ID, 1);
                 uint32_t j = gfxIndex == 0 ? 0 : levelTransitionIndices[gfxIndex - 1].first;
+                std::cout << "GFX Group " << gfxIndex;
                 if ((levelTransitionIndices[gfxIndex].second & PassAction::Signal) != (PassAction)0)
                 {
                     RendererBase::directQueue->SignalFence(fence, passesSortedAndFence[j].second + 1 + maxFence);
+                    std::cout << "Signal Fence to " << passesSortedAndFence[j].second + 1;
                 }
                 if ((levelTransitionIndices[gfxIndex].second & PassAction::Wait) != (PassAction)0)
                 {
                     uint64_t waitVal = passesSortedAndFence[levelTransitionIndices[gfxIndex].first].second;
                     RendererBase::directQueue->WaitForFence(fence, waitVal + maxFence);
+                    std::cout << "Wait for fence to reach " << waitVal;
                 }
+                std::cout << std::endl;
                 gfxIndex++;
             }
             else
@@ -58,15 +65,19 @@ namespace Pistachio
                 uint32_t j = cmpIndex == 0 ? 0 : computeLevelTransitionIndices[cmpIndex - 1].first;
                 computeCmdLists[cmpIndex].list->End();
                 RendererBase::computeQueue->ExecuteCommandLists(&computeCmdLists[cmpIndex].list->ID, 1);
+                std::cout << "CMP Group " << cmpIndex;
                 if ((computeLevelTransitionIndices[cmpIndex].second & PassAction::Signal) != (PassAction)0)
                 {
                     RendererBase::computeQueue->SignalFence(fence, computePassesSortedAndFence[j].second + 1 + maxFence);
+                    std::cout << "Signal Fence to " << computePassesSortedAndFence[j].second + 1;
                 }
                 if ((computeLevelTransitionIndices[cmpIndex].second & PassAction::Wait) != (PassAction)0)
                 {
                     uint64_t waitVal = computePassesSortedAndFence[computeLevelTransitionIndices[cmpIndex].first].second;
                     RendererBase::computeQueue->WaitForFence(fence, waitVal + maxFence);
+                    std::cout << "Wait for fence to reach " << waitVal;
                 }
+                std::cout << std::endl;
                 cmpIndex++;
             }
         }
@@ -76,31 +87,40 @@ namespace Pistachio
             cmdLists[gfxIndex].list->End();
             RendererBase::directQueue->ExecuteCommandLists(&cmdLists[gfxIndex].list->ID, 1);
             uint32_t j = gfxIndex == 0 ? 0 : levelTransitionIndices[gfxIndex - 1].first;
+            std::cout << "GFX Group " << gfxIndex;
             if ((levelTransitionIndices[gfxIndex].second & PassAction::Signal) != (PassAction)0)
             {
                 RendererBase::directQueue->SignalFence(fence, passesSortedAndFence[j].second + 1 + maxFence);
+                std::cout << "Signal Fence to " << passesSortedAndFence[j].second + 1;
             }
             if ((levelTransitionIndices[gfxIndex].second & PassAction::Wait) != (PassAction)0)
             {
                 uint64_t waitVal = passesSortedAndFence[levelTransitionIndices[gfxIndex].first].second;
                 RendererBase::directQueue->WaitForFence(fence, waitVal + maxFence);
+                std::cout << "Wait for fence to reach " << waitVal;
             }
+            std::cout << std::endl;
             gfxIndex++;
         }
         while (cmpIndex < computeLevelTransitionIndices.size())
         {
             uint32_t j = cmpIndex == 0 ? 0 : computeLevelTransitionIndices[cmpIndex - 1].first;
             computeCmdLists[cmpIndex].list->End();
+            
             RendererBase::computeQueue->ExecuteCommandLists(&computeCmdLists[cmpIndex].list->ID, 1);
+            std::cout << "CMP Group " << cmpIndex;
             if ((computeLevelTransitionIndices[cmpIndex].second & PassAction::Signal) != (PassAction)0)
             {
                 RendererBase::computeQueue->SignalFence(fence, computePassesSortedAndFence[j].second + 1 + maxFence);
+                std::cout << "Signal Fence to " << computePassesSortedAndFence[j].second + 1;
             }
             if ((computeLevelTransitionIndices[cmpIndex].second & PassAction::Wait) != (PassAction)0)
             {
                 uint64_t waitVal = computePassesSortedAndFence[computeLevelTransitionIndices[cmpIndex].first].second;
                 RendererBase::computeQueue->WaitForFence(fence, waitVal + maxFence) ;
+                std::cout << "Wait for fence to reach " << waitVal;
             }
+            std::cout << std::endl;
             cmpIndex++;
         }
 
@@ -112,9 +132,16 @@ namespace Pistachio
         else
         {
             maxFence += passesSortedAndFence[passesSortedAndFence.size() - 1].second + 1;
-            RendererBase::directQueue->SignalFence(fence, maxFence);
+            RESULT res = RendererBase::directQueue->SignalFence(fence, maxFence);
         }
-        fence->Wait(maxFence);
+        auto res = RendererBase::device->QueueWaitIdle(RendererBase::directQueue);
+        if (res) {
+            uint32_t gfxPoint = dbgBufferGFX->GetValue();
+            uint32_t cmpPoint = dbgBufferCMP->GetValue();
+            __debugbreak();
+        }
+        RendererBase::device->QueueWaitIdle(RendererBase::computeQueue);
+        //fence->Wait(maxFence);
 
     }
     void RenderGraph::NewFrame()
@@ -171,6 +198,7 @@ namespace Pistachio
     ComputePass& RenderGraph::AddComputePass(const char* passName)
     {
         auto& pass = computePasses.emplace_back();
+        pass.passName = passName;
         dirty = true;
         return pass;
     }
@@ -212,11 +240,9 @@ namespace Pistachio
     {
         bufferOutputs.push_back(*buffer);
     }
-
     ComputePass::~ComputePass()
     {
     }
-
     void ComputePass::AddColorInput(AttachmentInfo* info)
     {
         inputs.push_back(*info);
@@ -330,7 +356,6 @@ namespace Pistachio
             break;
         }
     }
-    
     void RenderGraph::Execute()
     {
         if (dirty) Compile();
@@ -604,11 +629,13 @@ namespace Pistachio
             }
 
             currentList->PipelineBarrier(stage, pass->stage, bufferBarrierCount, bufferBarriers, barrierCount, barriers);
+            currentList->MarkBuffer(dbgBufferGFX, levelInd * 2);
             if (pass->pso.Get()) currentList->SetPipelineState(pass->pso.Get());
             if (attachmentCount) currentList->BeginRendering(&rbDesc);
             pass->pass_fn(currentList);
             stage = pass->stage;
             if (attachmentCount) currentList->EndRendering();
+            currentList->MarkBuffer(dbgBufferGFX, levelInd * 2+1);
             delete[] barriers;
             delete[] bufferBarriers;
             delete[] attachments;
@@ -772,8 +799,10 @@ namespace Pistachio
                 }
             }
             currentList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::COMPUTE_SHADER_BIT, bufferBarrierCount, bufferBarriers, barrierCount, barriers);
+            //currentList->MarkBuffer(dbgBufferCMP, levelInd * 2);
             currentList->SetComputePipeline(pass->computePipeline.Get());
             pass->pass_fn(currentList);
+            //currentList->MarkBuffer(dbgBufferCMP, levelInd * 2+1);
             delete[] barriers;
             delete[] bufferBarriers;
         }
