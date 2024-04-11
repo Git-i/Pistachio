@@ -98,6 +98,7 @@ namespace Pistachio {
 		SetInfo tightenListInfo;
 		SetInfo cullLightsInfo;
 		SetInfo sceneInfo;
+		PassConstants passCBInfo;
 		DepthTexture zPrepass;
 		RenderTexture finalRender;
 		ConstantBuffer passCB[RendererBase::numFramesInFlight];

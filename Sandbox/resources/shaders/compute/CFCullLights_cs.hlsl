@@ -12,12 +12,26 @@ struct ClusterAABB
 };
 struct inputStruct
 {
-    uint3 dimensions;
-    uint numShadowDirLights;
-    uint numRegularDirLights;
+    float4x4 View;
+    float4x4 InvView;
+    float4x4 Proj;
+    float4x4 InvProj;
+    float4x4 ViewProj;
+    float4x4 InvViewProj;
+    float2 screenSize;
+    float2 InvScreenSize;
+    float zNear;
+    float zFar;
+    float TotalTime;
+    float DeltaTime;
+    float3 EyePosW;
+    float scale;
+    float3 dimensions;
+    float bias;
     uint numRegularLights;
-    uint numTotalLights;
-    float4x4 viewMatrix;
+    uint numShadowLights;
+    uint numRegularDirLights;
+    uint numShadowDirLights;
 };
 ConstantBuffer<inputStruct> inputBuffer : register(b0, space1);
 
@@ -68,7 +82,7 @@ groupshared grpLightData grpData;
 bool testSphereAABB(Light light, uint tile)
 {
     float radius = light.colorxintensity.w;
-    float3 center = mul(inputBuffer.viewMatrix, float4(light.position, 1)).xyz;
+    float3 center = mul(inputBuffer.View, float4(light.position, 1)).xyz;
     float sqDist = 0.0;
     ClusterAABB currentCell = clustersBuffer[tile];
     for (int i = 0; i < 3; i++)
@@ -95,9 +109,9 @@ void main( uint3 DTid : SV_DispatchThreadID, uint3 groupIdx : SV_GroupID, uint l
        
     */
     uint groupIndexFlat = groupIdx.x + (groupIdx.y * inputBuffer.dimensions.x) + (groupIdx.z * inputBuffer.dimensions.x * inputBuffer.dimensions.y);
-    uint clusterIndex = activeClusters[groupIndexFlat];
+    uint clusterIndex = activeClusters[0/*groupIndexFlat*/];
     uint RegularLightCount = (inputBuffer.numRegularLights - inputBuffer.numRegularDirLights);
-    uint ShadowLightCount = ((inputBuffer.numTotalLights - inputBuffer.numRegularLights) - inputBuffer.numShadowDirLights);
+    uint ShadowLightCount = inputBuffer.numShadowLights - inputBuffer.numShadowDirLights;
     
     uint groupSize = ThreadX * ThreadY * ThreadZ;
     uint numRegularBatches = (RegularLightCount * groupSize - 1) / groupSize;

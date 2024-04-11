@@ -2,12 +2,22 @@
 //implementation is based on https://www.aortiz.me/2018/12/21/CG.html
 struct inputStruct
 {
-    float4x4 invProj;
-    uint2 screenSize;
+    float4x4 View;
+    float4x4 InvView;
+    float4x4 Proj;
+    float4x4 InvProj;
+    float4x4 ViewProj;
+    float4x4 InvViewProj;
+    float2 screenSize;
+    float2 InvScreenSize;
     float zNear;
     float zFar;
-    uint3 csDimensions; //number of threads used to dispatch
-    float _pad0;
+    float TotalTime;
+    float DeltaTime;
+    float3 EyePosW;
+    float scale;
+    float3 csDimensions;
+    float bias;
 };
 struct ClusterAABB
 {
@@ -25,7 +35,7 @@ float4 screen2view(float4 screen)
     //Convert to clipSpace
     // vec4 clip = vec4(vec2(texCoord.x, 1.0 - texCoord.y)* 2.0 - 1.0, screen.z, screen.w);
     float4 clip = float4(texCoord.xy * 2.0 - 1.0, screen.z, screen.w);
-    float4 view = mul(inputBuffer.invProj, clip);
+    float4 view = mul(inputBuffer.InvProj, clip);
     
     view = view / view.w;
     
@@ -62,6 +72,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
     
     float3 minPointAABB = min(min(minPointNear, minPointFar), min(maxPointNear, maxPointFar));
     float3 maxPointAABB = max(max(minPointNear, minPointFar), max(maxPointNear, maxPointFar));
-    clustersBuffer[index].minPoint = float4(minPointAABB, 0.0);
-    clustersBuffer[index].maxPoint = float4(maxPointAABB, 0.0);
+    printf("Dimesnions: %v3f", inputBuffer.csDimensions);
+    printf("index: %u", index);
+    clustersBuffer[0].minPoint = float4(minPointAABB, 0.0);
+    clustersBuffer[0].maxPoint = float4(maxPointAABB, 0.0);
 }

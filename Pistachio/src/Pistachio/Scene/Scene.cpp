@@ -172,7 +172,7 @@ namespace Pistachio {
 		sceneInfo.UpdateSamplerBinding(Renderer::defaultSampler, 9);
 
 		shd_buildClusters->GetShaderBinding(buildClusterInfo, 0);
-		buildClusterInfo.UpdateBufferBinding(clusterAABB.GetID(), 0, clusterAABBsize, RHI::DescriptorType::CSBuffer, 0);
+		buildClusterInfo.UpdateBufferBinding(clusterAABB.GetID(), 0, clusterBufferSize, RHI::DescriptorType::CSBuffer, 0);
 		shd_activeClusters->GetShaderBinding(activeClusterInfo, 0);
 		activeClusterInfo.UpdateTextureBinding(zPrepass.GetView(), 0);
 		activeClusterInfo.UpdateBufferBinding(sparseActiveClustersBuffer_lightIndices.GetID(), 0, sizeof(uint32_t) * numClusters, RHI::DescriptorType::CSBuffer, 1);
@@ -199,6 +199,29 @@ namespace Pistachio {
 		RGBufferHandle LightGrid = graph.CreateBuffer(lightGrid.GetID(), 0, numClusters * 4 * sizeof(uint32_t));
 		AttachmentInfo a_info;
 		BufferAttachmentInfo b_info;
+		Matrix4 view = Matrix4::CreateLookAt({ 0,0,-10 }, { 0,0,0 }, { 0,1,0 });;
+		Matrix4 proj = Matrix4::CreatePerspectiveFieldOfView(Math::ToRadians(45.f), 16.f / 9.f, 0.1, 100.f);
+		PassConstants pc;
+		DirectX::XMStoreFloat4x4(&pc.View, DirectX::XMMatrixTranspose(view));
+		DirectX::XMStoreFloat4x4(&pc.Proj, DirectX::XMMatrixTranspose(proj));
+		DirectX::XMStoreFloat4x4(&pc.ViewProj, DirectX::XMMatrixMultiplyTranspose(view, proj));
+		pc.numClusters = { 16,9,24 };
+		DirectX::XMStoreFloat4x4(&pc.InvProj, DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&pc.Proj)));
+		pc.RenderTargetSize = { 1920,1080 };
+		pc.NearZ = 0.1f;
+		pc.FarZ = 100.f;
+		pc.InvRenderTargetSize = { 1.f / 1920.f, 1.f / 1080.f };
+		pc.bias = (24.f * log10f(1.f)) / (log10f(100.f / 1.f));
+		pc.scale = 24.f / (log10f(100.f / 1.f));
+		pc.numClusters = { 16,9,24 };
+		pc.numDirectionalRegularLights = 0;
+		pc.numDirectionalShadowLights = 0;
+		pc.numRegularLights = 0;
+		pc.numShadowLights = 0;
+		for (uint32_t i = 0; i < 3; i++)
+		{
+			passCB[i].Update(&pc, sizeof(PassConstants), 0);
+		}
 
 		RenderPass& zprepass = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Z-Prepass");
 		{
@@ -232,6 +255,9 @@ namespace Pistachio {
 						auto[meshc, transform] = mesh_transform.get(entity);
 						Model* model = assetMan->GetModelResource(meshc.Model);
 						Mesh& mesh = model->meshes[meshc.modelIndex];
+						TransformData td;
+						td.transform = Matrix4::Identity;
+						Renderer::FullCBUpdate(meshc.handle, &td);
 						list->BindDynamicDescriptor(shd->GetRootSignature(), Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
 						Renderer::Submit(list, mesh.GetVBHandle(), mesh.GetIBHandle(), sizeof(Vertex));
 					}
@@ -246,7 +272,10 @@ namespace Pistachio {
 			dirShadow.SetDepthStencilOutput(&a_info);
 			dirShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });
 			//dirShadow.SetShader(nullptr);
-			dirShadow.pass_fn = [](RHI::GraphicsCommandList* list) {};
+			dirShadow.pass_fn = [this](RHI::GraphicsCommandList* list) 
+				{
+					
+				};
 		}
 		RenderPass& sptShadow = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Point Shadow");
 		{
@@ -257,7 +286,8 @@ namespace Pistachio {
 			sptShadow.SetDepthStencilOutput(&a_info);
 			sptShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });;
 			//sptShadow.SetShader(nullptr);
-			sptShadow.pass_fn = [](RHI::GraphicsCommandList* list) {};
+			sptShadow.pass_fn = [this](RHI::GraphicsCommandList* list) {
+				};
 		}
 		RenderPass& pntShadow = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Spot Shadow");
 		{
@@ -268,7 +298,10 @@ namespace Pistachio {
 			pntShadow.SetDepthStencilOutput(&a_info);
 			pntShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });;
 			//pntShadow.SetShader(nullptr);
-			pntShadow.pass_fn = [](RHI::GraphicsCommandList* list) {};
+			pntShadow.pass_fn = [this](RHI::GraphicsCommandList* list)
+				{
+					
+				};
 		}
 		ComputePass& buildClusters = graph.AddComputePass("Build Clusters");
 		{
@@ -282,6 +315,7 @@ namespace Pistachio {
 					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
 					shd->ApplyShaderBinding(list, buildClusterInfo);
 					list->Dispatch(clustersDim[0], clustersDim[1], clustersDim[2]);
+					list->MarkBuffer(graph.dbgBufferCMP, 3);
 				};
 		}
 		ComputePass& filterClusters = graph.AddComputePass("Filter Clusters");
@@ -301,6 +335,7 @@ namespace Pistachio {
 					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
 					shd->ApplyShaderBinding(list, activeClusterInfo);
 					list->Dispatch(sceneResolution[0], sceneResolution[1], 1);
+					list->MarkBuffer(graph.dbgBufferCMP,4);
 				};
 		}
 		ComputePass& tightenCluster = graph.AddComputePass("Tighten Cluster List");
@@ -319,6 +354,7 @@ namespace Pistachio {
 					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
 					shd->ApplyShaderBinding(list, tightenListInfo);
 					list->Dispatch(clustersDim[0], clustersDim[1], clustersDim[2]);
+					list->MarkBuffer(graph.dbgBufferCMP, 5);
 				};
 		}
 		ComputePass& cullLights = graph.AddComputePass("Light Culling");
@@ -338,7 +374,8 @@ namespace Pistachio {
 					ComputeShader* shd = Renderer::GetBuiltinComputeShader("Cull Lights");
 					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
 					shd->ApplyShaderBinding(list, cullLightsInfo);
-					list->Dispatch(clustersDim[0], clustersDim[1], clustersDim[2]);
+					//list->Dispatch(clustersDim[0], clustersDim[1], clustersDim[2]);
+					list->MarkBuffer(graph.dbgBufferCMP, 6);
 				};
 		}
 		RenderPass& fwdShading = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Forward Shading");
@@ -1084,18 +1121,18 @@ namespace Pistachio {
 		auto view = m_Registry.view<TransformComponent>();
 		for (auto entity : view)
 		{
-			auto& transform = view.get<TransformComponent>(entity);
-			if (transform.bDirty)
-			{
-				TransformData td;
-				td.transform = DirectX::XMMatrixTranspose(transform.worldSpaceTransform);
-				td.normal = DirectX::XMMatrixInverse(nullptr, transform.worldSpaceTransform);
-				if (m_Registry.any_of<MeshRendererComponent>(entity))
-				{
-					auto& mesh = m_Registry.get<MeshRendererComponent>(entity);
-					//Renderer::TransformationBuffer[mesh.cbIndex].Update(&td, sizeof(TransformData),0);
-				}
-			}
+			//auto& transform = view.get<TransformComponent>(entity);
+			//if (transform.bDirty)
+			//{
+			//	TransformData td;
+			//	td.transform = DirectX::XMMatrixTranspose(transform.worldSpaceTransform);
+			//	td.normal = DirectX::XMMatrixInverse(nullptr, transform.worldSpaceTransform);
+			//	if (m_Registry.any_of<MeshRendererComponent>(entity))
+			//	{
+			//		auto& mesh = m_Registry.get<MeshRendererComponent>(entity);
+			//		//Renderer::TransformationBuffer[mesh.cbIndex].Update(&td, sizeof(TransformData),0);
+			//	}
+			//}
 		}
 	}
 	void Scene::SortMeshComponents()
@@ -1198,15 +1235,12 @@ namespace Pistachio {
 	template<>
 	void PISTACHIO_API Scene::OnComponentAdded<MeshRendererComponent>(Entity entity, MeshRendererComponent& component)
 	{
-		ConstantBuffer cb;
-		cb.Create(nullptr, sizeof(TransformData));
-		//Renderer::TransformationBuffer.push_back(cb);
-		//component.cbIndex = Renderer::TransformationBuffer.size() - 1;
 		const auto& transform = m_Registry.get<TransformComponent>(entity);
 		TransformData td;
-		td.transform = DirectX::XMMatrixTranspose(transform.worldSpaceTransform);
-		td.normal = DirectX::XMMatrixInverse(nullptr, transform.worldSpaceTransform);
-		//Renderer::TransformationBuffer[component.cbIndex].Update(&td, sizeof(TransformData),0);
+		td.transform =Matrix4::Identity;
+		td.normal = Matrix4::Identity;
+		component.handle =  Renderer::AllocateConstantBuffer(sizeof(TransformData));
+		Renderer::FullCBUpdate(component.handle, &td);
 	}
 	template<>
 	void PISTACHIO_API Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& component)

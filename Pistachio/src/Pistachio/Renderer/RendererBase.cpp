@@ -47,7 +47,7 @@ namespace Pistachio {
 	void RendererBase::EndFrame()
 	{
 		RHI::TextureMemoryBarrier barr;
-		barr.oldLayout = (RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL);
+		barr.oldLayout = (RHI::ResourceLayout::UNDEFINED);
 		barr.newLayout = (RHI::ResourceLayout::PRESENT);
 		barr.AccessFlagsBefore = (RHI::ResourceAcessFlags::COLOR_ATTACHMENT_WRITE);
 		barr.AccessFlagsAfter = (RHI::ResourceAcessFlags::NONE);
@@ -57,13 +57,14 @@ namespace Pistachio {
 		barr.subresourceRange.FirstArraySlice = 0,
 		barr.subresourceRange.NumArraySlices = 1,
 		barr.texture = backBufferTextures[currentRTVindex];
+		barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
 		mainCommandList->PipelineBarrier(RHI::PipelineStage::COLOR_ATTACHMENT_OUTPUT_BIT, RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 0, 0, 1, &barr);
 		//execute main command list
 		mainCommandList->End();
 		directQueue->ExecuteCommandLists(&mainCommandList->ID, 1);
 		fence_vals[currentFrameIndex] = ++currentFenceVal;
-		swapChain->Present(currentRTVindex);
 		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
+		swapChain->Present(currentRTVindex);
 		//cycle frame Index
 		currentRTVindex = (currentRTVindex + 1) % 2;
 		currentFrameIndex = (currentFrameIndex + 1) % 3;

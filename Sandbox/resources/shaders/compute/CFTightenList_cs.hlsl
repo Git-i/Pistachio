@@ -11,7 +11,7 @@ RWStructuredBuffer<uint> activeClusters  : register(u2, space0);
 void main( uint3 DTid : SV_DispatchThreadID )
 {
     uint index = DTid.x + (DTid.y * inputBuffer.csDimensions.x) + (DTid.z * inputBuffer.csDimensions.x * inputBuffer.csDimensions.y);
-    if (IsclusterActive[index] == 1)
+    if (IsclusterActive[0] == 1)
     {
         uint counterVal;
         InterlockedAdd(counterBuffer[0], 1, counterVal);

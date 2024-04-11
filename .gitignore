@@ -459,3 +459,4 @@ Pistachio/vendor/assimp/assimp-vc143-mtd-static.lib
 *.smproj
 Pistachio/ClassDiagram.cd
 Sandbox/stdout
+*.gfxr

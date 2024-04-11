@@ -4,6 +4,7 @@ static float PI = 3.14159265359;
 
 float4 main(float3 localPos : WORLD_POSITION) : SV_TARGET
 {
+    printf("print test");
     float3 normal = normalize(localPos);
     float3 irradiance = float3(0.0, 0.0, 0.0);
 

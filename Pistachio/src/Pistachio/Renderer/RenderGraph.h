@@ -3,6 +3,7 @@
 #include "Shader.h"
 #include "RenderTexture.h"
 #include "RendererBase.h"
+
 namespace Pistachio
 {
 	class RenderPass;
@@ -198,6 +199,7 @@ namespace Pistachio
 		std::vector<BufferAttachmentInfo> bufferInputs;
 		std::vector<BufferAttachmentInfo> bufferOutputs;
 		bool signal = false;
+		const char* passName;
 	};
 	struct RGCommandList
 	{
@@ -237,7 +239,10 @@ namespace Pistachio
 		void SortPasses();
 	private:
 		friend class Renderer;
+		friend class Scene;
 		bool dirty = true;
+		RHI::DebugBuffer* dbgBufferGFX;
+		RHI::DebugBuffer* dbgBufferCMP;
 		RHI::Fence* fence;
 		std::vector<RGTexture> textures;
 		std::vector<RGBuffer> buffers;
