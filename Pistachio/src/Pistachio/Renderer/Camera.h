@@ -65,6 +65,7 @@ namespace Pistachio {
 		enum class ProjectionType {Perspective = 0, Orthographic};
 	public:
 		SceneCamera();
+
 		void SetPerspective(float fov, float nearplane, float farplane);
 		void SetViewportSize(unsigned int width, unsigned int height);
 		void SetOrthographic(float size, float nearplane, float farplane);
@@ -76,6 +77,8 @@ namespace Pistachio {
 		inline float GetPerspNear() const {return m_perspnear ;}
 		inline float GetPerspFar()  const {return m_perspfar  ;}
 		inline float GetPerspSize() const {return m_perspsize ;}
+		inline float GetNear() const { return m_type == ProjectionType::Perspective ? m_perspnear : m_orthonear; }
+		inline float GetFar() const { return m_type == ProjectionType::Perspective ? m_perspfar : m_orthofar; }
 	private:
 		float m_orthonear = 0.1f;
 		float m_orthofar = 100.0f;

@@ -60,7 +60,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PT_PLATFORM_WINDOWS;PISTACHIO_RENDER_API_DX11;_CRT_SECURE_NO_WARNINGS;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS;PISTACHIO_BUILD_DLL;DYNAMICLINK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo;$(SolutionDir)Pistachio\vendor\physx\include;$(SolutionDir)Pistachio\vendor\SimpleMath;$(SolutionDir)Pistachio\vendor\tracy\tracy;$(SolutionDir)..\RenderHardwareInterface\RenderHardwareInterface\Core;$(SolutionDir)..\RenderHardwareInterface\RenderHardwareInterface;$(SolutionDir)Pistachio\vendor\xxhash</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Pistachio\src\;$(SolutionDir)Pistachio\vendor\spdlog\include;$(SolutionDir)Pistachio\vendor\imgui;$(SolutionDir)Pistachio\vendor\stb_image;$(SolutionDir)Pistachio\vendor\yaml-cpp\include;$(SolutionDir)Pistachio\vendor\assimp\include;$(SolutionDir)Pistachio\vendor\entt\include;$(SolutionDir)Pistachio\vendor\imguizmo;$(SolutionDir)Pistachio\vendor\physx\include;$(SolutionDir)Pistachio\vendor\SimpleMath;$(SolutionDir)Pistachio\vendor\tracy\tracy;$(SolutionDir)..\RenderHardwareInterface\RenderHardwareInterface\Core;$(SolutionDir)..\RenderHardwareInterface\RenderHardwareInterface;$(SolutionDir)Pistachio\vendor\xxhash;$(SolutionDir)Pistachio\vendor\tcb_span\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ptpch.h</PrecompiledHeaderFile>
       <PreprocessToFile>false</PreprocessToFile>
@@ -469,6 +469,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClInclude Include="vendor\spdlog\include\spdlog\tweakme.h" />
     <ClInclude Include="vendor\spdlog\include\spdlog\version.h" />
     <ClInclude Include="vendor\stb_image\stb_image.h" />
+    <ClInclude Include="vendor\tcb_span\include\tcb_span.h" />
     <ClInclude Include="vendor\tracy\client\TracyArmCpuTable.hpp" />
     <ClInclude Include="vendor\tracy\client\TracyCallstack.h" />
     <ClInclude Include="vendor\tracy\client\TracyCallstack.hpp" />
@@ -582,6 +583,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />
+    <None Include="cpp.hint" />
     <None Include="vendor\assimp\include\assimp\color4.inl" />
     <None Include="vendor\assimp\include\assimp\material.inl" />
     <None Include="vendor\assimp\include\assimp\matrix3x3.inl" />

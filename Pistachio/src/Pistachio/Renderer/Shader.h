@@ -193,7 +193,7 @@ namespace Pistachio {
 		RHI::DescriptorSet* set;
 		void UpdateBufferBinding(RHI::Buffer* buff, uint32_t offset, uint32_t size, RHI::DescriptorType type, uint32_t slot);
 		void UpdateBufferBinding(BufferBindingUpdateDesc* desc, uint32_t slot);
-		void UpdateTextureBinding(RHI::TextureView* view, uint32_t slot);
+		void UpdateTextureBinding(RHI::TextureView* view, uint32_t slot, RHI::DescriptorType type = RHI::DescriptorType::SampledTexture);
 		void UpdateSamplerBinding(SamplerHandle handle, uint32_t slot);
 	};
 	//Every Shader has one of these

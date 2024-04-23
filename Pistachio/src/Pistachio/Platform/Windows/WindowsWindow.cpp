@@ -250,6 +250,8 @@ namespace Pistachio {
 			return 0;
 		}
 		DragAcceptFiles(pd.hwnd, TRUE);
+		ShowWindow(pd.hwnd, SW_SHOWDEFAULT);
+		if (headless) ShowWindow(pd.hwnd, SW_HIDE);
 #if _DEBUG
 		if (AllocConsole() == 0)
 		{
@@ -279,8 +281,6 @@ namespace Pistachio {
 		SetConsoleTitleW(L"Pistachio Application Debug Console");
 #endif
 		m_data.dpiscale = 1;// (float)GetDpiForWindow(pd.hwnd) / 96.f;
-		ShowWindow(pd.hwnd, SW_SHOWDEFAULT);
-		if (headless) ShowWindow(pd.hwnd, SW_HIDE);
 		return 0;
 
 	}

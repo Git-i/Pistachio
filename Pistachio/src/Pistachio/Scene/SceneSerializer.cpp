@@ -8,27 +8,7 @@
 
 
 namespace YAML {
-	template<>
-	struct convert<DirectX::XMVECTOR>
-	{
-		static Node encode(const DirectX::XMVECTOR& v)
-		{
-			Node node;
-			node.push_back(DirectX::XMVectorGetX(v));
-			node.push_back(DirectX::XMVectorGetY(v));
-			node.push_back(DirectX::XMVectorGetZ(v));
-			node.push_back(DirectX::XMVectorGetW(v));
-		}
-
-		static bool decode(const Node& node, DirectX::XMVECTOR& v)
-		{
-			if (!node.IsSequence() || node.size() != 4)
-				return false;
-			v = DirectX::XMVectorSet(node[0].as<float>(), node[1].as<float>(), node[2].as<float>(), node[3].as<float>());
-			return true;
-		}
-
-	};
+	
 	template<>
 	struct convert<DirectX::XMFLOAT3>
 	{
@@ -75,12 +55,7 @@ namespace YAML {
 
 namespace Pistachio {
 
-	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMVECTOR& v)
-	{
-		out << YAML::Flow;	
-		out << YAML::BeginSeq << DirectX::XMVectorGetX(v) << DirectX::XMVectorGetY(v) << DirectX::XMVectorGetZ(v) << DirectX::XMVectorGetW(v) << YAML::EndSeq;
-		return out;
-	}
+	
 	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3& v)
 	{
 		out << YAML::Flow;

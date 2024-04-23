@@ -91,28 +91,38 @@ static DirectX::XMMATRIX GetLightMatrixFromCamera(const DirectX::XMMATRIX& camVi
 }
 static RHI::Viewport vp[4];
 static const uint32_t clusterAABBsize = ((sizeof(float) * 4) * 2);
-static void ChangeVP(float size, Pistachio::iVector2 offset)
-{
-	vp[0].width = vp[0].height = size;
-	vp[0].x = (float)offset.x;
-	vp[0].x = (float)offset.y;
-	vp[1] = vp[2] = vp[3] = vp[0];
-	vp[1].x += size;
-	vp[2].y += size;
-	vp[3].x += size;
-	vp[3].y += size;
-}
 namespace Pistachio {
+	static bool RenderSpotShadow(ShadowCastingLight& light, entt::registry& reg)
+	{
+		AssetManager* assetMan = GetAssetManager();
+		auto view = reg.view<MeshRendererComponent, TransformComponent>();
+		float x2 = light.light.exData.x * light.light.exData.x;
+		float h2 = light.light.exData.z * light.light.exData.z;
+		float r2 = (h2 * (1-x2)) / x2;
+		float R = light.light.exData.z - ((h2 - r2) / (light.light.exData.z * 2));
+		Vector3 center = light.light.position;
+		Vector3 dir = Vector3(light.light.rotation.x, light.light.rotation.y, light.light.rotation.z);
+		center += dir * (light.light.exData.z - R);
+		BoundingSphere bs(center, R);
+		for (auto entity : view)
+		{
+			auto [mc, tc] = view.get(entity);
+			BoundingBox bb = assetMan->GetModelResource(mc.Model)->aabbs[mc.modelIndex];
+			bb.Transform(bb, tc.worldSpaceTransform);
+			if(CullingManager::SphereCull(bb, bs) && tc.bDirty) return true;
+		}
+		return false;
+	}
 	//todo extremely temprary
 	static Shader* envshader;
 	Scene::Scene(SceneDesc desc) : sm_allocator({ 4096, 4096 }, { 256, 256 })
 	{
+		using namespace DirectX;
 		AssetManager* assetMan = GetAssetManager();
 		//envshader = new Shader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso");
 		//envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		PT_PROFILE_FUNCTION();
 		CreateEntity("Root").GetComponent<ParentComponent>().parentID = -1;
-		ChangeVP(1024, { 0,0 });
 		ScreenSpaceQuad = MeshFactory::CreatePlane();
 		RHI::UVector2D resolution = { (uint32_t)desc.Resolution.x, (uint32_t)desc.Resolution.y };
 		sceneResolution[0] = resolution.x;
@@ -132,6 +142,7 @@ namespace Pistachio {
 		lightGrid.CreateStack(nullptr, numClusters * sizeof(uint32_t) * 4);
 		zPrepass.CreateStack(resolution.x, resolution.y, 1, RHI::Format::D32_FLOAT);
 		finalRender.CreateStack(resolution.x, resolution.y, 1, RHI::Format::R16G16B16A16_FLOAT);
+		shadowMarker.CreateStack(nullptr, sizeof(uint32_t));
 
 		ComputeShader* shd_buildClusters = Renderer::GetBuiltinComputeShader("Build Clusters");
 		ComputeShader* shd_activeClusters = Renderer::GetBuiltinComputeShader("Filter Clusters");
@@ -139,6 +150,7 @@ namespace Pistachio {
 		ComputeShader* shd_cullLights = Renderer::GetBuiltinComputeShader("Cull Lights");
 		Shader* shd_default = Renderer::GetBuiltinShader("Z-Prepass");
 		Shader* shd_fwd = assetMan->GetShaderResource(assetMan->CreateShaderAsset("Default Shader"))->GetShader();
+		Shader* shd_sptShadow = Renderer::GetBuiltinShader("Spot Shadow Shader");
 		for (uint32_t i = 0; i < RendererBase::numFramesInFlight; i++)
 		{
 			passCB[i].CreateStack(nullptr, sizeof(PassConstants));
@@ -158,7 +170,7 @@ namespace Pistachio {
 		}
 
 		shd_fwd->GetPSShaderBinding(sceneInfo, 2);
-		sceneInfo.UpdateTextureBinding(Renderer::whiteTexture.GetView(), 0);
+		sceneInfo.UpdateTextureBinding(Renderer::BrdfTex.GetView(), 0);
 		sceneInfo.UpdateTextureBinding(Renderer::irradianceSkybox.GetView(), 1);
 		sceneInfo.UpdateTextureBinding(Renderer::prefilterSkybox.GetView(), 2);
 		sceneInfo.UpdateTextureBinding(Renderer::shadowMapAtlas.GetView(), 3);
@@ -169,7 +181,11 @@ namespace Pistachio {
 
 		sceneInfo.UpdateSamplerBinding(Renderer::defaultSampler, 7);
 		sceneInfo.UpdateSamplerBinding(Renderer::defaultSampler, 8);
-		sceneInfo.UpdateSamplerBinding(Renderer::defaultSampler, 9);
+		sceneInfo.UpdateSamplerBinding(Renderer::shadowSampler, 9);
+
+		shd_sptShadow->GetVSShaderBinding(shadowSetInfo, 1);
+		shadowSetInfo.UpdateBufferBinding(lightList.GetID(), 0, lightListSize, RHI::DescriptorType::StructuredBuffer, 0);
+		shadowSetInfo.UpdateBufferBinding(shadowMarker.GetID(), 0, sizeof(uint32_t), RHI::DescriptorType::StructuredBuffer, 1);
 
 		shd_buildClusters->GetShaderBinding(buildClusterInfo, 0);
 		buildClusterInfo.UpdateBufferBinding(clusterAABB.GetID(), 0, clusterBufferSize, RHI::DescriptorType::CSBuffer, 0);
@@ -184,7 +200,7 @@ namespace Pistachio {
 		cullLightsInfo.UpdateBufferBinding(clusterAABB.GetID(), 0, clusterAABBsize, RHI::DescriptorType::StructuredBuffer, 0);
 		cullLightsInfo.UpdateBufferBinding(activeClustersBuffer.GetID(), 0, sizeof(uint32_t) * numClusters, RHI::DescriptorType::StructuredBuffer, 1);
 		cullLightsInfo.UpdateBufferBinding(lightList.GetID(), 0, lightListSize, RHI::DescriptorType::StructuredBuffer, 2);
-		cullLightsInfo.UpdateBufferBinding(Renderer::computeShaderMiscBuffer.GetID(), 0, sizeof(uint32_t), RHI::DescriptorType::CSBuffer, 3);
+		cullLightsInfo.UpdateBufferBinding(Renderer::computeShaderMiscBuffer.GetID(), 0, sizeof(uint32_t)*2, RHI::DescriptorType::CSBuffer, 3);
 		cullLightsInfo.UpdateBufferBinding(sparseActiveClustersBuffer_lightIndices.GetID(), 0, sizeof(uint32_t) * numClusters * 50, RHI::DescriptorType::CSBuffer, 4);
 		cullLightsInfo.UpdateBufferBinding(lightGrid.GetID(), 0, numClusters * sizeof(uint32_t) * 4, RHI::DescriptorType::CSBuffer, 5);
 
@@ -199,25 +215,28 @@ namespace Pistachio {
 		RGBufferHandle LightGrid = graph.CreateBuffer(lightGrid.GetID(), 0, numClusters * 4 * sizeof(uint32_t));
 		AttachmentInfo a_info;
 		BufferAttachmentInfo b_info;
-		Matrix4 view = Matrix4::CreateLookAt({ 0,0,-10 }, { 0,0,0 }, { 0,1,0 });;
-		Matrix4 proj = Matrix4::CreatePerspectiveFieldOfView(Math::ToRadians(45.f), 16.f / 9.f, 0.1, 100.f);
+		Matrix4 view = Matrix4::CreateLookAt({ 0,3,-10 }, { 0,0,0 }, { 0,1,0 });;
+		Matrix4 proj = Matrix4::CreatePerspectiveFieldOfView(Math::ToRadians(45.f), 16.f / 9.f, 0.1, 50.f);
 		PassConstants pc;
-		DirectX::XMStoreFloat4x4(&pc.View, DirectX::XMMatrixTranspose(view));
-		DirectX::XMStoreFloat4x4(&pc.Proj, DirectX::XMMatrixTranspose(proj));
-		DirectX::XMStoreFloat4x4(&pc.ViewProj, DirectX::XMMatrixMultiplyTranspose(view, proj));
+		XMStoreFloat4x4(&pc.View, XMMatrixTranspose(view));
+		XMStoreFloat4x4(&pc.Proj, XMMatrixTranspose(proj));
+		XMStoreFloat4x4(&pc.ViewProj, XMMatrixMultiplyTranspose(view, proj));
+		XMStoreFloat4x4(&pc.InvProj, XMMatrixTranspose(XMMatrixInverse(nullptr, proj)));
+		XMStoreFloat4x4(&pc.InvView, XMMatrixTranspose(XMMatrixInverse(nullptr, view)));
+		XMStoreFloat4x4(&pc.InvViewProj, XMMatrixTranspose(XMMatrixInverse(nullptr, view * proj)));
 		pc.numClusters = { 16,9,24 };
-		DirectX::XMStoreFloat4x4(&pc.InvProj, DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&pc.Proj)));
 		pc.RenderTargetSize = { 1920,1080 };
 		pc.NearZ = 0.1f;
-		pc.FarZ = 100.f;
+		pc.FarZ = 50.f;
 		pc.InvRenderTargetSize = { 1.f / 1920.f, 1.f / 1080.f };
-		pc.bias = (24.f * log10f(1.f)) / (log10f(100.f / 1.f));
-		pc.scale = 24.f / (log10f(100.f / 1.f));
+		pc.bias = (24.f * log10f(0.1f)) / (log10f(50.f / 0.1f));
+		pc.scale = 24.f / (log10f(50.f / 0.1f));
 		pc.numClusters = { 16,9,24 };
 		pc.numDirectionalRegularLights = 0;
 		pc.numDirectionalShadowLights = 0;
 		pc.numRegularLights = 0;
 		pc.numShadowLights = 0;
+		pc.EyePosW = { 0,3,-10 };
 		for (uint32_t i = 0; i < 3; i++)
 		{
 			passCB[i].Update(&pc, sizeof(PassConstants), 0);
@@ -247,17 +266,13 @@ namespace Pistachio {
 					list->SetRootSignature(shd->GetRootSignature());
 					shd->ApplyBinding(list, passCBinfoGFX[RendererBase::GetCurrentFrameIndex()]);
 					AssetManager* assetMan = GetAssetManager();
-					auto mesh_transform = m_Registry.view<MeshRendererComponent, TransformComponent>();
 					list->BindVertexBuffers(0, 1, &Renderer::meshVertices->ID);
 					list->BindIndexBuffer(Renderer::meshIndices, 0);
-					for (auto entity : mesh_transform)
+					for (auto entity : meshesToDraw)
 					{
-						auto[meshc, transform] = mesh_transform.get(entity);
+						auto& meshc = m_Registry.get<MeshRendererComponent>(entity);
 						Model* model = assetMan->GetModelResource(meshc.Model);
 						Mesh& mesh = model->meshes[meshc.modelIndex];
-						TransformData td;
-						td.transform = Matrix4::Identity;
-						Renderer::FullCBUpdate(meshc.handle, &td);
 						list->BindDynamicDescriptor(shd->GetRootSignature(), Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
 						Renderer::Submit(list, mesh.GetVBHandle(), mesh.GetIBHandle(), sizeof(Vertex));
 					}
@@ -277,30 +292,72 @@ namespace Pistachio {
 					
 				};
 		}
-		RenderPass& sptShadow = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Point Shadow");
+		RenderPass& pntShadow = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Point Shadow");
 		{
 			a_info.format = RHI::Format::D32_FLOAT;//?
 			a_info.loadOp = RHI::LoadOp::Load;//dont clear the shadow map
 			a_info.usage = AttachmentUsage::Graphics;
 			a_info.texture = shadowMap;
-			sptShadow.SetDepthStencilOutput(&a_info);
-			sptShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });;
-			//sptShadow.SetShader(nullptr);
-			sptShadow.pass_fn = [this](RHI::GraphicsCommandList* list) {
-				};
-		}
-		RenderPass& pntShadow = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Spot Shadow");
-		{
-			a_info.format = RHI::Format::D32_FLOAT;//?
-			a_info.loadOp = RHI::LoadOp::Load;
-			a_info.usage = AttachmentUsage::Graphics;
-			a_info.texture = shadowMap;
 			pntShadow.SetDepthStencilOutput(&a_info);
 			pntShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });;
-			//pntShadow.SetShader(nullptr);
-			pntShadow.pass_fn = [this](RHI::GraphicsCommandList* list)
+			//sptShadow.SetShader(nullptr);
+			pntShadow.pass_fn = [this](RHI::GraphicsCommandList* list) {
+				};
+		}
+		RenderPass& sptShadow = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Spot Shadow");
+		{
+			a_info.format = RHI::Format::D32_FLOAT;//?
+			a_info.loadOp = RHI::LoadOp::Clear;
+			a_info.usage = AttachmentUsage::Unspec;
+			a_info.texture = shadowMap;
+			b_info.buffer = LightList;
+			b_info.usage = AttachmentUsage::Graphics;
+			sptShadow.SetDepthStencilOutput(&a_info);
+			sptShadow.AddBufferOutput(&b_info);
+			sptShadow.SetShader(Renderer::GetBuiltinShader("Spot Shadow Shader"));
+			sptShadow.pass_fn = [this](RHI::GraphicsCommandList* list)
 				{
-					
+					RHI::RenderingAttachmentDesc attachDesc{};
+					attachDesc.clearColor = { 1,1,1,1 };
+					attachDesc.ImageView = RendererBase::GetCPUHandle(Renderer::shadowMapAtlas.DSView);
+					attachDesc.loadOp = RHI::LoadOp::Clear;
+					attachDesc.storeOp = RHI::StoreOp::Store;
+					RHI::RenderingBeginDesc rbDesc{};
+					rbDesc.pDepthStencilAttachment = &attachDesc;
+
+					AssetManager* assetMan = GetAssetManager();
+					uint32_t baseOffset = (regularLights.size() * sizeof(RegularLight)) / (sizeof(float) * 4);
+					uint32_t offsetMul = sizeof(ShadowCastingLight) / (sizeof(float) * 4);
+					uint32_t index = 0;
+					Shader* shd = Renderer::GetBuiltinShader("Spot Shadow Shader");
+					for (auto& light : shadowLights)
+					{
+						if ((light.light.type != LightType::Spot) || !isShadowDirty[index] || !RenderSpotShadow(light, m_Registry)) 
+						{ index++; continue; }
+						RHI::Viewport vp;
+						vp.height = light.shadowMap.size.y; vp.width = light.shadowMap.size.x;
+						vp.minDepth = 0; vp.maxDepth = 1;
+						vp.x = light.shadowMap.offset.x; vp.y = light.shadowMap.offset.y;
+						list->SetViewports(1, &vp);
+						RHI::Area2D rect = { vp.x,vp.y,vp.width, vp.height };
+						shd->ApplyBinding(list, shadowSetInfo);
+						list->SetScissorRects(1, &rect);
+						list->MarkBuffer(shadowMarker.GetID(), 0, baseOffset + (index * offsetMul));
+						auto meshes = m_Registry.view<MeshRendererComponent>();
+						rbDesc.renderingArea = { (int)light.shadowMap.offset.x,(int)light.shadowMap.offset.y,
+							light.shadowMap.size.x, light.shadowMap.size.y };
+						list->BeginRendering(&rbDesc);
+						for (auto entity : meshes)
+						{
+							auto& meshc = meshes.get<MeshRendererComponent>(entity);
+							Model* model = assetMan->GetModelResource(meshc.Model);
+							Mesh& mesh = model->meshes[meshc.modelIndex];
+							list->BindDynamicDescriptor(shd->GetRootSignature(), Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
+							Renderer::Submit(list, mesh.GetVBHandle(), mesh.GetIBHandle(), sizeof(Vertex));
+						}
+						list->EndRendering();
+						index++;
+					}
 				};
 		}
 		ComputePass& buildClusters = graph.AddComputePass("Build Clusters");
@@ -366,7 +423,7 @@ namespace Pistachio {
 			BufferAttachmentInfo b_info4{ ActiveClusterBuffer, AttachmentUsage::Compute };
 			cullLights.AddBufferInput(&b_info4);
 			cullLights.AddBufferOutput(&b_info);
-			cullLights.AddBufferOutput(&b_info2);
+			cullLights.AddBufferInput(&b_info2);
 			cullLights.AddBufferOutput(&b_info3);
 			cullLights.SetShader(Renderer::GetBuiltinComputeShader("Cull Lights"));
 			cullLights.pass_fn = [this](RHI::GraphicsCommandList* list)
@@ -374,8 +431,10 @@ namespace Pistachio {
 					ComputeShader* shd = Renderer::GetBuiltinComputeShader("Cull Lights");
 					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
 					shd->ApplyShaderBinding(list, cullLightsInfo);
-					//list->Dispatch(clustersDim[0], clustersDim[1], clustersDim[2]);
+					list->Dispatch(clustersDim[0], clustersDim[1], clustersDim[2]);
 					list->MarkBuffer(graph.dbgBufferCMP, 6);
+					list->MarkBuffer(Renderer::computeShaderMiscBuffer.GetID(), 0, 0);
+					list->MarkBuffer(Renderer::computeShaderMiscBuffer.GetID(), 4, 0);
 				};
 		}
 		RenderPass& fwdShading = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Forward Shading");
@@ -396,6 +455,11 @@ namespace Pistachio {
 			a_info.texture = finalRenderTex;
 			a_info.loadOp = RHI::LoadOp::Clear;
 			fwdShading.AddColorOutput(&a_info);
+			a_info.format = RHI::Format::D32_FLOAT;
+			a_info.texture = depthTex;
+			a_info.loadOp = RHI::LoadOp::Load;
+			a_info.usage = AttachmentUsage::Graphics;
+			fwdShading.SetDepthStencilOutput(&a_info);
 			//fwdShading.SetShader(); we dont set shader because of custom shader support
 			fwdShading.SetPassArea({ { 0,0},resolution });
 			fwdShading.pass_fn = [this](RHI::GraphicsCommandList* list)
@@ -410,15 +474,15 @@ namespace Pistachio {
 					RHI::Area2D rect = { 0,0,sceneResolution[0],sceneResolution[1] };
 					list->SetScissorRects(1, &rect);
 					AssetManager* assetMan = GetAssetManager();
-					auto mesh_transform = m_Registry.view<MeshRendererComponent, TransformComponent>();
 					list->BindVertexBuffers(0, 1, &Renderer::meshVertices->ID);
 					list->BindIndexBuffer(Renderer::meshIndices, 0);
 					
-					for (auto entity : mesh_transform)
+					for (auto entity : meshesToDraw)
 					{
-						auto [meshc, transform] = mesh_transform.get(entity);
+						auto& meshc = m_Registry.get<MeshRendererComponent>(entity);
 						Material* mtl = assetMan->GetMaterialResource(meshc.material);
 						mtl->Bind(list);
+						Renderer::FullCBUpdate(mtl->parametersBuffer, mtl->parametersBufferCPU);
 						Shader* shd = assetMan->GetShaderResource(mtl->GetShader())->GetShader();
 						Model* model = assetMan->GetModelResource(meshc.Model);
 						Mesh& mesh = model->meshes[meshc.modelIndex];
@@ -494,7 +558,7 @@ namespace Pistachio {
 			Physics::gMaterial = Physics::gPhysics->createMaterial(rigidBody.StaticFriction, rigidBody.DynamicFriction, rigidBody.Restitution);
 			if (rigidBody.type == RigidBodyComponent::BodyType::Dynamic)
 			{
-				physx::PxQuat rotation(DirectX::XMVectorGetX(transform.Rotation), DirectX::XMVectorGetY(transform.Rotation), DirectX::XMVectorGetZ(transform.Rotation), DirectX::XMVectorGetW(transform.Rotation));
+				physx::PxQuat rotation(transform.Rotation.x, transform.Rotation.y, transform.Rotation.z, transform.Rotation.w);
 				physx::PxTransform pxtransform(transform.Translation.x, transform.Translation.y, transform.Translation.z, rotation);
 				rigidBody.RuntimeBody = Physics::gPhysics->createRigidDynamic(pxtransform);
 				physx::PxRigidBodyExt::updateMassAndInertia(*((physx::PxRigidBody*)rigidBody.RuntimeBody), rigidBody.Density);
@@ -581,6 +645,57 @@ namespace Pistachio {
 				return Entity(entity, this);
 		}
 		return Entity();
+	}
+	void Scene::UpdatePassConstants(const Matrix4& view, const SceneCamera& cam, const Vector3& camPos,float delta)
+	{
+		const Matrix4& proj = cam.GetProjection();
+		Matrix4 viewProj = view * proj;
+		XMStoreFloat4x4(&passConstants.View, XMMatrixTranspose(view));
+		XMStoreFloat4x4(&passConstants.Proj, XMMatrixTranspose(proj));
+		XMStoreFloat4x4(&passConstants.ViewProj, XMMatrixTranspose(viewProj));
+		XMStoreFloat4x4(&passConstants.InvProj, XMMatrixTranspose(XMMatrixInverse(nullptr, proj)));
+		XMStoreFloat4x4(&passConstants.InvView, XMMatrixTranspose(XMMatrixInverse(nullptr, view)));
+		XMStoreFloat4x4(&passConstants.InvViewProj, XMMatrixTranspose(XMMatrixInverse(nullptr, viewProj)));
+		passConstants.numClusters = { (float)clustersDim[0],(float)clustersDim[1],(float)clustersDim[2]};
+		passConstants.RenderTargetSize = { (float)sceneResolution[0],(float)sceneResolution[1]};
+		passConstants.NearZ = cam.GetNear();
+		passConstants.FarZ = cam.GetFar();
+		passConstants.InvRenderTargetSize = { 1.f / (float)sceneResolution[0], 1.f / (float)sceneResolution[1]};
+		passConstants.bias = ((float)clustersDim[2] * log10f(passConstants.NearZ)) / (log10f(passConstants.FarZ / passConstants.NearZ));
+		passConstants.scale = (float)clustersDim[2] / (log10f(passConstants.FarZ / passConstants.NearZ));
+		passConstants.numDirectionalRegularLights = numRegularDirLights;
+		passConstants.numDirectionalShadowLights = numShadowDirLights;
+		passConstants.numRegularLights = regularLights.size();
+		passConstants.numShadowLights = shadowLights.size();
+		passConstants.EyePosW = camPos;
+		passConstants.DeltaTime = delta;
+		passCB[RendererBase::currentFrameIndex].Update(&passConstants, sizeof(PassConstants), 0);
+	}
+	void Scene::UpdatePassConstants(const EditorCamera& cam, float delta)
+	{
+		const Matrix4& proj = cam.GetProjection();
+		const Matrix4& view = cam.GetViewMatrix();
+		Matrix4 viewProj = cam.GetViewProjection();
+		XMStoreFloat4x4(&passConstants.View, XMMatrixTranspose(view));
+		XMStoreFloat4x4(&passConstants.Proj, XMMatrixTranspose(proj));
+		XMStoreFloat4x4(&passConstants.ViewProj, XMMatrixTranspose(viewProj));
+		XMStoreFloat4x4(&passConstants.InvProj, XMMatrixTranspose(XMMatrixInverse(nullptr, proj)));
+		XMStoreFloat4x4(&passConstants.InvView, XMMatrixTranspose(XMMatrixInverse(nullptr, view)));
+		XMStoreFloat4x4(&passConstants.InvViewProj, XMMatrixTranspose(XMMatrixInverse(nullptr, viewProj)));
+		passConstants.numClusters = { (float)clustersDim[0],(float)clustersDim[1],(float)clustersDim[2] };
+		passConstants.RenderTargetSize = { (float)sceneResolution[0],(float)sceneResolution[1] };
+		passConstants.NearZ = cam.GetNearClip();
+		passConstants.FarZ = cam.GetFarClip();
+		passConstants.InvRenderTargetSize = { 1.f / (float)sceneResolution[0], 1.f / (float)sceneResolution[1] };
+		passConstants.bias = ((float)clustersDim[2] * log10f(passConstants.NearZ)) / (log10f(passConstants.FarZ / passConstants.NearZ));
+		passConstants.scale = (float)clustersDim[2] / (log10f(passConstants.FarZ / passConstants.NearZ));
+		passConstants.numDirectionalRegularLights = numRegularDirLights;
+		passConstants.numDirectionalShadowLights = numShadowDirLights;
+		passConstants.numRegularLights = regularLights.size();
+		passConstants.numShadowLights = shadowLights.size();
+		passConstants.EyePosW = cam.GetPosition();
+		passConstants.DeltaTime = delta;
+		passCB[RendererBase::currentFrameIndex].Update(&passConstants, sizeof(PassConstants), 0);
 	}
 	/*
 	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
@@ -902,8 +1017,68 @@ namespace Pistachio {
 
 	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
 	{
+		/*
+		* Todo each parent should store a list of thier children, so we can
+		* traverse a scene from the root entity and dirty/update the world space transfrom for the
+		* remainder of the frame. then after the frame everything is "undirtied"
+		*/
+		meshesToDraw.clear();
+		shadowLights.clear();
+		regularLights.clear();
+		isShadowDirty.clear();
+		numShadowDirLights = 0;
+		numRegularDirLights = 0;
+		auto transform_parent_view = m_Registry.view<TransformComponent, ParentComponent>();
+		for (auto entity : transform_parent_view)
+		{
+			auto [tc,pc] = transform_parent_view.get(entity);
+			if (pc.parentID < 0) tc.worldSpaceTransform = tc.GetLocalTransform();
+			else tc.worldSpaceTransform = tc.GetTransform(Entity((entt::entity)pc.parentID,this));
+		}
+		FrustumCull(camera.GetViewMatrix(), camera.GetProjection(),Math::ToRadians(camera.GetFOVdeg()),camera.GetNearClip(), camera.GetFarClip(), camera.GetAspectRatio());
+		UpdateObjectCBs();
+		UpdatePassConstants(camera, delta);
+		UpdateLightsBuffer();
+		
 		graph.Execute();
 		graph.SubmitToQueue();
+		RHI::SubResourceRange range;
+		range.FirstArraySlice = 0;
+		range.imageAspect = RHI::Aspect::COLOR_BIT;
+		range.IndexOrFirstMipLevel = 0;
+		range.NumArraySlices = 1;
+		range.NumMipLevels = 1;
+		RHI::TextureMemoryBarrier barr[2];
+		barr[0].AccessFlagsBefore = RHI::ResourceAcessFlags::COLOR_ATTACHMENT_WRITE;
+		barr[0].AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
+		barr[0].newLayout = RHI::ResourceLayout::GENERAL;
+		barr[0].nextQueue = barr[0].previousQueue = RHI::QueueFamily::Ignored;
+		barr[0].oldLayout = RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL;
+		barr[0].texture = finalRender.GetID();
+		barr[0].subresourceRange = range;
+
+		barr[1] = barr[0];
+		barr[1].texture = RendererBase::backBufferTextures[RendererBase::currentRTVindex];
+		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::COLOR_ATTACHMENT_OUTPUT_BIT,
+			RHI::PipelineStage::TRANSFER_BIT, 0, 0, 2, barr);
+		RendererBase::mainCommandList->BlitTexture(finalRender.GetID(),
+			RendererBase::backBufferTextures[RendererBase::currentRTVindex], { 1920,1080 }, { 1280,720 });
+		barr[0].AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_READ;
+		barr[0].AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
+		barr[0].newLayout = RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL;
+		barr[0].oldLayout = RHI::ResourceLayout::GENERAL;
+		barr[1].AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+		barr[1].AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
+		barr[1].newLayout = RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL;
+		barr[1].oldLayout = RHI::ResourceLayout::GENERAL;
+		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT,
+			RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 0, 0, 2, barr);
+		auto transform_view = m_Registry.view<TransformComponent>();
+		for (auto entity : transform_view)
+		{
+			auto [tc] = transform_view.get(entity);
+			//tc.bDirty = false;
+		}
 	}
 	void Scene::OnUpdateRuntime(float delta)
 	{
@@ -1103,8 +1278,8 @@ namespace Pistachio {
 	void Scene::OnViewportResize(unsigned int width, unsigned int height)
 	{
 		PT_PROFILE_FUNCTION();
-		m_viewportWidth = width;
-		m_ViewportHeight = height;
+		//m_viewportWidth  = width;
+		//m_ViewportHeight = height;
 		auto view = m_Registry.view<CameraComponent>();
 		for (auto entity : view)
 		{
@@ -1118,21 +1293,14 @@ namespace Pistachio {
 	void Scene::UpdateObjectCBs()
 	{
 		PT_PROFILE_FUNCTION();
-		auto view = m_Registry.view<TransformComponent>();
+		auto view = m_Registry.view<TransformComponent, MeshRendererComponent>();
+		TransformData td;
 		for (auto entity : view)
 		{
-			//auto& transform = view.get<TransformComponent>(entity);
-			//if (transform.bDirty)
-			//{
-			//	TransformData td;
-			//	td.transform = DirectX::XMMatrixTranspose(transform.worldSpaceTransform);
-			//	td.normal = DirectX::XMMatrixInverse(nullptr, transform.worldSpaceTransform);
-			//	if (m_Registry.any_of<MeshRendererComponent>(entity))
-			//	{
-			//		auto& mesh = m_Registry.get<MeshRendererComponent>(entity);
-			//		//Renderer::TransformationBuffer[mesh.cbIndex].Update(&td, sizeof(TransformData),0);
-			//	}
-			//}
+			auto [transform,mesh] = view.get(entity);
+			DirectX::XMStoreFloat4x4(&td.transform, DirectX::XMMatrixTranspose(transform.worldSpaceTransform));
+			DirectX::XMStoreFloat4x4(&td.normal,DirectX::XMMatrixInverse(nullptr, transform.worldSpaceTransform));
+			Renderer::PartialCBUpdate(mesh.handle, &td,0,sizeof(TransformData));
 		}
 	}
 	void Scene::SortMeshComponents()
@@ -1154,62 +1322,124 @@ namespace Pistachio {
 			m_Registry.sort<MeshRendererComponent>([](const MeshRendererComponent& lhs, const MeshRendererComponent& rhs) {return lhs.material.m_uuid < rhs.material.m_uuid; });
 		}
 	}
-	template <typename T>
-	void Scene::RenderSpotLightShadows(T& transformMesh, ShadowCastingLight& light)
+	void Scene::UpdateLightsBuffer()
 	{
-		RendererBase::ChangeViewport(light.shadowMap.size.x, light.shadowMap.size.y, light.shadowMap.offset.x, light.shadowMap.offset.y);
-
-		//todo make a new constant buffer for shadow code stuff
-		//Renderer::passConstants.lightSpaceMatrix[0] = DirectX::XMLoadFloat4x4(&light.projection[0]);
-		//Renderer::passConstants.lightSpaceMatrix[1] = DirectX::XMLoadFloat4x4(&light.projection[0]);
-		//Renderer::passConstants.lightSpaceMatrix[2] = DirectX::XMLoadFloat4x4(&light.projection[0]);
-		//Renderer::passConstants.lightSpaceMatrix[3] = DirectX::XMLoadFloat4x4(&light.projection[0]);
-		//Renderer::UpdatePassConstants();
-		for (auto e : transformMesh)
+		uint32_t requiredSize = sizeof(Light) * regularLights.size() + sizeof(ShadowCastingLight) * shadowLights.size();
+		if (requiredSize <= lightListSize)
 		{
-			auto [transform, mesh] = transformMesh.get(e);
-			if (mesh.Model.m_uuid)
-			{
-				//Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
-				Model* model = GetAssetManager()->GetModelResource(mesh.Model);
-				Mesh _mesh = model->meshes[mesh.modelIndex];
-				//Buffer buffer = { &_mesh.GetVertexBuffer(), &_mesh.GetIndexBuffer() };
-				//RendererBase::DrawIndexed(buffer);
-			}
+			std::vector<uint8_t> joinedBuffer(requiredSize);
+			if (regularLights.size()) memcpy(joinedBuffer.data(), regularLights.data(), sizeof(Light) * regularLights.size());
+			if (shadowLights.size()) memcpy(joinedBuffer.data() + sizeof(Light) * regularLights.size(), shadowLights.data(), sizeof(ShadowCastingLight) * shadowLights.size());
+			if (requiredSize) lightList.Update(joinedBuffer.data(), requiredSize, 0);
+			return;
 		}
+		__debugbreak();
 	}
-	//todo implement this
-	template <typename T>
-	void Scene::RenderPointLightShadows(T& transformMesh, ShadowCastingLight& light)
+	void Scene::FrustumCull(const Matrix4& view, const Matrix4& proj, float fovRad, float nearClip, float farClip, float aspect)
 	{
-
-	}
-	template <typename T>
-	void Scene::RenderDirectionalLightShadows(T& transformMesh, ShadowCastingLight& light)
-	{
-		ChangeVP((float)(light.shadowMap.size.x / 2), light.shadowMap.offset);
-		//RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
-
-		//todo make a new constant buffer for shadow code stuff
-		//Renderer::passConstants.lightSpaceMatrix[0] = DirectX::XMLoadFloat4x4(&light.projection[0]);
-		//Renderer::passConstants.lightSpaceMatrix[1] = DirectX::XMLoadFloat4x4(&light.projection[1]);
-		//Renderer::passConstants.lightSpaceMatrix[2] = DirectX::XMLoadFloat4x4(&light.projection[2]);
-		//Renderer::passConstants.lightSpaceMatrix[3] = DirectX::XMLoadFloat4x4(&light.projection[3]);
-		//Renderer::UpdatePassConstants();
-		for (auto e : transformMesh)
+		auto mesh_transform = m_Registry.view<MeshRendererComponent, TransformComponent>();
+		BoundingFrustum cameraFrustum(proj);
+		cameraFrustum.Transform(cameraFrustum, view.Invert());
+		for (auto entity : mesh_transform)
 		{
-			auto [transform, mesh] = transformMesh.get(e);
-			if (mesh.Model.m_uuid)
+			auto [mesh, transform] = mesh_transform.get(entity);
+			Model* model = GetAssetManager()->GetModelResource(mesh.Model);
+			if (model)
 			{
-				//Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
-				Model* model = GetAssetManager()->GetModelResource(mesh.Model);
-				Mesh _mesh = model->meshes[mesh.modelIndex];
-				//Buffer buffer = { &_mesh.GetVertexBuffer(), &_mesh.GetIndexBuffer() };
-				//RendererBase::DrawIndexed(buffer);
+				BoundingBox box = model->aabbs[mesh.modelIndex];
+				box.Transform(box, transform.worldSpaceTransform);
+				if (CullingManager::FrustumCull(box, cameraFrustum)) //we passed the test
+				{
+					meshesToDraw.emplace_back(entity);
+				}
 			}
 		}
 
+		auto light_transform = m_Registry.view<LightComponent, TransformComponent>();
+		for (auto& entity : light_transform)
+		{
+			auto [lightcomponent,tc] = light_transform.get(entity);
+			//free space in the shadow map from non visible lights
+			if (lightcomponent.Type == LightType::Point || lightcomponent.Type == LightType::Spot)
+			{
+				bool visible = CullingManager::FrustumCull(BoundingSphere(tc.Translation, lightcomponent.exData.z), cameraFrustum);
+				if (!visible)
+				{
+					if (lightcomponent.shadowMap)
+					{
+						sm_allocator.DeAllocate(lightcomponent.shadowMap);
+						lightcomponent.shadowMap = 0;
+					}
+					continue;
+				}
+			}
+			Light light;
+			light.position = tc.Translation;
+			light.type = lightcomponent.Type;
+			float z = 1.f;
+			if (light.type == LightType::Directional) z = -1.f;
+			DirectX::XMVECTOR lightTransform = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.f, 0.f, z, 1.f), tc.Rotation);
+			DirectX::XMStoreFloat4(&light.rotation, lightTransform);
+			light.exData = { lightcomponent.exData.x , lightcomponent.exData.y, lightcomponent.exData.z, (float)lightcomponent.shadow };
+			light.color = { lightcomponent.color.x, lightcomponent.color.y, lightcomponent.color.z };
+			light.intensity = lightcomponent.Intensity;
+			if (lightcomponent.shadow)
+			{
+				iVector2 allocation_size;
+				bool dirty = lightcomponent.shadow_dirty;
+				ShadowCastingLight* sclight = 0;
+				if (lightcomponent.Type == LightType::Directional)
+				{
+					sclight = &*shadowLights.insert(shadowLights.begin(),ShadowCastingLight());
+					numShadowDirLights++;
+					dirty = true;
+					allocation_size = { 256 * 4, 256 * 4 };
+					DirectX::XMStoreFloat4x4(&sclight->projection[0],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, nearClip, 30.f), light, 1.05f));
+					DirectX::XMStoreFloat4x4(&sclight->projection[1],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, 30.f, 100.f), light, 1.2f));
+					DirectX::XMStoreFloat4x4(&sclight->projection[2],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, 100.f, 500.f), light, 1.2f));
+					DirectX::XMStoreFloat4x4(&sclight->projection[3],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, 500.f, farClip), light, 1.2f));
+				}
+				else if (lightcomponent.Type == LightType::Spot)
+				{
+					sclight = &shadowLights.emplace_back();
+					allocation_size = { 512, 512 };
+					DirectX::XMStoreFloat4x4(&sclight->projection[0],DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(tc.Translation, DirectX::XMVectorAdd(tc.Translation, DirectX::XMLoadFloat4(&light.rotation)), DirectX::XMVectorSet(0, 1, 0, 0)) * DirectX::XMMatrixPerspectiveFovLH(DirectX::XMScalarACos(lightcomponent.exData.x) * 2, 1, 0.1f, lightcomponent.exData.z)));
+				}
+				else if (lightcomponent.Type == LightType::Point)
+				{
+					sclight = &shadowLights.emplace_back();
+					allocation_size = { 256 * 3, 256 * 2 };
+					//todo : Handle point light matrices;
+				}
+				sclight->light = light;
+				if (tc.bDirty) dirty = true;
+				if (lightcomponent.shadowMap != 0) // if there was a shadow map dont allocate a new one unnecessarily
+				{
+					//todo camera cascades for varying shadow map sizes at different distance levels
+					sclight->shadowMap = sm_allocator.GetRegion(lightcomponent.shadowMap);
+				}
+				else
+				{
+					lightcomponent.shadowMap = sm_allocator.Allocate(allocation_size, AllocatorFlags::None); // todo render settings to control allocation size
+					sclight->shadowMap = sm_allocator.GetRegion(lightcomponent.shadowMap);
+					dirty = true;
+				}
+				isShadowDirty.push_back(dirty);
+				lightcomponent.shadow_dirty = false;
+			}
+			else
+			{
+				if (lightcomponent.shadowMap != 0)
+				{
+					sm_allocator.DeAllocate(lightcomponent.shadowMap);
+					lightcomponent.shadowMap = 0;
+				}
+				regularLights.push_back(light);
+			}
+		}
 	}
+	
+	
 	template<typename T>
 	void OnComponentAdded(Entity entity, T& component)
 	{
@@ -1226,7 +1456,7 @@ namespace Pistachio {
 	template<>
 	void PISTACHIO_API Scene::OnComponentAdded<CameraComponent>(Entity entity, CameraComponent& component)
 	{
-		component.camera.SetViewportSize(m_viewportWidth, m_ViewportHeight);
+		//component.camera.SetViewportSize(m_viewportWidth, m_ViewportHeight);
 	}
 	template<>
 	void PISTACHIO_API Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& component)

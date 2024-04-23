@@ -31,9 +31,11 @@ uint getSlice(float z)
 void main( uint3 DTid : SV_DispatchThreadID )
 {
     float z = zprepass.Load(DTid); // DTid z is always 0;
-    uint slice = getSlice(z);
+    float4 temp = float4(0.xx, z, 1);
+    temp = mul(temp, inputBuffer.InvProj);
+    uint slice = getSlice(temp.z/temp.w);
     float2 tileSize = float2(inputBuffer.screenSize) / float2(inputBuffer.numClusters.xy);
-    float3 cluster = float3(float2(DTid.xy) / tileSize, slice);
+    uint3 cluster = uint3((uint2(float2(DTid.xy) / tileSize)), slice);
     uint index = cluster.x + (cluster.y * inputBuffer.numClusters.x) + (cluster.z * inputBuffer.numClusters.x * inputBuffer.numClusters.y);
-    clusterActive[0] =  1;
+    clusterActive[index] =  1;
 }

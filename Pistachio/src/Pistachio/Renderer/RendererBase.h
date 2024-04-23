@@ -92,6 +92,7 @@ namespace Pistachio {
 		friend class DepthTexture;
 		friend class ShaderAsset;
 		friend class ComputeShader;
+		friend class Scene;
 		static RHI::Device* device;
 		static RHI::GraphicsCommandList* mainCommandList;
 		static RHI::GraphicsCommandList* stagingCommandList;

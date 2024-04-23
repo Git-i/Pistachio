@@ -38,7 +38,7 @@ namespace Pistachio
         while (gfxIndex < levelTransitionIndices.size() && cmpIndex < computeLevelTransitionIndices.size())
         {
             uint32_t gfx = gfxIndex == 0 ? 0 : levelTransitionIndices[gfxIndex - 1].first;
-            uint32_t cmp = cmpIndex == 0 ? 0 : levelTransitionIndices[cmpIndex - 1].first;
+            uint32_t cmp = cmpIndex == 0 ? 0 : computeLevelTransitionIndices[cmpIndex - 1].first;
 
             if (passesSortedAndFence[gfx].second <= computePassesSortedAndFence[cmp].second)
             {
@@ -134,13 +134,13 @@ namespace Pistachio
             maxFence += passesSortedAndFence[passesSortedAndFence.size() - 1].second + 1;
             RESULT res = RendererBase::directQueue->SignalFence(fence, maxFence);
         }
-        auto res = RendererBase::device->QueueWaitIdle(RendererBase::directQueue);
-        if (res) {
-            uint32_t gfxPoint = dbgBufferGFX->GetValue();
-            uint32_t cmpPoint = dbgBufferCMP->GetValue();
-            __debugbreak();
-        }
-        RendererBase::device->QueueWaitIdle(RendererBase::computeQueue);
+        //auto res = RendererBase::device->QueueWaitIdle(RendererBase::directQueue);
+        //if (res) {
+        //    uint32_t gfxPoint = dbgBufferGFX->GetValue();
+        //    uint32_t cmpPoint = dbgBufferCMP->GetValue();
+        //    __debugbreak();
+        //}
+        //RendererBase::device->QueueWaitIdle(RendererBase::computeQueue);
         //fence->Wait(maxFence);
 
     }
@@ -279,11 +279,12 @@ namespace Pistachio
     {
         switch (usage)
         {
-        case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
+        case AttachmentUsage::Unspec: [[fallthrough]];
+        case AttachmentUsage::Graphics: return RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
             break;
-        case Pistachio::AttachmentUsage::Copy: return RHI::ResourceLayout::TRANSFER_SRC_OPTIMAL;
+        case AttachmentUsage::Copy: return RHI::ResourceLayout::TRANSFER_SRC_OPTIMAL;
             break;
-        case Pistachio::AttachmentUsage::Compute: return RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
+        case AttachmentUsage::Compute: return RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
         default: return RHI::ResourceLayout::UNDEFINED;
             break;
         }
@@ -292,6 +293,7 @@ namespace Pistachio
     {
         switch (usage)
         {
+        case AttachmentUsage::Unspec: [[fallthrough]];
         case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL;
             break;
         case Pistachio::AttachmentUsage::Copy: return RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
@@ -306,6 +308,7 @@ namespace Pistachio
     {
         switch (usage)
         {
+        case AttachmentUsage::Unspec: [[fallthrough]];
         case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceAcessFlags::SHADER_READ;
             break;
         case Pistachio::AttachmentUsage::Copy: return RHI::ResourceAcessFlags::NONE;
@@ -320,6 +323,7 @@ namespace Pistachio
     {
         switch (usage)
         {
+        case AttachmentUsage::Unspec: [[fallthrough]];
         case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceAcessFlags::SHADER_READ;
             break;
         case Pistachio::AttachmentUsage::Copy: return RHI::ResourceAcessFlags::TRANSFER_READ;
@@ -334,6 +338,7 @@ namespace Pistachio
     {
         switch (usage)
         {
+        case AttachmentUsage::Unspec: [[fallthrough]];
         case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceAcessFlags::COLOR_ATTACHMENT_WRITE;
             break;
         case Pistachio::AttachmentUsage::Copy: return RHI::ResourceAcessFlags::TRANSFER_WRITE;
@@ -347,6 +352,7 @@ namespace Pistachio
     {
         switch (usage)
         {
+        case AttachmentUsage::Unspec: [[fallthrough]];
         case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceAcessFlags::NONE;
             break;
         case Pistachio::AttachmentUsage::Copy: return RHI::ResourceAcessFlags::NONE;
@@ -369,7 +375,7 @@ namespace Pistachio
         while (gfxIndex < levelTransitionIndices.size() && cmpIndex < computeLevelTransitionIndices.size())
         {
             uint32_t gfx = gfxIndex == 0 ? 0 : levelTransitionIndices[gfxIndex - 1].first;
-            uint32_t cmp = cmpIndex == 0 ? 0 : levelTransitionIndices[cmpIndex - 1].first;
+            uint32_t cmp = cmpIndex == 0 ? 0 : computeLevelTransitionIndices[cmpIndex - 1].first;
             RHI::GraphicsCommandList* cmpList =cmpIndex ? computeCmdLists[cmpIndex - 1].list : computeCmdLists[0].list;
             RHI::GraphicsCommandList* gfxList = gfxIndex ? cmdLists[gfxIndex - 1].list : cmdLists[0].list;
             if (passesSortedAndFence[gfx].second < computePassesSortedAndFence[cmp].second)
@@ -431,7 +437,7 @@ namespace Pistachio
                     barr.nextQueue = RHI::QueueFamily::Graphics;
                     barr.texture = tex.texture;
                     barr.subresourceRange = range;
-                    barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
+                    barr.oldLayout = tex.current_layout;
                     barr.newLayout = barriers[barrierCount].newLayout;
                 }
                 if (
@@ -441,7 +447,7 @@ namespace Pistachio
                 {
                     //transition
                     barriers[barrierCount].AccessFlagsBefore = InputSrcAccess(input.usage);
-                    barriers[barrierCount].oldLayout = RHI::ResourceLayout::UNDEFINED;
+                    barriers[barrierCount].oldLayout = tex.current_layout;
                     barriers[barrierCount].texture = tex.texture;
                     barriers[barrierCount].subresourceRange = range;
                     barriers[barrierCount].previousQueue = tex.currentFamily == RHI::QueueFamily::Graphics ? RHI::QueueFamily::Ignored : tex.currentFamily;
@@ -490,7 +496,7 @@ namespace Pistachio
                     barr.nextQueue = RHI::QueueFamily::Graphics;
                     barr.texture = tex.texture;
                     barr.subresourceRange = range;
-                    barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
+                    barr.oldLayout = tex.current_layout;
                     barr.newLayout = barriers[barrierCount].newLayout;
                 }
 
@@ -502,7 +508,7 @@ namespace Pistachio
                     //temporary
                     
                     //transition
-                    barriers[barrierCount].oldLayout = RHI::ResourceLayout::UNDEFINED;// tex.current_layout;
+                    barriers[barrierCount].oldLayout = tex.current_layout;
                     barriers[barrierCount].texture = tex.texture;
                     barriers[barrierCount].subresourceRange = range;
                     barriers[barrierCount].previousQueue = tex.currentFamily == RHI::QueueFamily::Graphics ? RHI::QueueFamily::Ignored : tex.currentFamily;
@@ -515,21 +521,24 @@ namespace Pistachio
             if (pass->dsOutput.texture != RGTextureInstance::Invalid)
             {
                 RGTexture& tex = textures[pass->dsOutput.texture.texOffset];
-                attachments[attachmentCount].clearColor = { 1,1,1,1 };
-                attachments[attachmentCount].loadOp = RHI::LoadOp::Clear;//todo
-                attachments[attachmentCount].storeOp = RHI::StoreOp::Store;
-                if (tex.dsvHandle.heapIndex == UINT32_MAX)
+                if (pass->dsOutput.usage == AttachmentUsage::Graphics)
                 {
-                    RHI::DepthStencilViewDesc dsvDesc;
-                    dsvDesc.arraySlice = tex.arraySlice;
-                    dsvDesc.format = pass->dsOutput.format;
-                    dsvDesc.TextureArray = tex.IsArray;
-                    dsvDesc.textureMipSlice = tex.mipSlice;
-                    tex.dsvHandle = RendererBase::CreateDepthStencilView(tex.texture, &dsvDesc);
+                    attachments[attachmentCount].clearColor = { 1,1,1,1 };
+                    attachments[attachmentCount].loadOp = pass->dsOutput.loadOp;
+                    attachments[attachmentCount].storeOp = RHI::StoreOp::Store;
+                    if (tex.dsvHandle.heapIndex == UINT32_MAX)
+                    {
+                        RHI::DepthStencilViewDesc dsvDesc;
+                        dsvDesc.arraySlice = tex.arraySlice;
+                        dsvDesc.format = pass->dsOutput.format;
+                        dsvDesc.TextureArray = tex.IsArray;
+                        dsvDesc.textureMipSlice = tex.mipSlice;
+                        tex.dsvHandle = RendererBase::CreateDepthStencilView(tex.texture, &dsvDesc);
+                    }
+                    attachments[attachmentCount].ImageView = RendererBase::GetCPUHandle(tex.dsvHandle);
+                    rbDesc.pDepthStencilAttachment = &attachments[attachmentCount];
+                    attachmentCount++;
                 }
-                attachments[attachmentCount].ImageView = RendererBase::GetCPUHandle(tex.dsvHandle);
-                rbDesc.pDepthStencilAttachment = &attachments[attachmentCount];
-                attachmentCount++;
                 RHI::SubResourceRange range;
                 range.FirstArraySlice = 0;
                 range.imageAspect = RHI::Aspect::DEPTH_BIT;
@@ -544,7 +553,7 @@ namespace Pistachio
                     barr.nextQueue = RHI::QueueFamily::Graphics;
                     barr.texture = tex.texture;
                     barr.subresourceRange = range;
-                    barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
+                    barr.oldLayout = tex.current_layout;
                     barr.newLayout = RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 }
                 if (
