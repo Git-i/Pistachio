@@ -70,5 +70,7 @@
     <None Include="resources\shaders\compute\CFCullLights_cs.hlsl" />
     <None Include="resources\shaders\compute\CFBuildClusters_cs.hlsl" />
     <None Include="resources\shaders\compute\CFActiveClusters_cs.hlsl" />
+    <None Include="resources\shaders\compute\BRDF_LUT_cs.hlsl" />
+    <None Include="resources\shaders\vertex\SpotShadow_vs.hlsl" />
   </ItemGroup>
 </Project>

@@ -28,21 +28,21 @@ namespace Pistachio{
 		{}
 
 	};
+
 	struct PISTACHIO_API TransformComponent {
 	private:
 	public:
-		bool bDirty = true;
-		PROPERTY(Vector3, TransformComponent, Translation, { return *this; }, { old_value = value; parent->bDirty = true; }) = Vector3(0,0,0);
-		PROPERTY(Quaternion, TransformComponent, Rotation, { return *this; }, { old_value = value; parent->bDirty = true; }) = Quaternion(0,0,0,0);
-		PROPERTY(Vector3, TransformComponent, Scale, { return *this; }, { old_value = value; parent->bDirty = true; }) = Vector3(1,1,1);
+		VEC3(TransformComponent, Translation, ) = { 0,0,0 };
+		QUAT(TransformComponent, Rotation, ) = { 0,0,0,0 };
+		VEC3(TransformComponent, Scale, ) = { 1,1,1 };
 		//Editor Only
-		PROPERTY(Vector3, TransformComponent, RotationEulerHint, { return *this; }, { old_value = value; parent->RecalculateRotation();}) = Vector3(0,0,0);
+		VEC3(TransformComponent, RotationEulerHint, parent->RecalculateRotation()) = { 0,0,0 };
+		bool bDirty = true;
 		mutable int NumNegativeScaleComps = 0;
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
-		TransformComponent(const Vector3& translation) { Translation = translation; }
 		//Editor Only
-		DirectX::XMMATRIX worldSpaceTransform;
+		DirectX::XMMATRIX worldSpaceTransform = DirectX::XMMatrixIdentity();
 		void RecalculateRotation()
 		{
 			Rotation = Quaternion::CreateFromYawPitchRoll(RotationEulerHint);
@@ -118,6 +118,7 @@ namespace Pistachio{
 		DirectX::XMFLOAT3 color = {1,1,1};
 		bool shadow = false;
 		bool shadow_dirty = true; // todo: mix it in with the other bool on top
+		//for spot lights this holds the outercone and innercone angles(x,y) and the distance for both point and spot light (z)
 		DirectX::XMFLOAT3 exData = { 0.01f,0.1f,1.0f };
 		DirectX::XMFLOAT3 rotation = {};
 		uint32_t shadowMap;

@@ -1352,6 +1352,9 @@
     <ClInclude Include="src\Pistachio\Core\FileSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="vendor\tcb_span\include\tcb_span.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vendor\assimp\include\assimp\color4.inl">
@@ -1382,5 +1385,6 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="ClassDiagram.cd" />
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

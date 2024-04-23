@@ -687,7 +687,7 @@ namespace Pistachio {
 		updateDesc.bufferInfos = &info;
 		RendererBase::Getd3dDevice()->UpdateDescriptorSets(1, &updateDesc, set);
 	}
-	void SetInfo::UpdateTextureBinding(RHI::TextureView* desc, uint32_t slot)
+	void SetInfo::UpdateTextureBinding(RHI::TextureView* desc, uint32_t slot, RHI::DescriptorType type)
 	{
 		RHI::DescriptorTextureInfo info;
 		info.texture = desc;
@@ -695,7 +695,7 @@ namespace Pistachio {
 		updateDesc.arrayIndex = 0;
 		updateDesc.binding = slot;
 		updateDesc.numDescriptors = 1;
-		updateDesc.type = RHI::DescriptorType::SampledTexture;
+		updateDesc.type = type;
 		updateDesc.textureInfos = &info;
 		RendererBase::Getd3dDevice()->UpdateDescriptorSets(1, &updateDesc, set);
 	}

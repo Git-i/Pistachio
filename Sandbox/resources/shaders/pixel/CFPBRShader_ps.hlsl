@@ -8,16 +8,20 @@ cbuffer FrameCB : register(b0, space1)
     float4x4 InvProj;
     float4x4 ViewProj;
     float4x4 InvViewProj;
-    float4 EyePosW;
     float2 screenSize;
     float2 InvScreenSize;
-    float NearZ;
-    float FarZ;
+    float zNear;
+    float zFar;
     float TotalTime;
     float DeltaTime;
+    float3 EyePosW;
     float scale;
-    float bias;
     float3 numClusters;
+    float bias;
+    uint numRegularLights;
+    uint numShadowLights;
+    uint numRegularDirLights;
+    uint numShadowDirLights;
 };
 //set 0 is vertex shader specific
 //set 2 is for renderer specific stuff
@@ -26,8 +30,9 @@ struct LightGridEntry
     uint offset;
     uint shadow_offset;
     uint size;
+    uint _pad0;
 };
-Texture2D BRDFLUT                : register(t0, space2);
+Texture2D<float2> BRDFLUT                : register(t0, space2);
 TextureCube irradianceMap        : register(t1, space2);
 TextureCube prefilterMap         : register(t2, space2);
 Texture2D shadowMap              : register(t3, space2);
@@ -136,8 +141,21 @@ float4 main(PSINTPUT input) : SV_TARGET
     float roughness = roughnessFac * roughnessTex.Sample(textureSampler, input.uv).r;
     
     float2 tileSize = float2(screenSize) / float2(numClusters.xy);
-    uint zslice = getSlice(input.depthViewSpace, scale, bias);
-    float3 cluster = float3(input.pos.xy / tileSize, zslice);
+    //uint zslice = getSlice(input.depthViewSpace, scale, bias);
+    float4 temp = mul(float4(input.WorldPos, 1.0), View);
+    uint zslice = getSlice(temp.z,scale,bias);
+    
+    uint3 cluster = uint3(uint2(input.pos.xy / tileSize), zslice);
+    float4 colors[6] =
+    {
+        float4(1, 0, 0, 0),
+        float4(1, 1, 0, 0),
+        float4(0, 0, 1, 0),
+        float4(0, 1, 1, 0),
+        float4(1, 0, 1, 0),
+        float4(0, 1, 0, 0)
+
+    };
     uint clusterIndex = cluster.x + (cluster.y * numClusters.x) + (cluster.z * numClusters.x * numClusters.y);
     
     LightGridEntry entry = lightGrid[clusterIndex];
@@ -149,6 +167,7 @@ float4 main(PSINTPUT input) : SV_TARGET
     float3 F0 = 0.04.xxx;
     F0 = lerp(F0, diffuse.xyz, metallic);
     float3 Lo = float3(0.0, 0.0, 0.0);
+    float4 final = float4(0, 0, 0, 1);
     for (int i = entry.offset; i < entry.shadow_offset; i++)
     {
         Light light = RegularLight(lightIndices[i]);
@@ -183,7 +202,48 @@ float4 main(PSINTPUT input) : SV_TARGET
 
         Lo += (kD * diffuse.xyz / PI + specular) * radiance * NdotL;
     }
-    float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    for (int shd_i = entry.shadow_offset; shd_i < entry.size + entry.offset;shd_i++)
+    {
+        ShadowCastingLight light = ShadowLight(lightIndices[shd_i]);
+        // -------------Calculate shadow and continue if object is occluded---------- //
+        float4 lightSpacePos = mul(float4(WorldPos, 1.0), light.projection[0]);
+        lightSpacePos = lightSpacePos / lightSpacePos.w;
+        float shadow = 1.f;
+        if (light.light.type == 2)
+            shadow = SpotShadow(lightSpacePos.xyz, light.shadowMapOffset, light.shadowMapSize);
+        //return shadow.xxxx;
+        // -------------Evaluate L and Attenuation-----------------//
+        float3 Ls[3] = { normalize(light.light.rotation.xyz), normalize(light.light.position - WorldPos), float3(0, 0, 0) };
+        Ls[2] = Ls[1];
+        float3 L = Ls[light.light.type];
+        
+        float distance = length(light.light.position - WorldPos);
+        float window = Window(distance, light.light.exData.z);
+        float t = saturate((dot(light.light.rotation.xyz, -L) - light.light.exData.x) / (light.light.exData.y - light.light.exData.x));
+        float attenuations[3] = { 1, window / (distance * distance), window * t * t / (distance * distance) };
+        float attenuation = attenuations[light.light.type];
+        //-----------------------------------------------------------//
+        float NdotL = dot(N, L);
+        NdotL = max(NdotL, 0.0);
+        float3 H = normalize(V + L);
+        float3 radiance = (light.light.colorxintensity.xyz) * attenuation * light.light.colorxintensity.w;
+
+        // cook-torrance brdf
+        float NDF = DistributionGGX(N, H, roughness);
+        float G = GeometrySmith(N, V, L, roughness);
+        float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        float3 kS = F;
+        float3 kD = float3(1.0, 1.0, 1.0) - kS;
+        kD *= 1.0 - metallic;
+
+        float3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+        float3 specular = numerator / max(denominator, 0.001);
+
+        Lo += (kD * diffuse.xyz / PI + specular) * radiance * NdotL * shadow;
+    }
+        float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
     float3 kS = F;
     float3 kD = 1.0 - kS;
@@ -194,7 +254,7 @@ float4 main(PSINTPUT input) : SV_TARGET
     float3 indirectDiffuse = irradiance * diffuse.xyz;
     const float MAX_REFLECTION_LOD = 4;
     float3 prefilteredColor = prefilterMap.SampleLevel(textureSampler, -R, roughness * MAX_REFLECTION_LOD).rgb;
-    float2 envBRDF = BRDFLUT.Sample(textureSampler, float2(max(dot(N, V), 0.0), roughness)).rg;
+    float2 envBRDF = BRDFLUT.Sample(textureSampler, float2(max(dot(N, V), 0.0), roughness));
     
     float3 indirectSpecular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
     // ------------------------------------------------//
@@ -209,6 +269,7 @@ float4 main(PSINTPUT input) : SV_TARGET
     // Gamma Inverse Correct
     float invGamma = 1.0f / 2.2f;
     color = pow(color, float3(invGamma, invGamma, invGamma));
+    //return colors[zslice % 6];
     return float4(color, diffuse.a);
 
 }
@@ -287,8 +348,8 @@ float SpotShadow(float3 projCoords, uint2 Offset, uint2 Size)
     {
         return 0.0;
     }
-    projCoords.xy *= Size / 4096.f.xx;
-    projCoords.xy += Offset / 4096.f.xx;
+    projCoords.xy *= Size / 1024.f.xx;
+    projCoords.xy += Offset / 1024.f.xx;
     float closestDepth1 = shadowMap.SampleCmpLevelZero(ShadowSampler, projCoords.xy, currentDepth).r;
     return closestDepth1;
 }

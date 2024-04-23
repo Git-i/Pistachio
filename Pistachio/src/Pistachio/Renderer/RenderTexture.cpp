@@ -26,7 +26,7 @@ namespace Pistachio
         desc.format = format;
         desc.sampleCount = 1;
         desc.type = RHI::TextureType::Texture2D;
-        desc.usage = RHI::TextureUsage::ColorAttachment | RHI::TextureUsage::SampledImage;
+        desc.usage = RHI::TextureUsage::ColorAttachment | RHI::TextureUsage::SampledImage | RHI::TextureUsage::CopySrc;
         RHI::AutomaticAllocationInfo allocInfo;
         allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
         RendererBase::device->CreateTexture(&desc, &m_ID, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic);

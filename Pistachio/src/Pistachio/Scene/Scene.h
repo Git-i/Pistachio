@@ -60,17 +60,24 @@ namespace Pistachio {
 		template<typename _ComponentTy> auto GetAllComponents() { return m_Registry.view<_ComponentTy>(); }
 		Entity GetRootEntity();
 		Entity GetPrimaryCameraEntity();
+		void UpdatePassConstants(const Matrix4& view, const SceneCamera& cam, const Vector3& camPos, float delta);
+		void UpdatePassConstants(const EditorCamera& cam, float delta);
 		//const RenderTexture& GetGBuffer() { return m_gBuffer; };
 		//const RenderTexture& GetRenderedScene() { return m_finalRender; };
 		template<typename T> void OnComponentAdded(Entity entity, T& component);
 	private:
 		void UpdateObjectCBs();
 		void SortMeshComponents();
+		void UpdateLightsBuffer();
+		void FrustumCull(const Matrix4& view, const Matrix4& proj, float fovRad, float nearClip,float farClip,float aspect);
 		DirectX::XMMATRIX GetTransfrom(Entity e);
-		template <typename T> void RenderSpotLightShadows(T&, ShadowCastingLight&);
-		template <typename T> void RenderPointLightShadows(T&, ShadowCastingLight&);
-		template <typename T> void RenderDirectionalLightShadows(T&, ShadowCastingLight&);
 	private:
+		std::vector<entt::entity> meshesToDraw;
+		std::vector<ShadowCastingLight> shadowLights;
+		std::vector<RegularLight> regularLights;
+		std::vector<bool> isShadowDirty;
+		uint32_t numShadowDirLights = 0;
+		uint32_t numRegularDirLights = 0;
 		AtlasAllocator sm_allocator;
 		Pistachio::Mesh* ScreenSpaceQuad;//?
 		entt::registry m_Registry;
@@ -78,13 +85,13 @@ namespace Pistachio {
 		friend class Entity;
 		friend class SceneHierarchyPanel;
 		friend class SceneSerializer;
-		unsigned int m_viewportWidth, m_ViewportHeight;
 		RenderGraph graph;
 		uint32_t lightListSize;
 		uint32_t clustersDim[3];
 		uint32_t sceneResolution[2];
-		//consider fusing these two
 		PassConstants passConstants;
+		StructuredBuffer shadowMarker;//replace with a push constant
+		//consider fusing these two
 		StructuredBuffer clusterAABB;
 		StructuredBuffer activeClustersBuffer;
 		StructuredBuffer sparseActiveClustersBuffer_lightIndices;
@@ -98,6 +105,7 @@ namespace Pistachio {
 		SetInfo tightenListInfo;
 		SetInfo cullLightsInfo;
 		SetInfo sceneInfo;
+		SetInfo shadowSetInfo;
 		PassConstants passCBInfo;
 		DepthTexture zPrepass;
 		RenderTexture finalRender;

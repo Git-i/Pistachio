@@ -4,13 +4,7 @@ namespace Pistachio {
 	enum class TextureFormat {
 		RGBA16F = 0, RGBA32F = 2, RGBA8U = 4, INT = 6, R32F = 8, R11G11B10 = 10,D24S8 = 1, D32F = 3
 	};
-	enum class TextureFlags
-	{
-		NONE = 0,
-		ALLOW_CPU_ACCESS_READ = 1,
-		NO_SHADER_USAGE = 2,
-		USAGE_STAGING = 4
-	};
+	
 	namespace RendererUtils {
 		static DXGI_FORMAT DXGITextureFormat(Pistachio::TextureFormat format) 
 		{

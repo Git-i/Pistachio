@@ -65,6 +65,6 @@ namespace Pistachio
     {
     public:
         static float ToRadians(float AngleInDegrees) { return AngleInDegrees * (DirectX::XM_PI / 180.f); }
-        static float ToDegrees(float AngleInRadians) { return AngleInRadians * (180.f * DirectX::XM_PI); }
+        static float ToDegrees(float AngleInRadians) { return AngleInRadians * (180.f / DirectX::XM_PI); }
     };
 }

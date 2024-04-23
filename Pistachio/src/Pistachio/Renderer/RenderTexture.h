@@ -26,8 +26,10 @@ namespace Pistachio {
 		void SwitchToShaderUsageMode( RHI::GraphicsCommandList* list);
 		RHI::TextureView* GetView() { return m_view; }
 		RHI::Format GetFormat() const override;
+		RHI::Texture* GetID() { return m_ID.Get(); }
 		uint32_t GetWidth() const override;
 		uint32_t GetHeight() const override ;
+
 	private:
 		friend class RenderGraph;
 		RTVHandle RTView;
@@ -46,6 +48,7 @@ namespace Pistachio {
 		uint32_t GetHeight() const override;
 	private:
 		friend class RenderGraph;
+		friend class Scene;
 		DSVHandle DSView;
 		RHI::TextureView* m_view;
 		RHI::Format m_format;

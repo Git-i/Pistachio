@@ -30,7 +30,7 @@ namespace Pistachio
 	*	-Their material propertied in set 2
 	*	-All non texture parameters in a constant buffer, bound to slot 0
 	*/
-	class ShaderAsset : public RefCountedObject
+	class PISTACHIO_API ShaderAsset : public RefCountedObject
 	{
 	public:
 		~ShaderAsset();

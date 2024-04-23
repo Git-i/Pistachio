@@ -5,7 +5,7 @@
 #include "DirectX11/DX11Texture.h"
 DirectX::XMMATRIX Pistachio::Renderer::viewproj = DirectX::XMMatrixIdentity();
 DirectX::XMVECTOR Pistachio::Renderer::m_campos = DirectX::XMVectorZero();
-Pistachio::RenderTexture Pistachio::Renderer::BrdfTex;
+Pistachio::Texture2D Pistachio::Renderer::BrdfTex;
 Pistachio::RenderCubeMap Pistachio::Renderer::skybox = Pistachio::RenderCubeMap();
 Pistachio::RenderCubeMap Pistachio::Renderer::irradianceSkybox = Pistachio::RenderCubeMap();
 Pistachio::RenderCubeMap Pistachio::Renderer::prefilterSkybox = { Pistachio::RenderCubeMap() };
@@ -24,13 +24,13 @@ Pistachio::SetInfo Pistachio::Renderer::eqShaderPS;
 Pistachio::SetInfo Pistachio::Renderer::irradianceShaderPS;
 Pistachio::SetInfo Pistachio::Renderer::prefilterShaderVS[5];
 Pistachio::DepthTexture Pistachio::Renderer::shadowMapAtlas;
-static Pistachio::SamplerState* brdfSampler ;
-static Pistachio::SamplerState* shadowSampler;
 Pistachio::Shader* Pistachio::Renderer::eqShader;
 Pistachio::Shader* Pistachio::Renderer::irradianceShader;
 Pistachio::Shader* Pistachio::Renderer::brdfShader;
 Pistachio::Shader* Pistachio::Renderer::prefilterShader;
 Pistachio::SamplerHandle Pistachio::Renderer::defaultSampler;
+Pistachio::SamplerHandle Pistachio::Renderer::brdfSampler;
+Pistachio::SamplerHandle Pistachio::Renderer::shadowSampler;
 RHI::Buffer*             Pistachio::Renderer::meshVertices; // all meshes in the scene?
 RHI::Buffer*             Pistachio::Renderer::meshIndices;
 uint32_t                 Pistachio::Renderer::vbFreeFastSpace;//free space for an immerdiate allocation
@@ -124,24 +124,7 @@ namespace Pistachio {
 			}
 		}
 		
-		{
-			//Old code
-			brdfSampler = SamplerState::Create(SamplerStateDesc::Default);
-			SamplerStateDesc sDesc = SamplerStateDesc::Default;
-			sDesc.AddressU = sDesc.AddressV = sDesc.AddressW = TextureAddress::Border;
-			sDesc.ComparisonEnable = true;
-			sDesc.func = ComparisonFunc::LessOrEqual;
-			shadowSampler = SamplerState::Create(sDesc);
-			brdfSampler->Bind(1);
-			shadowSampler->Bind(2);
-
-			RendererBase::SetCullMode(CullMode::Front);
-			sDesc.AddressU = sDesc.AddressV = sDesc.AddressW = TextureAddress::Wrap;
-			sDesc.ComparisonEnable = false;
-			SamplerState* ss = SamplerState::Create(sDesc);
-			ss->Bind();
-		}
-
+		
 		{
 			RHI::SamplerDesc sampler;
 			sampler.AddressU = RHI::AddressMode::Clamp;
@@ -152,14 +135,17 @@ namespace Pistachio {
 			sampler.magFilter = RHI::Filter::Linear;
 			sampler.minFilter = RHI::Filter::Linear;
 			sampler.mipFilter = RHI::Filter::Linear;
-			sampler.maxLOD = 0;
+			sampler.maxLOD = std::numeric_limits<float>::max();
 			sampler.minLOD = 0;
 			sampler.mipLODBias = 0;
-
 			defaultSampler = RendererBase::CreateSampler(&sampler);
+			brdfSampler = RendererBase::CreateSampler(&sampler);
+			sampler.compareEnable = true;
+			sampler.compareFunc = RHI::ComparisonFunc::LessEqual;
+			shadowSampler = RendererBase::CreateSampler(&sampler);
 		}
 
-		computeShaderMiscBuffer.CreateStack(nullptr, sizeof(uint32_t));
+		computeShaderMiscBuffer.CreateStack(nullptr, sizeof(uint32_t) * 2, SBCreateFlags::None);
 
 		RHI::BlendMode blendMode{};
 		blendMode.BlendAlphaToCoverage = false;
@@ -295,7 +281,53 @@ namespace Pistachio {
 		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
 		shaders["Z-Prepass"] = Shader::CreateWithRs(&ShaderDesc, rs, layouts, 2);
-		shaders["Shadow Shader"] = shaders["Z-Prepass"];
+		rs->Release();
+		for (int i = 0; i < 2; i++)
+		{
+			if (layouts[i]) layouts[i]->Release();
+		}
+		RHI::DescriptorRange shadowRanges[2];
+		Pistachio::Helpers::FillDescriptorRange(shadowRanges + 0, 1, 0, RHI::ShaderStage::Vertex, RHI::DescriptorType::StructuredBuffer);
+		Pistachio::Helpers::FillDescriptorRange(shadowRanges + 1, 1, 1, RHI::ShaderStage::Vertex, RHI::DescriptorType::StructuredBuffer);
+		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 1, 2, 1, shadowRanges);
+		
+		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
+		//shadow shaders
+		ShaderDesc.VS = RHI::ShaderCode{ (char*)"resources/shaders/vertex/Compiled/SpotShadow_vs",0 };
+		ShaderDesc.RasterizerModes->cullMode = RHI::CullMode::Front;
+		shaders["Spot Shadow Shader"] = Shader::CreateWithRs(&ShaderDesc, rs, layouts, 2);
+		rs->Release();
+		for (int i = 0; i < 2; i++)
+		{
+			if (layouts[i]) layouts[i]->Release();
+		}
+
+		BrdfTex.CreateStack(512, 512, RHI::Format::R16G16_FLOAT, nullptr, TextureFlags::Compute);
+		ComputeShader* brdfShader = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/BRDF_LUT_cs",0 },RHI::ShaderMode::File);
+		SetInfo brdfTexInfo;
+		brdfShader->GetShaderBinding(brdfTexInfo, 0);
+		brdfTexInfo.UpdateTextureBinding(BrdfTex.GetView(), 0, RHI::DescriptorType::CSTexture);
+		RHI::TextureMemoryBarrier barr;
+		barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
+		barr.newLayout = RHI::ResourceLayout::GENERAL;
+		barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
+		barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
+		barr.texture = BrdfTex.m_ID.Get();
+		RHI::SubResourceRange range;
+		range.FirstArraySlice = 0;
+		range.NumArraySlices = 1;
+		range.IndexOrFirstMipLevel = 0;
+		range.NumMipLevels = 1;
+		range.imageAspect = RHI::Aspect::COLOR_BIT;
+		barr.subresourceRange = range;
+		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::COMPUTE_SHADER_BIT, 0, 0, 1, &barr);
+		brdfShader->Bind(RendererBase::mainCommandList);
+		brdfShader->ApplyShaderBinding(RendererBase::mainCommandList, brdfTexInfo);
+		RendererBase::mainCommandList->Dispatch(512,512,1);
+		barr.oldLayout = RHI::ResourceLayout::GENERAL;
+		barr.newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
+		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 0, 0, 1, &barr);
+
 		
 		ChangeSkybox(skyboxFile);
 	}
@@ -551,12 +583,10 @@ namespace Pistachio {
 	void Renderer::EndScene()
 	{
 		PT_PROFILE_FUNCTION()
-		auto data = ((WindowData*)GetWindowDataPtr());
+		
 		RendererBase::EndFrame();
 	}
 	void Renderer::Shutdown() {
-		delete brdfSampler;
-		delete shadowSampler;
 		RendererBase::Shutdown();
 	}
 	const RendererVBHandle Renderer::AllocateVertexBuffer(uint32_t size,const void* initialData)

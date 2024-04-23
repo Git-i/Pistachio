@@ -56,7 +56,7 @@ namespace Pistachio {
 		Light light;
 		DirectX::XMFLOAT4X4 projection[4]; // used for frustum culling
 		Region shadowMap;
-		
+		ShadowCastingLight() = default;
 		ShadowCastingLight(DirectX::XMMATRIX* _projection, Region _region, Light _light, int numMatrices)
 		{
 			for (int i = 0; i < numMatrices; i++)
@@ -98,6 +98,8 @@ namespace Pistachio {
 		static SamplerHandle GetDefaultSampler();
 		static const RHI::DynamicDescriptor* GetCBDesc();
 		static const RHI::DynamicDescriptor* GetCBDescPS();
+		static uint32_t GetCounterValue();
+		static void ResetCounter();
 		static RHI::Buffer* GetVertexBuffer();
 		static RHI::Buffer* GetIndexBuffer();
 		static RHI::Buffer* GetConstantBuffer();
@@ -184,7 +186,7 @@ namespace Pistachio {
 		static RenderCubeMap skybox;
 		static RenderCubeMap irradianceSkybox;
 		static RenderCubeMap prefilterSkybox;
-		static RenderTexture BrdfTex;
+		static Texture2D BrdfTex;
 		static Shader* eqShader;//equirectangular to cube map
 		static Shader* irradianceShader;
 		static Shader* prefilterShader;
@@ -194,6 +196,8 @@ namespace Pistachio {
 		static SetInfo prefilterShaderVS[5];
 
 		static SamplerHandle defaultSampler;
+		static SamplerHandle brdfSampler;
+		static SamplerHandle shadowSampler;
 
 		static StructuredBuffer computeShaderMiscBuffer; //contains the compute shader counter and other data
 		static std::unordered_map<std::string, ComputeShader*> computeShaders;

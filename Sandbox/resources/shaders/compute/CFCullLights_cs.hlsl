@@ -65,23 +65,14 @@ Light RegularLight(int startIndex)
     light.rotation = lightList[startIndex + 3];
     return light;
 }
-//every shadow casting light starts with a light, and we dont the extra data to cull
-struct grpLightData
-{
-    bool hasSpace;
-    uint offset;
-    uint numVisiblelights;
-    uint numRegularLights;
-    uint visiibleLights[127];
-};
-groupshared grpLightData grpData;
+
 
 #define ThreadX 2
 #define ThreadY 2
 #define ThreadZ 2
 bool testSphereAABB(Light light, uint tile)
 {
-    float radius = light.colorxintensity.w;
+    float radius = light.exData.z;
     float3 center = mul(inputBuffer.View, float4(light.position, 1)).xyz;
     float sqDist = 0.0;
     ClusterAABB currentCell = clustersBuffer[tile];
@@ -101,25 +92,29 @@ bool testSphereAABB(Light light, uint tile)
     return sqDist <= (radius * radius);
 }
 static uint lightListOffset = 0;
-[numthreads(ThreadX, ThreadY, ThreadZ)]
-void main( uint3 DTid : SV_DispatchThreadID, uint3 groupIdx : SV_GroupID, uint localIndex : SV_GroupIndex)
+[numthreads(1,1,1)]
+void main( uint3 DTid : SV_DispatchThreadID)
 {
     /*
        go through all clusters, each thread group takes one cluster
        
     */
-    uint groupIndexFlat = groupIdx.x + (groupIdx.y * inputBuffer.dimensions.x) + (groupIdx.z * inputBuffer.dimensions.x * inputBuffer.dimensions.y);
-    uint clusterIndex = activeClusters[0/*groupIndexFlat*/];
-    uint RegularLightCount = (inputBuffer.numRegularLights - inputBuffer.numRegularDirLights);
+    uint indexFlat = DTid.x + (DTid.y * inputBuffer.dimensions.x) + (DTid.z * inputBuffer.dimensions.x * inputBuffer.dimensions.y);
+    if (indexFlat >= countBuffer[0])
+    {
+        return;
+    }
+    uint clusterIndex = activeClusters[indexFlat];
+    uint RegularLightCount = inputBuffer.numRegularLights - inputBuffer.numRegularDirLights;
     uint ShadowLightCount = inputBuffer.numShadowLights - inputBuffer.numShadowDirLights;
     
-    uint groupSize = ThreadX * ThreadY * ThreadZ;
-    uint numRegularBatches = (RegularLightCount * groupSize - 1) / groupSize;
-    grpData.numVisiblelights = 0;
-    for (uint batch = 0; batch < numRegularBatches; batch++)
+    uint numVisibleLights = 0;
+    uint numVisibleRegularLights = 0;
+    uint visibleLights[128];
+    
+    for (uint i = 0; i < RegularLightCount; i++)
     {
-        uint lightIndex = (batch * groupSize + localIndex + inputBuffer.numRegularDirLights) * RegularLightStepSize;
-        lightIndex = min(lightIndex, RegularLightCount * RegularLightStepSize);
+        uint lightIndex = (i + inputBuffer.numRegularDirLights) * RegularLightStepSize;
         Light light = RegularLight(lightIndex);
         //point light
         if(light.type == 1)
@@ -127,48 +122,44 @@ void main( uint3 DTid : SV_DispatchThreadID, uint3 groupIdx : SV_GroupID, uint l
             //is the light visible
             if (testSphereAABB(light, clusterIndex))
             {
-                uint index = 0;
-                InterlockedAdd(grpData.numVisiblelights, 1, index);
-                grpData.visiibleLights[index] = lightIndex;//record the light index raw and not as a count ??
+                visibleLights[numVisibleLights++] = lightIndex;//record the light index raw and not as a count
             }
+        }//spot light
+        else
+        {
+            visibleLights[numVisibleLights++] = lightIndex;
         }
 
     }
-    GroupMemoryBarrierWithGroupSync(); //we insert a barrier, because we want regular lights to always be first
-    grpData.numRegularLights = grpData.numVisiblelights;
-    uint numShadowBatches = (ShadowLightCount * groupSize - 1) / groupSize;
-    for (uint shd_batch = 0; shd_batch < numRegularBatches; shd_batch++)
+    numVisibleRegularLights = numVisibleLights;
+    for (uint shd_i = 0; shd_i < ShadowLightCount; shd_i++)
     {
-        uint lightIndex = (shd_batch * groupSize + localIndex + inputBuffer.numShadowDirLights) * ShadowLightStepSize;
+        uint lightIndex = (shd_i + inputBuffer.numShadowDirLights) * ShadowLightStepSize;
         lightIndex += RegularLightCount * RegularLightStepSize;
         Light light = RegularLight(lightIndex);
         if(light.type == 1)
         {
             if (testSphereAABB(light, clusterIndex))
             {
-                uint index = 0;
-                InterlockedAdd(grpData.numVisiblelights, 1, index);
-                grpData.visiibleLights[index] = lightIndex;
+                visibleLights[numVisibleLights++] = lightIndex;
             }
 
         }
-        
-    }
-    grpData.hasSpace = false;
-    GroupMemoryBarrierWithGroupSync();
-    //we basically allocate space and report our lights
-    if(!grpData.hasSpace)
-    {
-        grpData.hasSpace = true;
-        InterlockedAdd(countBuffer[0], grpData.numVisiblelights, grpData.offset);
-        for (uint i = 0; i < grpData.numVisiblelights; i++)
+        else
         {
-            lightIndexList[i + grpData.offset] = grpData.visiibleLights[i];
+            visibleLights[numVisibleLights++] = lightIndex;
         }
     }
-    //GroupMemoryBarrierWithGroupSync();  wait till all data has been put into the index list |?
-    lightGrid[clusterIndex].offset = grpData.offset;
-    lightGrid[clusterIndex].shadow_offset = grpData.numRegularLights;
-    lightGrid[clusterIndex].size = grpData.numVisiblelights;
+    uint offset;
+    InterlockedAdd(countBuffer[1], numVisibleLights, offset);
+    for (uint write_i = 0; write_i < numVisibleLights; write_i++)
+    {
+        lightIndexList[write_i + offset] = visibleLights[write_i];
+    }
+    printf("%u %u %u %u", clusterIndex, offset, numVisibleRegularLights + offset, numVisibleLights);
+    lightGrid[clusterIndex].offset = offset;
+    lightGrid[clusterIndex].shadow_offset = numVisibleRegularLights + offset;
+    lightGrid[clusterIndex].size = numVisibleLights;
+    
     
 }

@@ -59,8 +59,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
 {
     uint index = DTid.x + (DTid.y * inputBuffer.csDimensions.x) + (DTid.z * inputBuffer.csDimensions.x * inputBuffer.csDimensions.y);
     float2 tileSize = float2(inputBuffer.screenSize) / float2(inputBuffer.csDimensions.xy);
-    float4 clusterMin_SS = float4(tileSize * DTid.xy,0,0);
-    float4 clusterMax_SS = float4(tileSize * (DTid.xy + 1.xx), 0, 0);
+    float4 clusterMin_SS = float4(tileSize * DTid.xy,1,1);
+    float4 clusterMax_SS = float4(tileSize * (DTid.xy + 1.xx), 1, 1);
     float tileNear = inputBuffer.zNear * pow(inputBuffer.zFar / inputBuffer.zNear, float(DTid.z) / float(inputBuffer.csDimensions.z));
     float tileFar = inputBuffer.zNear * pow(inputBuffer.zFar / inputBuffer.zNear, float(DTid.z+1) / float(inputBuffer.csDimensions.z));
     float3 clusterMax_VS = screen2view(clusterMax_SS).xyz;
@@ -72,8 +72,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     
     float3 minPointAABB = min(min(minPointNear, minPointFar), min(maxPointNear, maxPointFar));
     float3 maxPointAABB = max(max(minPointNear, minPointFar), max(maxPointNear, maxPointFar));
-    printf("Dimesnions: %v3f", inputBuffer.csDimensions);
     printf("index: %u", index);
-    clustersBuffer[0].minPoint = float4(minPointAABB, 0.0);
-    clustersBuffer[0].maxPoint = float4(maxPointAABB, 0.0);
+    clustersBuffer[index].minPoint = float4(minPointAABB, 0.0);
+    clustersBuffer[index].maxPoint = float4(maxPointAABB, 0.0);
 }
