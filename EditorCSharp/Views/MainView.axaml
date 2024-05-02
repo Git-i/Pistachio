@@ -3,8 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:EditorCSharp.ViewModels"
-			 xmlns:cc="clr-namespace:EditorCSharp.Controls"
-			 xmlns:view="clr-namespace:EditorCSharp.Views;assembly=EditorCSharp"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="EditorCSharp.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -13,11 +11,6 @@
          to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
     <vm:MainViewModel />
   </Design.DataContext>
-		<cc:SceneView Width="{Binding $parent.Width}"
-					  Height="{Binding $parent.Height}"
-					  Margin="10"
-					  Name="Scene">
 
-		</cc:SceneView>
-		
+  <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 </UserControl>

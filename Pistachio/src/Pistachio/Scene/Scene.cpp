@@ -205,7 +205,7 @@ namespace Pistachio {
 		cullLightsInfo.UpdateBufferBinding(lightGrid.GetID(), 0, numClusters * sizeof(uint32_t) * 4, RHI::DescriptorType::CSBuffer, 5);
 
 		RGTextureHandle depthTex = graph.CreateTexture(&zPrepass);
-		RGTextureHandle finalRenderTex = graph.CreateTexture(&finalRender);
+		finalRenderTex = graph.CreateTexture(&finalRender);
 		RGTextureHandle shadowMap = graph.CreateTexture(&Renderer::shadowMapAtlas);
 		RGBufferHandle clustersBuffer = graph.CreateBuffer(clusterAABB.GetID(), 0, clusterBufferSize);
 		RGBufferHandle sparseActiveClusterBuffer = graph.CreateBuffer(sparseActiveClustersBuffer_lightIndices.GetID(), 0, sizeof(uint32_t) * numClusters * 50);
@@ -1042,14 +1042,15 @@ namespace Pistachio {
 		
 		graph.Execute();
 		graph.SubmitToQueue();
+		this;
 		RHI::SubResourceRange range;
 		range.FirstArraySlice = 0;
 		range.imageAspect = RHI::Aspect::COLOR_BIT;
 		range.IndexOrFirstMipLevel = 0;
 		range.NumArraySlices = 1;
 		range.NumMipLevels = 1;
-		RHI::TextureMemoryBarrier barr[2];
-		barr[0].AccessFlagsBefore = RHI::ResourceAcessFlags::COLOR_ATTACHMENT_WRITE;
+		RHI::TextureMemoryBarrier barr[1];
+		barr[0].AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
 		barr[0].AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
 		barr[0].newLayout = RHI::ResourceLayout::GENERAL;
 		barr[0].nextQueue = barr[0].previousQueue = RHI::QueueFamily::Ignored;
@@ -1057,23 +1058,16 @@ namespace Pistachio {
 		barr[0].texture = finalRender.GetID();
 		barr[0].subresourceRange = range;
 
-		barr[1] = barr[0];
-		barr[1].texture = RendererBase::backBufferTextures[RendererBase::currentRTVindex];
 		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::COLOR_ATTACHMENT_OUTPUT_BIT,
-			RHI::PipelineStage::TRANSFER_BIT, 0, 0, 2, barr);
-		RendererBase::mainCommandList->BlitTexture(finalRender.GetID(),
-			RendererBase::backBufferTextures[RendererBase::currentRTVindex], { 1920,1080 }, { 1280,720 });
-		barr[0].AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_READ;
-		barr[0].AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
-		barr[0].newLayout = RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL;
-		barr[0].oldLayout = RHI::ResourceLayout::GENERAL;
-		barr[1].AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
-		barr[1].AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
-		barr[1].newLayout = RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL;
-		barr[1].oldLayout = RHI::ResourceLayout::GENERAL;
-		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT,
-			RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 0, 0, 2, barr);
+			RHI::PipelineStage::TRANSFER_BIT, 0, 0, 1, barr);
+
+		//notify render graph of layout change
+		finalRenderTex.originVector->at(finalRenderTex.offset).current_layout = RHI::ResourceLayout::GENERAL;
 		auto transform_view = m_Registry.view<TransformComponent>();
+
+		//RHI::MemHandleT hand;
+		//auto res = RendererBase::device->ExportTexture(finalRender.GetID(), RHI::ExportOptions::D3D11TextureNT, &hand);
+		
 		for (auto entity : transform_view)
 		{
 			auto [tc] = transform_view.get(entity);

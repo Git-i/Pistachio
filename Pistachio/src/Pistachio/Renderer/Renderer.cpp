@@ -330,6 +330,7 @@ namespace Pistachio {
 
 		
 		ChangeSkybox(skyboxFile);
+		EndScene();
 	}
 	void Renderer::ChangeSkybox(const char* filename)
 	{
@@ -583,7 +584,6 @@ namespace Pistachio {
 	void Renderer::EndScene()
 	{
 		PT_PROFILE_FUNCTION()
-		
 		RendererBase::EndFrame();
 	}
 	void Renderer::Shutdown() {

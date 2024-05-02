@@ -13,7 +13,7 @@
 #include "Pistachio/Platform/Windows/WindowsInputCallbacks.h"
 
 #pragma comment(lib, "shell32.lib")
-void* WindowDataPtr = new void*;
+void* WindowDataPtr;
 
 void* GetWindowDataPtr()
 {

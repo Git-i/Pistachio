@@ -7,56 +7,6 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="EditorCSharp.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
-		x:DataType="vm:MainViewModel"
         Title="EditorCSharp">
-	<DockPanel>
-		<Menu DockPanel.Dock="Top">
-			<MenuItem Header="_File">
-				<MenuItem Header="_Open..." Icon="/Assets/avalonia-ico.ico">
-				</MenuItem>
-				<Separator/>
-				<MenuItem Header="_Exit"/>
-			</MenuItem>
-			<MenuItem Header="_Edit">
-				<MenuItem Header="Copy"/>
-				<MenuItem Header="Paste"/>
-			</MenuItem>
-		</Menu>
-		<TreeView DockPanel.Dock="Left" Width="200" ItemsSource="{Binding entityNodes}" SelectedItem="{Binding currentNode, Mode=TwoWay}"
-				  SelectionMode="Single">
-			<TreeView.Styles>
-				<Style Selector="TreeViewItem">
-					<Setter Property="ContextMenu">
-						<ContextMenu>
-							<MenuItem Header="Delete Entity" Command="{Binding DeleteEntity}"/>
-						</ContextMenu>
-					</Setter>
-				</Style>
-			</TreeView.Styles>
-			<TreeView.ContextMenu>
-					<ContextMenu>
-						<MenuItem Header="Create New Entity" Command="{Binding AddEntity}"/>
-					</ContextMenu>
-				</TreeView.ContextMenu>
-			<TreeView.ItemTemplate>
-				<TreeDataTemplate ItemsSource="{Binding children}">
-					<TextBlock Text="{Binding tag}"/>
-				</TreeDataTemplate>
-			</TreeView.ItemTemplate>
-		</TreeView>
-		<Button DockPanel.Dock="Right" VerticalAlignment="Stretch" Width="200"></Button>
-		<ScrollViewer DockPanel.Dock="Bottom" Height="100">
-		<WrapPanel HorizontalAlignment="Stretch">
-			<Label Width="100" Height ="100">File 1</Label>
-			<Label Width="100" Height ="100">File 2</Label>
-			<Label Width="100" Height ="100">File 3</Label>
-			<Label Width="100" Height ="100">File 4</Label>
-			<Label Width="100" Height ="100">File 5</Label>
-			<Label Width="100" Height ="100">File 6</Label>
-			<Label Width="100" Height ="100">File 7</Label>
-			<Label Width="100" Height ="100">File 8</Label>
-		</WrapPanel>
-		</ScrollViewer>
-		<views:MainView DataContext="{Binding}"/>
-	</DockPanel>
+        <views:MainView />
 </Window>

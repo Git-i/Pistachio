@@ -75,9 +75,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Pistachio\vendor\assimp;$(SolutionDir)Pistachio\vendor\yaml-cpp\lib;$(SolutionDir)Pistachio\vendor\physx\lib;$(SolutionDir)\x64\Debug-Vulkan;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)bin\Debug-x64\Sandbox
-copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)EditorCSharp\bin\Debug\net7.0
-copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleApp1\bin\Debug\net8.0-windows</Command>
+      <Command>copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)bin\Debug-x64\Sandbox</Command>
     </PostBuildEvent>
     <Lib>
       <AdditionalDependencies>assimp-vc143-mtd.lib;zlibstaticd.lib;yaml-cppd.lib;PhysXExtensions_static_64.lib;PhysXPvdSDK_static_64.lib;PhysXVehicle_static_64.lib;PhysXVehicle2_static_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCooking_64.lib;SnippetUtils_static_64.lib;PVDRuntime_64.lib;SnippetRender_static_64.lib;SceneQuery_static_64.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib</AdditionalDependencies>
@@ -131,6 +129,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClInclude Include="src\Pistachio\Event\SceneGraphEvent.h" />
     <ClInclude Include="src\Pistachio\Physics\Physics.h" />
     <ClInclude Include="src\Pistachio\Renderer\BufferHandles.h" />
+    <ClInclude Include="src\Pistachio\Renderer\FrameComposer.h" />
     <ClInclude Include="src\Pistachio\Renderer\RHIPtr.h" />
     <ClInclude Include="src\Pistachio\Core\Timestep.h" />
     <ClInclude Include="src\Pistachio\Core\Transform.h" />
@@ -525,6 +524,7 @@ copy $(SolutionDir)bin\Debug-x64\Pistachio\Pistachio.dll $(SolutionDir)ConsoleAp
     <ClCompile Include="src\Pistachio\Core\Transform.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Camera.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\EditorCamera.cpp" />
+    <ClCompile Include="src\Pistachio\Renderer\FrameComposer.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Material.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\MeshFactory.cpp" />
     <ClCompile Include="src\Pistachio\Renderer\Model.cpp" />

@@ -72,6 +72,7 @@ namespace Pistachio {
 		void FrustumCull(const Matrix4& view, const Matrix4& proj, float fovRad, float nearClip,float farClip,float aspect);
 		DirectX::XMMATRIX GetTransfrom(Entity e);
 	private:
+		friend class FrameComposer;
 		std::vector<entt::entity> meshesToDraw;
 		std::vector<ShadowCastingLight> shadowLights;
 		std::vector<RegularLight> regularLights;
@@ -86,6 +87,7 @@ namespace Pistachio {
 		friend class SceneHierarchyPanel;
 		friend class SceneSerializer;
 		RenderGraph graph;
+		RGTextureHandle finalRenderTex;
 		uint32_t lightListSize;
 		uint32_t clustersDim[3];
 		uint32_t sceneResolution[2];
