@@ -90,7 +90,7 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION();
 		RHI::BufferDesc bufferDesc;
 		bufferDesc.size = size;
-		bufferDesc.usage = RHI::BufferUsage::StructuredBuffer;
+		bufferDesc.usage = RHI::BufferUsage::StructuredBuffer | RHI::BufferUsage::CopyDst;
 		RHI::AutomaticAllocationInfo info;
 		info.access_mode = ((flags & SBCreateFlags::AllowCPUAccess)==SBCreateFlags::None) ? 
 			RHI::AutomaticAllocationCPUAccessMode::None :

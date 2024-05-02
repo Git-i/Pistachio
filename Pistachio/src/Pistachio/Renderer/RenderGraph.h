@@ -61,6 +61,7 @@ namespace Pistachio
 	private:
 		friend class RenderGraph;
 		friend class Renderer;
+		friend class Scene;
 		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice, uint32_t numSlices,uint32_t numMips) :
 			texture(_texture),
 			current_layout(layout),

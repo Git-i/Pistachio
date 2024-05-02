@@ -50,7 +50,8 @@ public:
 		
 		cam.OnUpdate(delta);
 		scene.OnUpdateEditor(delta, cam);
-
+		Scene* scenes[] = {&scene, &scene,&scene,&scene};
+		FrameComposer::Compose(scenes, 4);
 		
 	}
 	void OnAttach() override
@@ -89,6 +90,7 @@ public:
 		ctcc.Translation.y = -2.0;
 		ctcc.RotationEulerHint.x = Math::ToRadians(-40.f);
 		ctcc.RecalculateRotation();
+		FrameComposer::SetCompositionMode(CompositionMode::SimpleCopy);
 		
 		cmp = &tc;
 		cmp->Translation = Vector3{ 0.f,0.f,2.f };

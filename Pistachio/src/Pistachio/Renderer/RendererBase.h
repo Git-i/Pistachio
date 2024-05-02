@@ -92,6 +92,7 @@ namespace Pistachio {
 		friend class DepthTexture;
 		friend class ShaderAsset;
 		friend class ComputeShader;
+		friend class FrameComposer;
 		friend class Scene;
 		static RHI::Device* device;
 		static RHI::GraphicsCommandList* mainCommandList;
@@ -127,6 +128,7 @@ namespace Pistachio {
 		static uint32_t staginBufferPortionUsed;
 		static uint32_t stagingBufferSize;
 		static bool outstandingResourceUpdate;
+		static bool MQ;
 		static uint32_t currentFrameIndex;
 		static uint32_t currentRTVindex;
 		static FLOAT m_ClearColor[4];

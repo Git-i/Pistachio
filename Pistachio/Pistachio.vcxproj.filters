@@ -165,6 +165,9 @@
     <ClCompile Include="src\Pistachio\Core\FileSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Pistachio\Renderer\FrameComposer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Pistachio\Core\Application.h">
@@ -1353,6 +1356,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vendor\tcb_span\include\tcb_span.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pistachio\Renderer\FrameComposer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

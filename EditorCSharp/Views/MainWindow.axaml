@@ -7,58 +7,6 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="EditorCSharp.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
-		x:DataType="vm:MainViewModel"
         Title="EditorCSharp">
-	<DockPanel>
-		<Menu DockPanel.Dock="Top">
-			<MenuItem Header="_File">
-				<MenuItem Header="_Open..." Icon="/Assets/avalonia-ico.ico">
-				</MenuItem>
-				<Separator/>
-				<MenuItem Header="_Exit"/>
-			</MenuItem>
-			<MenuItem Header="_Edit">
-				<MenuItem Header="Copy"/>
-				<MenuItem Header="Paste"/>
-			</MenuItem>
-		</Menu>
-		<TreeView DockPanel.Dock="Left" Width="200" ItemsSource="{Binding entityNodes}" SelectedItem="{Binding currentNode, Mode=TwoWay}"
-				  SelectionMode="Single">
-			<TreeView.Styles>
-				<Style Selector="TreeViewItem">
-					<Setter Property="ContextMenu">
-						<ContextMenu>
-							<MenuItem Header="Delete Entity" Command="{Binding DeleteEntity}"/>
-						</ContextMenu>
-					</Setter>
-				</Style>
-			</TreeView.Styles>
-			<TreeView.ContextMenu>
-					<ContextMenu>
-						<MenuItem Header="Create New Entity" Command="{Binding AddEntity}"/>
-					</ContextMenu>
-				</TreeView.ContextMenu>
-			<TreeView.ItemTemplate>
-				<TreeDataTemplate ItemsSource="{Binding children}">
-					<TextBlock Text="{Binding tag}"/>
-				</TreeDataTemplate>
-			</TreeView.ItemTemplate>
-		</TreeView>
-		<Button DockPanel.Dock="Right" VerticalAlignment="Stretch" Width="200"></Button>
-		<Grid DockPanel.Dock="Bottom" ShowGridLines="True" 
-			  ColumnDefinitions="0.25*,0.25*,0.25*,0.25*" 
-			  RowDefinitions="Auto,Auto,Auto,Auto"
-			  HorizontalAlignment="Stretch"
-			  Height="120">
-			<Label Grid.Row="0" Grid.Column="0">File 1</Label>
-			<Label Grid.Row="0" Grid.Column="1">File 2</Label>
-			<Label Grid.Row="0" Grid.Column="2">File 3</Label>
-			<Label Grid.Row="1" Grid.Column="0">File 4</Label>
-			<Label Grid.Row="1" Grid.Column="1">File 5</Label>
-			<Label Grid.Row="1" Grid.Column="2">File 6</Label>
-			<Label Grid.Row="2" Grid.Column="0">File 7</Label>
-			<Label Grid.Row="3" Grid.Column="0">File 8</Label>
-		</Grid>
-		<views:MainView DataContext="{Binding}"/>
-	</DockPanel>
+        <views:MainView />
 </Window>

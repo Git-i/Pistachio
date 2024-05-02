@@ -30,6 +30,9 @@ namespace Pistachio {
 		static Application& Get();
 		inline Window& GetWindow() { return *m_Window; }
 		void SetImGuiContext(void* ctx);
+		bool IsHeadless() {
+			return m_headless;
+		};
 	private:
 		bool m_headless = false;
 		LayerStack m_layerstack;

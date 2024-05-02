@@ -35,6 +35,17 @@ namespace Pistachio
         //if(levelTransitionIndices.size()) RendererBase::directQueue->WaitForFence(fence, passesSortedAndFence[0].second + maxFence);
         //if(computeLevelTransitionIndices.size()) RendererBase::computeQueue->WaitForFence(fence, computePassesSortedAndFence[0].second + maxFence);
 
+        if (!RendererBase::MQ)
+        {
+            if (numGFXCmdLists)
+            {
+                cmdLists[0].list->End();
+                RendererBase::directQueue->ExecuteCommandLists(&cmdLists[0].list->ID, 1);
+                RendererBase::directQueue->SignalFence(fence, ++maxFence);
+            }
+            return;
+        }
+
         while (gfxIndex < levelTransitionIndices.size() && cmpIndex < computeLevelTransitionIndices.size())
         {
             uint32_t gfx = gfxIndex == 0 ? 0 : levelTransitionIndices[gfxIndex - 1].first;
@@ -96,6 +107,7 @@ namespace Pistachio
             if ((levelTransitionIndices[gfxIndex].second & PassAction::Wait) != (PassAction)0)
             {
                 uint64_t waitVal = passesSortedAndFence[levelTransitionIndices[gfxIndex].first].second;
+                
                 RendererBase::directQueue->WaitForFence(fence, waitVal + maxFence);
                 std::cout << "Wait for fence to reach " << waitVal;
             }
@@ -370,31 +382,56 @@ namespace Pistachio
         RHI::PipelineStage CMPstage = RHI::PipelineStage::TOP_OF_PIPE_BIT;
         uint32_t gfxIndex = 0;
         uint32_t cmpIndex = 0;
+        RHI::PipelineStage* gfxStage = 0, * cmpStage = 0;
+        if (!RendererBase::MQ) { gfxStage = &GFXstage; cmpStage = &GFXstage; }
+        else {gfxStage = &GFXstage; cmpStage = &CMPstage; }
         //we execute in order of fence vals with the gurantee that if passes overlap they do not share dependencies
         //this shouldnt be necessary as fence vals should alternate, but well do it anyway
         while (gfxIndex < levelTransitionIndices.size() && cmpIndex < computeLevelTransitionIndices.size())
         {
             uint32_t gfx = gfxIndex == 0 ? 0 : levelTransitionIndices[gfxIndex - 1].first;
             uint32_t cmp = cmpIndex == 0 ? 0 : computeLevelTransitionIndices[cmpIndex - 1].first;
-            RHI::GraphicsCommandList* cmpList =cmpIndex ? computeCmdLists[cmpIndex - 1].list : computeCmdLists[0].list;
-            RHI::GraphicsCommandList* gfxList = gfxIndex ? cmdLists[gfxIndex - 1].list : cmdLists[0].list;
-            if (passesSortedAndFence[gfx].second < computePassesSortedAndFence[cmp].second)
-                ExecuteGFXLevel(gfxIndex++, GFXstage, cmpList);
+            RHI::GraphicsCommandList* cmpList;
+            RHI::GraphicsCommandList* gfxList;
+            
+            if (RendererBase::MQ)
+            {
+                cmpList = cmpIndex ? computeCmdLists[cmpIndex - 1].list : computeCmdLists[0].list;
+                gfxList = gfxIndex ? cmdLists[gfxIndex - 1].list : cmdLists[0].list;
+            }
             else
-                ExecuteCMPLevel(cmpIndex++, CMPstage, gfxList);
+            {
+                cmpList = cmdLists[0].list;
+                gfxList = cmdLists[0].list;
+            }
+            
+            if (passesSortedAndFence[gfx].second < computePassesSortedAndFence[cmp].second)
+                ExecuteGFXLevel(gfxIndex++, *gfxStage, cmpList);
+            else
+                ExecuteCMPLevel(cmpIndex++, *cmpStage, gfxList);
         }
         this;
-        RHI::GraphicsCommandList* cmpList = computeLevelTransitionIndices.size() && cmpIndex ? computeCmdLists[cmpIndex - 1].list : nullptr;
-        RHI::GraphicsCommandList* gfxList = levelTransitionIndices.size() && gfxIndex ? cmdLists[gfxIndex - 1].list : nullptr;
-        while (gfxIndex < levelTransitionIndices.size()) ExecuteGFXLevel(gfxIndex++, GFXstage, cmpList);
-        while (cmpIndex < computeLevelTransitionIndices.size()) ExecuteCMPLevel(cmpIndex++, CMPstage, gfxList);
+        RHI::GraphicsCommandList* cmpList;
+        RHI::GraphicsCommandList* gfxList;
+        if (RendererBase::MQ)
+        {
+            cmpList = computeLevelTransitionIndices.size() && cmpIndex ? computeCmdLists[cmpIndex - 1].list : nullptr;
+            gfxList = levelTransitionIndices.size() && gfxIndex ? cmdLists[gfxIndex - 1].list : nullptr;
+        }
+        else
+        {
+            cmpList = cmdLists[0].list;
+            gfxList = cmdLists[0].list;
+        }
+        while (gfxIndex < levelTransitionIndices.size()) ExecuteGFXLevel(gfxIndex++, *gfxStage, cmpList);
+        while (cmpIndex < computeLevelTransitionIndices.size()) ExecuteCMPLevel(cmpIndex++, *cmpStage, gfxList);
 
         
     }
 
     inline void RenderGraph::ExecuteGFXLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList)
     {
-        RHI::GraphicsCommandList* currentList = cmdLists[levelInd].list;
+        RHI::GraphicsCommandList* currentList = cmdLists[RendererBase::MQ ? levelInd : 0].list;
         uint32_t j = levelInd == 0 ? 0 : levelTransitionIndices[levelInd - 1].first;
         std::vector<RHI::TextureMemoryBarrier> textureRelease;
         std::vector<RHI::BufferMemoryBarrier> bufferRelease;
@@ -650,12 +687,12 @@ namespace Pistachio
             delete[] attachments;
         }
         if(bufferRelease.size() + textureRelease.size())
-        prevList->PipelineBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::TOP_OF_PIPE_BIT, bufferRelease.size(), bufferRelease.data(), textureRelease.size(), textureRelease.data());
+        prevList->ReleaseBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::TOP_OF_PIPE_BIT, bufferRelease.size(), bufferRelease.data(), textureRelease.size(), textureRelease.data());
     }
 
     inline void RenderGraph::ExecuteCMPLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList)
     {
-        RHI::GraphicsCommandList* currentList = computeCmdLists[levelInd].list;
+        RHI::GraphicsCommandList* currentList =RendererBase::MQ ? computeCmdLists[levelInd].list : cmdLists[0].list;
         uint32_t j = levelInd == 0 ? 0 : computeLevelTransitionIndices[levelInd - 1].first;
         std::vector<RHI::TextureMemoryBarrier> textureRelease;
         std::vector<RHI::BufferMemoryBarrier> bufferRelease;
@@ -816,7 +853,7 @@ namespace Pistachio
             delete[] bufferBarriers;
         }
         if (bufferRelease.size() + textureRelease.size())
-        prevList->PipelineBarrier(RHI::PipelineStage::ALL_GRAPHICS_BIT, RHI::PipelineStage::COMPUTE_SHADER_BIT, bufferRelease.size(), bufferRelease.data(), textureRelease.size(), textureRelease.data());
+        prevList->ReleaseBarrier(RHI::PipelineStage::ALL_GRAPHICS_BIT, RHI::PipelineStage::COMPUTE_SHADER_BIT, bufferRelease.size(), bufferRelease.data(), textureRelease.size(), textureRelease.data());
     }
 
     void RenderGraph::SortPasses()
@@ -1076,7 +1113,8 @@ namespace Pistachio
             delete[] computeCmdLists;
         }
         numGFXCmdLists = (uint32_t)levelTransitionIndices.size();
-        numComputeCmdLists = (uint32_t)computeLevelTransitionIndices.size();
+        numComputeCmdLists = RendererBase::MQ ? (uint32_t)computeLevelTransitionIndices.size() : 0;
+        if (!RendererBase::MQ) numGFXCmdLists = (levelTransitionIndices.size() + computeLevelTransitionIndices.size()) ? 1 : 0;
         cmdLists = new RGCommandList[numGFXCmdLists];
         computeCmdLists = new RGCommandList[numComputeCmdLists];
         for (uint32_t i = 0; i < numGFXCmdLists; i++)
