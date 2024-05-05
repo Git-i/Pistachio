@@ -1,0 +1,11 @@
+#define _In_
+#define _In_opt_
+#define _Out_
+#define _In_reads_(x)
+#define _In_reads_bytes_(x)
+#define _Out_writes_(x)
+#define _Out_writes_bytes_(x)
+#define _Success_(x)
+#define _Out_opt_
+#define _Use_decl_annotations_
+#define _Analysis_assume_(x)
