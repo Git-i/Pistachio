@@ -1,0 +1,9 @@
+[submodule "subprojects/RHI"]
+	path = subprojects/RHI
+	url = https://github.com/Git-i/RHI.git
+[submodule "subprojects/yaml-cpp"]
+	path = subprojects/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "subprojects/assimp"]
+	path = subprojects/assimp
+	url = git@github.com:assimp/assimp.git
