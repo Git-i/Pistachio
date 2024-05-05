@@ -1,3 +1,5 @@
 {
-    "cmake.sourceDirectory": "/home/eric/Dev/Pistachio/Pistachio"
+    "cmake.sourceDirectory": "/home/eric/Dev/Pistachio/Pistachio",
+    "C_Cpp.default.compileCommands": "/home/eric/Dev/Pistachio/builddir/compile_commands.json",
+    "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild"
 }
