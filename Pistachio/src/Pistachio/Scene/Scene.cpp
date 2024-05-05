@@ -697,6 +697,10 @@ namespace Pistachio {
 		passConstants.DeltaTime = delta;
 		passCB[RendererBase::currentFrameIndex].Update(&passConstants, sizeof(PassConstants), 0);
 	}
+	const RenderTexture& Scene::GetFinalRender()
+	{
+		return finalRender;
+	}
 	/*
 	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
 	{

@@ -12,17 +12,24 @@
 #include "Pistachio/Renderer/Camera.h"
 namespace Pistachio {
 
-	struct PISTACHIO_API InitModeHeadless
+	/*
+	* Describes configuration for Pistachio Application
+	* - Headless: Create Window for application (if yes, scenes would still render to textures)
+	* - GPU LUID: if not zero, the specific gpu to use on creation
+	*/
+	struct PISTACHIO_API ApplicationOptions
 	{
-
+		bool headless = false;
+		RHI::LUID gpu_luid{};
+		bool exportTextures = false;
 	};
 	class PISTACHIO_API Application
 	{
 	public:
-		Application(const char* name);
-		Application(const char* name, InitModeHeadless headless);
+		Application(const char* name, ApplicationOptions options = ApplicationOptions());
 		virtual ~Application();
 		void Run();
+		void Step();
 		void OnEvent(Event& e);
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* overlay);

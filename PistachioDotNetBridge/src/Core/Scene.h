@@ -27,10 +27,10 @@ namespace PistachioCS
 		void ReParentEntity(Entity^ child,Entity^ parent);
 		void DeleteEntity(Entity^ entity);
 		void OnUpdateEditor(float delta, EditorCamera^ camera);
-		System::IntPtr GetImage();
-		void FreeImage(System::IntPtr^ ptr);
+		//returns an API specific handle to the image
+		System::UIntPtr GetPlatformImage();
 		Entity^ GetRootEntity();
-		System::Collections::ObjectModel::Collection<Entity^>^ GetEntityChildern(Entity^ entity);
+		System::Collections::ObjectModel::ObservableCollection<Entity^>^ GetEntityChildren(Entity^ entity);
 		System::EventHandler<SceneGraphChangedArgs^>^ SceneGraphChanged;
 	};
 }

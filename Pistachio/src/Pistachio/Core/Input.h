@@ -16,8 +16,8 @@ namespace Pistachio {
 		static bool IsKeyJustPressed(KeyCode code);
 		static bool IsMouseButtonPressed(MouseButton code);
 		static bool IsMouseButtonJustPressed(MouseButton code);
-		static int GetMouseX(bool WindowCoordinates = true);
-		static int GetMouseY(bool WindowCoordinates = true);
+		static int GetMouseX(bool WindowCoordinates = false);
+		static int GetMouseY(bool WindowCoordinates = false);
 		static float GetLeftAnalogX(int ID);
 		static float GetLeftAnalogY(int ID);
 		static float GetRightAnalogX(int ID);

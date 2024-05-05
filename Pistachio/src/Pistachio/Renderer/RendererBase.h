@@ -1,7 +1,6 @@
 #pragma once
 #include "Pistachio/Core.h"
 #include "Buffer.h"
-//#include "DirectX11/DX11RendererBase.h"
 #include "../Core/Instance.h"
 namespace Pistachio {
 	enum class CullMode {
@@ -35,14 +34,22 @@ namespace Pistachio {
 		uint32_t sizeLeft = 0;
 		uint32_t freeOffset = 0;
 	};
+	
 	class PISTACHIO_API RendererBase
 	{
 	public:
+		struct InitOptions
+		{
+			bool headless;
+			RHI::LUID luid;
+			bool exportTexture;
+		};
 		static bool IsDeviceNull;
 		static void Shutdown();
 		static void EndFrame();
 		static void ClearTarget();
 		static void CreateTarget();
+		static RHI::API GetAPI();
 		static RTVHandle CreateRenderTargetView(RHI::Texture* texture, RHI::RenderTargetViewDesc* viewDesc);
 		static DSVHandle CreateDepthStencilView(RHI::Texture* texture, RHI::DepthStencilViewDesc* viewDesc);
 		static SamplerHandle CreateSampler(RHI::SamplerDesc* viewDesc);
@@ -67,7 +74,7 @@ namespace Pistachio {
 		static void SetDepthStencilOp(DepthStencilOp op);
 		static void BindMainTarget();
 		#ifdef PT_PLATFORM_WINDOWS
-			static bool Init(HWND hwnd);
+		static bool Init(HWND hwnd, InitOptions& options);
 		#endif
 		static RHI::Device* Getd3dDevice();
 		static RHI::GraphicsCommandList* GetMainCommandList();
@@ -123,6 +130,7 @@ namespace Pistachio {
 		static RHI::DescriptorHeap* heap;
 		//Staging buffer to manage GPU resource updates, default size probably 2mb
 		static RHI::Buffer* stagingBuffer;
+		static bool headless;
 		//because staging buffer updates wont happen immediately, we need the number of used bytes
 		//staging buffer size will probably never cross 4gb so no need for uint64
 		static uint32_t staginBufferPortionUsed;
