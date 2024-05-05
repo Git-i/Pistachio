@@ -24,9 +24,9 @@ namespace Pistachio {
 		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
 		void SwitchToRenderTargetMode(RHI::GraphicsCommandList* list);
 		void SwitchToShaderUsageMode( RHI::GraphicsCommandList* list);
-		RHI::TextureView* GetView() { return m_view; }
+		RHI::TextureView* GetView()  const{ return m_view; }
 		RHI::Format GetFormat() const override;
-		RHI::Texture* GetID() { return m_ID.Get(); }
+		RHI::Texture* GetID() const { return m_ID.Get(); }
 		uint32_t GetWidth() const override;
 		uint32_t GetHeight() const override ;
 

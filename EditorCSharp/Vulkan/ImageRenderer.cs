@@ -22,6 +22,13 @@ namespace EditorCSharp.Vulkan
         {
             _update = UpdateFrame;
         }
+        void Initialize()
+        {
+            var self = ElementComposition.GetElementVisual(this);
+            _compositor = self.Compositor;
+            Surface = _compositor.CreateDrawingSurface();
+            _visual = _compositor.CreateSurfaceVisual();
+        }
         void UpdateFrame()
         {
         }

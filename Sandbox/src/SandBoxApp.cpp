@@ -1,8 +1,9 @@
 #define PISTACHIO_RENDER_API_DX11
 #include "Pistachio.h"
 #include "Pistachio/Core/Error.h"
-
+#define PT_CUSTOM_ENTRY
 #include "Pistachio/Core/EntryPoint.h"
+#include "renderdoc_app.h"
 using namespace Pistachio;
 RHI::Viewport vp;
 struct
@@ -50,8 +51,8 @@ public:
 		
 		cam.OnUpdate(delta);
 		scene.OnUpdateEditor(delta, cam);
-		Scene* scenes[] = {&scene, &scene,&scene,&scene};
-		FrameComposer::Compose(scenes, 4);
+		//Scene* scenes[] = {&scene, &scene,&scene,&scene};
+		//FrameComposer::Compose(scenes, 4);
 		
 	}
 	void OnAttach() override
@@ -136,7 +137,7 @@ private:
 class Sandbox : public Pistachio::Application
 {
 public:
-	Sandbox() : Application("SandBoc") { PushLayer(new ExampleLayer("lol")); GetWindow().SetVsync(0); }
+	Sandbox() : Application("SandBoc", {true,0,0,0,0,0,0,0,0}) { PushLayer(new ExampleLayer("lol"));  }
 	~Sandbox() { }
 private:
 };
@@ -144,4 +145,39 @@ private:
 Pistachio::Application* Pistachio::CreateApplication()
 {
 	return new Sandbox;
+}
+//int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+//{
+//	auto app = Pistachio::CreateApplication();
+//	if (HMODULE mod = GetModuleHandleA("renderdoc.dll"))
+//	{
+//		pRENDERDOC_GetAPI RENDERDOC_GetAPI =
+//			(pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+//		int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void**)&rdoc_api);
+//		assert(ret == 1);
+//	}
+//	while(true) app->Step();
+//	delete app;
+//}
+
+int main(int argc, char** argv)
+{
+	RENDERDOC_API_1_1_2* rdoc_api = NULL;
+	auto app = Pistachio::CreateApplication();
+	if (HMODULE mod = GetModuleHandleA("renderdoc.dll"))
+	{
+		pRENDERDOC_GetAPI RENDERDOC_GetAPI =
+			(pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+		int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void**)&rdoc_api);
+		assert(ret == 1);
+	}
+	int frame = 0;
+	while (true)
+	{
+		frame++;
+		if(frame == 1 && rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
+		app->Step();
+		if (frame == 1 && rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
+	}
+	delete app;
 }

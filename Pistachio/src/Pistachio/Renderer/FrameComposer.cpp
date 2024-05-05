@@ -30,7 +30,7 @@ namespace Pistachio
 	}
 	void FrameComposer::Compose(Scene** scenes, uint32_t count)
 	{
-		if (Application::Get().IsHeadless()) PT_CORE_ERROR("Cannot Compose On Headless App");
+		if (Application::Get().IsHeadless()) { PT_CORE_ERROR("Cannot Compose On Headless App"); return; }
 		if (mode == CompositionMode::SimpleCopy)
 		{
 			unsigned int height = ((WindowData*)GetWindowDataPtr())->height;

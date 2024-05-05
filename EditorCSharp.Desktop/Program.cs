@@ -18,6 +18,11 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            .With(() => new Win32PlatformOptions
+            {
+                CompositionMode = new[] { Win32CompositionMode.LowLatencyDxgiSwapChain },
+                RenderingMode = new[] { Win32RenderingMode.AngleEgl }
+            })
             .WithInterFont()
             .LogToTrace()
             .UseReactiveUI();

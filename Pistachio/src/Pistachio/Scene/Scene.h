@@ -62,6 +62,7 @@ namespace Pistachio {
 		Entity GetPrimaryCameraEntity();
 		void UpdatePassConstants(const Matrix4& view, const SceneCamera& cam, const Vector3& camPos, float delta);
 		void UpdatePassConstants(const EditorCamera& cam, float delta);
+		const RenderTexture& GetFinalRender();
 		//const RenderTexture& GetGBuffer() { return m_gBuffer; };
 		//const RenderTexture& GetRenderedScene() { return m_finalRender; };
 		template<typename T> void OnComponentAdded(Entity entity, T& component);

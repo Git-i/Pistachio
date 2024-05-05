@@ -1,12 +1,30 @@
 #include "pch.h"
 #include "Scene.h"
+using namespace System;
 const DirectX::SimpleMath::Matrix DirectX::SimpleMath::Matrix::Identity = DirectX::SimpleMath::Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 namespace PistachioCS
 {
+	static UInt32 GCD(UInt32 a, UInt32 b)
+	{
+		while (a != 0 && b != 0)
+		{
+			if (a > b)
+				a %= b;
+			else
+				b %= a;
+		}
+
+		return a | b;
+	}
 	Scene::Scene(float width, float height)
 	{
 		Pistachio::SceneDesc dsc;
+		if (width <= 0 || height <= 0) throw gcnew ArgumentException("width and height must be positive");
 		dsc.Resolution = { width, height };
+		UInt32 gcd = GCD(width, height);
+		dsc.clusterX = ((UInt32)width) / gcd;
+		dsc.clusterY = ((UInt32)height) / gcd;
+		dsc.clusterZ = 24;
 		m_ptr = new Pistachio::Scene(dsc);
 		
 	}
@@ -74,21 +92,15 @@ namespace PistachioCS
 	{
 		return m_ptr->OnUpdateEditor(delta, *camera->m_ptr);
 	}
-	System::IntPtr Scene::GetImage()
+	UIntPtr Scene::GetPlatformImage()
 	{
-		unsigned char* a = new unsigned char[1280 * 720 * 4];
-		m_ptr->GetRenderedScene().GetRenderTexture().CopyToCPUBuffer(a);
-		return System::IntPtr(a);
-	}
-	void Scene::FreeImage(System::IntPtr^ ptr)
-	{
-		delete ptr->ToPointer();
+		return (UIntPtr)m_ptr->GetFinalRender().GetID();
 	}
 	Entity^ Scene::GetRootEntity()
 	{
 		return gcnew Entity(m_ptr->GetRootEntity(), m_ptr);
 	}
-	System::Collections::ObjectModel::ObservableCollection<Entity^>^ PistachioCS::Scene::GetEntityChildern(Entity ^ entity)
+	System::Collections::ObjectModel::ObservableCollection<Entity^>^ Scene::GetEntityChildren(Entity^ entity)
 	{
 		System::Collections::ObjectModel::ObservableCollection<Entity^>^ children = gcnew System::Collections::ObjectModel::ObservableCollection<Entity^>();
 		auto id = entity->m_ptr->operator uint32_t();

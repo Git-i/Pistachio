@@ -30,6 +30,7 @@ uint32_t                  Pistachio::RendererBase::staginBufferPortionUsed = 0;
 uint32_t                  Pistachio::RendererBase::stagingBufferSize;
 bool                      Pistachio::RendererBase::outstandingResourceUpdate = 0;
 bool                      Pistachio::RendererBase::MQ = false;
+bool					  Pistachio::RendererBase::headless;
 uint32_t                  Pistachio::RendererBase::currentFrameIndex =0;
 uint32_t                  Pistachio::RendererBase::currentRTVindex =0;
 FLOAT                     Pistachio::RendererBase::m_ClearColor[4];
@@ -47,57 +48,58 @@ namespace Pistachio {
 	}
 	void RendererBase::EndFrame()
 	{
-		RHI::TextureMemoryBarrier barr;
-		barr.oldLayout = (RHI::ResourceLayout::TRANSFER_DST_OPTIMAL);
-		barr.newLayout = (RHI::ResourceLayout::PRESENT);
-		barr.AccessFlagsBefore = (RHI::ResourceAcessFlags::NONE);
-		barr.AccessFlagsAfter = (RHI::ResourceAcessFlags::NONE);
-		barr.subresourceRange.imageAspect = RHI::Aspect::COLOR_BIT,
-		barr.subresourceRange.IndexOrFirstMipLevel = 0,
-		barr.subresourceRange.NumMipLevels = 1,
-		barr.subresourceRange.FirstArraySlice = 0,
-		barr.subresourceRange.NumArraySlices = 1,
-		barr.texture = backBufferTextures[currentRTVindex];
-		barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
-		mainCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 0, 0, 1, &barr);
+		RHI::TextureMemoryBarrier barr{};
+		if (!headless)
+		{
+			barr.oldLayout = (RHI::ResourceLayout::TRANSFER_DST_OPTIMAL);
+			barr.newLayout = (RHI::ResourceLayout::PRESENT);
+			barr.AccessFlagsBefore = (RHI::ResourceAcessFlags::NONE);
+			barr.AccessFlagsAfter = (RHI::ResourceAcessFlags::NONE);
+			barr.subresourceRange.imageAspect = RHI::Aspect::COLOR_BIT,
+				barr.subresourceRange.IndexOrFirstMipLevel = 0,
+				barr.subresourceRange.NumMipLevels = 1,
+				barr.subresourceRange.FirstArraySlice = 0,
+				barr.subresourceRange.NumArraySlices = 1,
+				barr.texture = backBufferTextures[currentRTVindex];
+			barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
+			mainCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 0, 0, 1, &barr);
+		}
 		//execute main command list
 		mainCommandList->End();
 		directQueue->ExecuteCommandLists(&mainCommandList->ID, 1);
 		device->QueueWaitIdle(directQueue);
 		fence_vals[currentFrameIndex] = ++currentFenceVal;
 		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
-		swapChain->Present(currentRTVindex);
+		if(!headless) swapChain->Present(currentRTVindex);
 		//cycle frame Index
 		currentRTVindex = (currentRTVindex + 1) % 2;
 		currentFrameIndex = (currentFrameIndex + 1) % 3;
-		swapChain->AcquireImage(currentFrameIndex);
+		if (!headless) swapChain->AcquireImage(currentFrameIndex);
 		//prep for next frame
 		mainFence->Wait(fence_vals[currentFrameIndex]);
 		commandAllocators[currentFrameIndex]->Reset();
 		computeCommandAllocators[currentFrameIndex]->Reset();
 		mainCommandList->Begin(commandAllocators[currentFrameIndex]);
-		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
-		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
-		barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
-		barr.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
-		barr.texture = backBufferTextures[currentRTVindex];
-		mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
+		if (!headless)
+		{
+			barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
+			barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+			barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
+			barr.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
+			barr.texture = backBufferTextures[currentRTVindex];
+			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
+		}
 		//wait for the the cmd allocator to be done
 	}
-	bool RendererBase::Init(HWND hwnd)
+	bool RendererBase::Init(HWND hwnd, InitOptions& options)
 	{
 		PT_PROFILE_FUNCTION();
+		headless = options.headless;
 		RHICreateInstance(&instance);
 		//todo implement device selection
 		PT_CORE_INFO("Initializing RendererBase");
 		RHI::PhysicalDevice* physicalDevice;
-		RHI::PhysicalDeviceDesc physicalDeviceDesc;
-
-		constexpr uint32_t pDevInd = 0;
-		instance->GetPhysicalDevice(pDevInd, &physicalDevice);
-		physicalDevice->GetDesc(&physicalDeviceDesc);
-		PT_DEBUG_REGION
-		(
+		uint32_t pDevInd = 0;
 		uint32_t num_devices =  instance->GetNumPhysicalDevices();
 		PT_CORE_INFO("Found {0} physical devices: ", num_devices);
 		for (uint32_t i = 0; i < num_devices; i++)
@@ -106,9 +108,10 @@ namespace Pistachio {
 			instance->GetPhysicalDevice(i, &pDevice);
 			RHI::PhysicalDeviceDesc pDDesc;
 			pDevice->GetDesc(&pDDesc);
+			if (memcmp(options.luid.data, pDDesc.AdapterLuid.data, 8) == 0)pDevInd = i;
 			std::wcout << pDDesc.Description << " [" << i << ']' << std::endl;
 		}
-		)
+		instance->GetPhysicalDevice(pDevInd, &physicalDevice);
 
 		RHI::Surface surface;
 
@@ -120,35 +123,41 @@ namespace Pistachio {
 
 		PT_CORE_INFO("Creating Device");
 		RHI::CommandQueue* queues[2];
-		RHICreateDevice(physicalDevice, commandQueueDesc, 2, queues, instance->ID ,&device ,&MQ,RHI::DeviceCreateFlags::None);
+		auto flag = options.exportTexture ? RHI::DeviceCreateFlags::ShareAutomaticMemory: RHI::DeviceCreateFlags::None;
+		RHICreateDevice(physicalDevice, commandQueueDesc, 2, queues, instance->ID ,&device ,&MQ,flag);
 		directQueue = queues[0];
 		computeQueue = queues[1];
 		PT_CORE_INFO("Device Created ID:{0} Internal_ID:{1}, Physical Device used [{2}]", (void*)device, (void*)device->ID,pDevInd);
 		//todo handle multiplatform surface creation
-		PT_CORE_INFO("Creating Surface for Win32");
-		surface.InitWin32(hwnd, instance->ID);
-		PT_CORE_INFO("Surface Initialized");
-		unsigned int height = ((WindowData*)GetWindowDataPtr())->height;
-		unsigned int width = ((WindowData*)GetWindowDataPtr())->width;
-		RHI::SwapChainDesc sDesc;
-		sDesc.BufferCount = 2; //todo probably allow triple buffering
-		sDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // abstract this away from dxgi todo
-		sDesc.Flags = 0;
-		sDesc.Height = height;
-		sDesc.Width = width;
-		sDesc.OutputSurface = surface;
-		sDesc.RefreshRate = {60,1};
-		sDesc.SampleCount = 1; //disable multisampling for now, because RHI doesnt fully support it
-		sDesc.SampleQuality = 0;
-		sDesc.SwapChainFormat = RHI::Format::B8G8R8A8_UNORM;//todo add functionality to get supported formats in the RHI
-		sDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // todo anbstract this away from dxgi
-		sDesc.Windowed = true;
-		PT_CORE_INFO("Creating Swapchain");
-		instance->CreateSwapChain(&sDesc, physicalDevice, device, directQueue, &swapChain);
-		device->GetSwapChainImage(swapChain, 0, &backBufferTextures[0]);
-		device->GetSwapChainImage(swapChain, 1, &backBufferTextures[1]);
-		PT_CORE_INFO("Swapchain Created ID:{0} Internal_ID:{1}", (void*)swapChain, (void*)swapChain->ID);
-		swapChain->AcquireImage(0);
+		unsigned int height = 1280;
+		unsigned int width = 720;
+		if (!options.headless)
+		{
+			PT_CORE_INFO("Creating Surface for Win32");
+			surface.InitWin32(hwnd, instance->ID);
+			PT_CORE_INFO("Surface Initialized");
+			height = ((WindowData*)GetWindowDataPtr())->height;
+			width  = ((WindowData*)GetWindowDataPtr())->width;
+			RHI::SwapChainDesc sDesc;
+			sDesc.BufferCount = 2; //todo probably allow triple buffering
+			sDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // abstract this away from dxgi todo
+			sDesc.Flags = 0;
+			sDesc.Height = height;
+			sDesc.Width = width;
+			sDesc.OutputSurface = surface;
+			sDesc.RefreshRate = { 60,1 };
+			sDesc.SampleCount = 1; //disable multisampling for now, because RHI doesnt fully support it
+			sDesc.SampleQuality = 0;
+			sDesc.SwapChainFormat = RHI::Format::B8G8R8A8_UNORM;//todo add functionality to get supported formats in the RHI
+			sDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // todo anbstract this away from dxgi
+			sDesc.Windowed = true;
+			PT_CORE_INFO("Creating Swapchain");
+			instance->CreateSwapChain(&sDesc, physicalDevice, device, directQueue, &swapChain);
+			device->GetSwapChainImage(swapChain, 0, &backBufferTextures[0]);
+			device->GetSwapChainImage(swapChain, 1, &backBufferTextures[1]);
+			PT_CORE_INFO("Swapchain Created ID:{0} Internal_ID:{1}", (void*)swapChain, (void*)swapChain->ID);
+			swapChain->AcquireImage(0);
+		}
 
 		RHI::PoolSize pSize;
 		pSize.numDescriptors = 2;
@@ -158,19 +167,22 @@ namespace Pistachio {
 		rtvHeapHesc.numPoolSizes = 1;
 		rtvHeapHesc.poolSizes = &pSize;
 	
-		//create render target views
-		device->CreateDescriptorHeap(&rtvHeapHesc, &MainRTVheap);
-		PT_CORE_INFO("Created RTV descriptor heaps");
-		for (int i = 0; i < 2; i++)
+		if (!options.headless)
 		{
-			RHI::CPU_HANDLE handle;
-			handle.val = MainRTVheap->GetCpuHandle().val + (i * device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV));
-			RHI::RenderTargetViewDesc rtvDesc;
-			rtvDesc.arraySlice = rtvDesc.TextureArray = rtvDesc.textureMipSlice = 0;
-			rtvDesc.format = RHI::Format::B8G8R8A8_UNORM;
-			device->CreateRenderTargetView(backBufferTextures[i], &rtvDesc, handle);
+			//create render target views
+			device->CreateDescriptorHeap(&rtvHeapHesc, &MainRTVheap);
+			PT_CORE_INFO("Created RTV descriptor heaps");
+			for (int i = 0; i < 2; i++)
+			{
+				RHI::CPU_HANDLE handle;
+				handle.val = MainRTVheap->GetCpuHandle().val + (i * device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::RTV));
+				RHI::RenderTargetViewDesc rtvDesc;
+				rtvDesc.arraySlice = rtvDesc.TextureArray = rtvDesc.textureMipSlice = 0;
+				rtvDesc.format = RHI::Format::B8G8R8A8_UNORM;
+				device->CreateRenderTargetView(backBufferTextures[i], &rtvDesc, handle);
+			}
+			PT_CORE_INFO("Created Tender Target Views");
 		}
-		PT_CORE_INFO("Created Tender Target Views");
 		RHI::ClearValue depthVal;
 		depthVal.depthStencilValue.depth = 1;
 		depthVal.depthStencilValue.stecnil = 0;
@@ -252,19 +264,22 @@ namespace Pistachio {
 
 		//prep for rendering
 		mainCommandList->Begin(commandAllocators[0]);
-		RHI::TextureMemoryBarrier barr;
-		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
-		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
-		barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
-		barr.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
-		barr.subresourceRange.imageAspect = RHI::Aspect::COLOR_BIT;
-		barr.subresourceRange.IndexOrFirstMipLevel = 0;
-		barr.subresourceRange.NumMipLevels = 1;
-		barr.subresourceRange.FirstArraySlice = 0;
-		barr.subresourceRange.NumArraySlices = 1;
-		barr.texture = backBufferTextures[0];
+		if (!options.headless)
+		{
+			RHI::TextureMemoryBarrier barr;
+			barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
+			barr.AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
+			barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
+			barr.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
+			barr.subresourceRange.imageAspect = RHI::Aspect::COLOR_BIT;
+			barr.subresourceRange.IndexOrFirstMipLevel = 0;
+			barr.subresourceRange.NumMipLevels = 1;
+			barr.subresourceRange.FirstArraySlice = 0;
+			barr.subresourceRange.NumArraySlices = 1;
+			barr.texture = backBufferTextures[0];
 
-		mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
+			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
+		}
 		PT_CORE_INFO("done initializing rhi");
 		// todo find a pso handling strategy, especially for custom shaders.
 		// since every pso can only hold a single shader set, probably have a bunch of
@@ -292,6 +307,10 @@ namespace Pistachio {
 	void RendererBase::CreateTarget()
 	{
 		//todo
+	}
+	RHI::API RendererBase::GetAPI()
+	{
+		return instance->GetInstanceAPI();
 	}
 	void RendererBase::ClearView()
 	{
