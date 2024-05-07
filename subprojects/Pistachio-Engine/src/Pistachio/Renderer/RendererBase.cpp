@@ -14,7 +14,7 @@ RHI::CommandAllocator*    Pistachio::RendererBase::computeCommandAllocators[3];
 RHI::Instance*            Pistachio::RendererBase::instance;
 RHI::SwapChain*           Pistachio::RendererBase::swapChain;
 RHI::CommandQueue*        Pistachio::RendererBase::directQueue;
-RHI::Texture*             Pistachio::RendererBase::backBufferTextures[2]; //todo: tripebuffering support
+std::vector<RHI::Texture*>Pistachio::RendererBase::backBufferTextures; //todo: tripebuffering support
 RHI::DescriptorHeap*      Pistachio::RendererBase::MainRTVheap;
 RHI::DescriptorHeap*      Pistachio::RendererBase::dsvHeap;
 std::uint64_t             Pistachio::RendererBase::fence_vals[3]; //managing sync across allocators
@@ -32,6 +32,8 @@ bool                      Pistachio::RendererBase::MQ = false;
 bool					  Pistachio::RendererBase::headless;
 uint32_t                  Pistachio::RendererBase::currentFrameIndex =0;
 uint32_t                  Pistachio::RendererBase::currentRTVindex =0;
+uint32_t				  Pistachio::RendererBase::swapCycleIndex = 0;
+uint32_t				  Pistachio::RendererBase::numSwapImages = 0;
 float                     Pistachio::RendererBase::m_ClearColor[4];
 std::vector<Pistachio::TrackedDescriptorHeap> Pistachio::RendererBase::rtvHeaps;
 std::vector<Pistachio::RTVHandle> Pistachio::RendererBase::freeRTVs;
@@ -66,15 +68,15 @@ namespace Pistachio {
 		//execute main command list
 		mainCommandList->End();
 		directQueue->ExecuteCommandLists(&mainCommandList->ID, 1);
-		device->QueueWaitIdle(directQueue);
 		fence_vals[currentFrameIndex] = ++currentFenceVal;
 		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
-		if(!headless) swapChain->Present(currentRTVindex);
+		if(!headless) swapChain->Present(currentRTVindex, swapCycleIndex);
+		device->QueueWaitIdle(directQueue);
 		//cycle frame Index
-		currentRTVindex = (currentRTVindex + 1) % 2;
+		swapCycleIndex = (swapCycleIndex +1)%numSwapImages;
 		currentFrameIndex = (currentFrameIndex + 1) % 3;
-		if (!headless) swapChain->AcquireImage(currentFrameIndex);
 		//prep for next frame
+		if (!headless) swapChain->AcquireImage(&currentRTVindex,swapCycleIndex);
 		mainFence->Wait(fence_vals[currentFrameIndex]);
 		commandAllocators[currentFrameIndex]->Reset();
 		computeCommandAllocators[currentFrameIndex]->Reset();
@@ -98,7 +100,7 @@ namespace Pistachio {
 		//todo implement device selection
 		PT_CORE_INFO("Initializing RendererBase");
 		RHI::PhysicalDevice* physicalDevice;
-		uint32_t pDevInd = 0;
+		uint32_t pDevInd = 1;
 		uint32_t num_devices =  instance->GetNumPhysicalDevices();
 		PT_CORE_INFO("Found {0} physical devices: ", num_devices);
 		for (uint32_t i = 0; i < num_devices; i++)
@@ -107,6 +109,7 @@ namespace Pistachio {
 			instance->GetPhysicalDevice(i, &pDevice);
 			RHI::PhysicalDeviceDesc pDDesc;
 			pDevice->GetDesc(&pDDesc);
+			if(options.useLuid)
 			if (memcmp(options.luid.data, pDDesc.AdapterLuid.data, 8) == 0)pDevInd = i;
 			std::wcout << pDDesc.Description << " [" << i << ']' << std::endl;
 		}
@@ -144,7 +147,7 @@ namespace Pistachio {
 			height = ((WindowData*)GetWindowDataPtr())->height;
 			width  = ((WindowData*)GetWindowDataPtr())->width;
 			RHI::SwapChainDesc sDesc;
-			sDesc.BufferCount = 2; //todo probably allow triple buffering
+			sDesc.BufferCount = 3; //todo probably allow triple buffering
 			sDesc.Flags = 0;
 			sDesc.Height = height;
 			sDesc.Width = width;
@@ -156,10 +159,14 @@ namespace Pistachio {
 			sDesc.Windowed = true;
 			PT_CORE_INFO("Creating Swapchain");
 			instance->CreateSwapChain(&sDesc, physicalDevice, device, directQueue, &swapChain);
-			device->GetSwapChainImage(swapChain, 0, &backBufferTextures[0]);
-			device->GetSwapChainImage(swapChain, 1, &backBufferTextures[1]);
+			numSwapImages = sDesc.BufferCount;
+			backBufferTextures.resize(numSwapImages);
+			for(uint32_t i = 0; i < numSwapImages; i++)
+			{
+				device->GetSwapChainImage(swapChain, i, &backBufferTextures[i]);
+			}
 			PT_CORE_INFO("Swapchain Created ID:{0} Internal_ID:{1}", (void*)swapChain, (void*)swapChain->ID);
-			swapChain->AcquireImage(0);
+			swapChain->AcquireImage(&currentRTVindex,swapCycleIndex);
 		}
 
 		RHI::PoolSize pSize;
@@ -280,7 +287,7 @@ namespace Pistachio {
 			barr.subresourceRange.FirstArraySlice = 0;
 			barr.subresourceRange.NumArraySlices = 1;
 			barr.texture = backBufferTextures[0];
-
+			barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
 			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
 		}
 		PT_CORE_INFO("done initializing rhi");
@@ -290,6 +297,7 @@ namespace Pistachio {
 		// we can also implement custom pso's for certain shaders?? 
 		// for some that have nice requirements like line rendering (and depth off??) and different comparison functions
 		// meaning we'll have to have a set of static samplers globally in the rendererbase??
+		MQ = false;
 		return 0;
 	}
 	void RendererBase::ClearTarget()

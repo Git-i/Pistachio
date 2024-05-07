@@ -1,12 +1,13 @@
 #include "ptpch.h"
 #include "Pistachio/Core/Input.h"
 #include "Pistachio/Core/Application.h"
-
+#include "Pistachio/Core/KeyCodes.h"
 namespace Pistachio {
 	bool KeyRepeatPoll;
 	int LastKeyPoll;
 	bool Input::IsKeyPressed(KeyCode code)
 	{
+		if(code >= PT_MOUSE_BUTTON_1 && code <= PT_MOUSE_BUTTON_8) return glfwGetMouseButton(Application::Get().GetWindow().pd.window, code)==GLFW_PRESS;
 		return glfwGetKey(Application::Get().GetWindow().pd.window, code) == GLFW_PRESS;
 	}
 	bool Input::IsKeyJustPressed(KeyCode code)

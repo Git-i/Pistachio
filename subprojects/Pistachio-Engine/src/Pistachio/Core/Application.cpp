@@ -22,8 +22,8 @@ namespace Pistachio {
 		if (!opt.headless)
 		{
 			WindowInfo info;
-			info.height = 720;
-			info.width = 1280;
+			info.height = 720*2.25;
+			info.width = 1280*2.25;
 			info.vsync = 1;
 			info.title = name;
 			m_Window = Scope<Window>(Window::Create(info));
@@ -106,7 +106,7 @@ namespace Pistachio {
 		while (m_Running) {
 			auto now = std::chrono::high_resolution_clock::now();
 			std::chrono::milliseconds time = std::chrono::duration_cast<std::chrono::milliseconds>(now - InitTime);
-			std::chrono::duration<float,std::milli> delta;
+			std::chrono::duration<float> delta;
 			delta = time - lastFrameTime;
 			lastFrameTime = time;
 			FrameMark;

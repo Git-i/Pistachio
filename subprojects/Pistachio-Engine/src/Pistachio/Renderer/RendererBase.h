@@ -43,6 +43,7 @@ namespace Pistachio {
 		{
 			bool headless;
 			RHI::LUID luid;
+			bool useLuid = false;
 			bool exportTexture;
 		};
 		static bool IsDeviceNull;
@@ -112,7 +113,7 @@ namespace Pistachio {
 		static RHI::SwapChain* swapChain;
 		static RHI::CommandQueue* directQueue;
 		static RHI::CommandQueue* computeQueue;
-		static RHI::Texture* backBufferTextures[2]; //todo: tripebuffering support
+		static std::vector<RHI::Texture*> backBufferTextures; //todo: tripebuffering support
 		static RHI::Texture* depthTexture;
 		static RHI::DescriptorHeap* MainRTVheap;
 		static std::vector<TrackedDescriptorHeap> rtvHeaps;
@@ -138,6 +139,8 @@ namespace Pistachio {
 		static bool MQ;
 		static uint32_t currentFrameIndex;
 		static uint32_t currentRTVindex;
+		static uint32_t swapCycleIndex;
+		static uint32_t numSwapImages;
 		static float m_ClearColor[4];
 	};
 }

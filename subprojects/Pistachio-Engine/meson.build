@@ -92,4 +92,6 @@ endif
 add_project_arguments(args,language: 'cpp',)
 inc = include_directories(inc_dirs)
 lib = shared_library('Pistachio',sources,include_directories:inc,dependencies:deps)
-pistachio_dep = declare_dependency(include_directories:inc, link_with:lib)
+pistachio_dep = [
+    declare_dependency(include_directories:inc, link_with:lib), deps
+]
