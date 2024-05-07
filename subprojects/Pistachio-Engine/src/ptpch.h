@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <chrono>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -20,6 +21,9 @@
 	#include <d3dcompiler.h>
 	#include <DirectXMath.h>
 	#include <Xinput.h>
+#elif defined(PT_PLATFORM_LINUX)
+	#include <GLFW/glfw3.h>
+	#include <GLFW/glfw3native.h>
 #endif // PT_PLATFORM_WINDOWS
 
 #include "Pistachio/Core/Log.h"

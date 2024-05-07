@@ -1,9 +1,12 @@
 #pragma once
-#ifdef WIN32
-	#define PT_PLATFORM_WINDOWS 1
+
+#ifdef _MSC_VER
+#define PT_DEBUG_BREAK __debugbreak()
+#else
+#include <signal.h>
+#define PT_DEBUG_BREAK raise(SIGTRAP);
 #endif
 
-#define PISTACHIO_RENDER_API_DX11 1
 typedef int KeyCode;
 #define ENUM_FLAGS(EnumType)                      \
 inline EnumType operator|(EnumType a, EnumType b) {                             \
@@ -48,15 +51,15 @@ inline EnumType& operator^=(EnumType& a, EnumType b) {                         \
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "Comdlg32.lib")
 #pragma warning( once : 4251 )
-#else
-	#define PISTACHIO_API
-#endif // PT_PLATFROM_WINDOWS
 #if defined _WIN64
-//2411 lmao
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #else
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
+#else
+	#define PISTACHIO_API
+#endif // PT_PLATFROM_WINDOWS
+
 #if !(defined(PISTACHIO_RENDER_API_DX11) || defined(PISTACHIO_RENDER_API_VULKAN) || defined(PISTACHIO_RENDER_API_DX12))
 #define STRING2(x) #x
 #define STRING(x) STRING2(x)
@@ -92,8 +95,8 @@ namespace Pistachio {
 
 	
 }
-#ifdef DEBUG
-#define PT_CORE_ASSERT(...) if(__VA_ARGS__){}else{__debugbreak();}
+#ifdef _DEBUG
+#define PT_CORE_ASSERT(...) if(__VA_ARGS__){}else{PT_DEBUG_BREAK}
 #else
 #define PT_CORE_ASSERT(...) __VA_ARGS__
 #endif // _DEBUG

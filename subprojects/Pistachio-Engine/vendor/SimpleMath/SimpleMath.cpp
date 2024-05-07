@@ -237,10 +237,10 @@ RECT Viewport::ComputeTitleSafeArea(UINT backBufferWidth, UINT backBufferHeight)
     const float safeh = (float(backBufferHeight) + 19.f) / 20.f;
 
     RECT rct;
-    rct.left = static_cast<LONG>(safew);
-    rct.top = static_cast<LONG>(safeh);
-    rct.right = static_cast<LONG>(float(backBufferWidth) - safew + 0.5f);
-    rct.bottom = static_cast<LONG>(float(backBufferHeight) - safeh + 0.5f);
+    rct.left = static_cast  <int>(safew);
+    rct.top = static_cast   <int>(safeh);
+    rct.right = static_cast <int>(float(backBufferWidth) - safew + 0.5f);
+    rct.bottom = static_cast<int>(float(backBufferHeight) - safeh + 0.5f);
 
     return rct;
 }

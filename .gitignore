@@ -461,3 +461,5 @@ Pistachio/ClassDiagram.cd
 Sandbox/stdout
 *.gfxr
 glb.py
+subprojects/packagecache/
+subprojects/physx/linux.gcc/checked/

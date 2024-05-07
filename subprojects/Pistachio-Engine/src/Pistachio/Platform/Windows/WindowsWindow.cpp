@@ -75,17 +75,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_KEYDOWN:
 		{
 			 Pistachio::OnKeyDown((int)wParam);
-			if ((int)wParam == Pistachio::LastKey)
-				KeyRepeat = true;
-			else
-				KeyRepeat = false;
-			Pistachio::LastKey = (int)wParam;
 			break;
 		}
 		case WM_KEYUP:
 		{
-			KeyRepeat = false;
-			Pistachio::KeyRepeatPoll = false;
+			Pistachio::OnKeyUp((int)wParam);
 			break;
 		}
 		case WM_LBUTTONDOWN:
@@ -298,6 +292,14 @@ namespace Pistachio {
 			std::string title = std::string("FPS: ") + buf;
 			SetWindowTextW(pd.hwnd, (wchar_t*)title.c_str());
 		#endif // _DEBUG
+		MSG msg = {};
+		while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+			if (msg.message == WM_QUIT)
+				m_Running = false;
+		}
 	}
 	void WindowsWindow::SetVsync(unsigned int enabled)
 	{
