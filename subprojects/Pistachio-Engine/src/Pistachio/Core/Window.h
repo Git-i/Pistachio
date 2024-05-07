@@ -11,7 +11,12 @@ PISTACHIO_API void* GetWindowDataPtr();
 	struct PlatformData {
 		#ifdef PT_PLATFORM_WINDOWS
 		HWND hwnd = NULL;
+		#elif defined(PT_PLATFORM_LINUX)
+		GLFWwindow* window;
+
 		#endif // PT_PLATFORM_WINDOWS
+
+
 	};
 
 using EventCallbackFn = std::function<void(Pistachio::Event& e)>;
@@ -49,7 +54,7 @@ using EventCallbackFn = std::function<void(Pistachio::Event& e)>;
 			virtual void SetVsync(unsigned int enabled) = 0;
 			virtual void SetEventCallback(const EventCallbackFn& event) = 0;
 			virtual unsigned int IsVsync() const = 0;
-			static Window* Create(const WindowInfo& info = WindowInfo(), bool m_headless = false);
+			static Window* Create(const WindowInfo& info = WindowInfo());
 			PlatformData pd;
 		protected:
 			WindowData m_data;

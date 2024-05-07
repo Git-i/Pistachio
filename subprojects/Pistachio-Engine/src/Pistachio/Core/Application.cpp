@@ -28,9 +28,9 @@ namespace Pistachio {
 			info.title = name;
 			m_Window = Scope<Window>(Window::Create(info));
 			m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
-			//RendererBase::Init(m_Window->pd.hwnd, ropt);
+			RendererBase::Init(&m_Window->pd, ropt);
 		}
-		//else RendererBase::Init(NULL, ropt);
+		else RendererBase::Init(NULL, ropt);
 		Renderer::Init("resources/textures/hdr/Alexs_Apt_2k.hdr");
 		Renderer2D::Init();
 		std::cout << "phys time" << std::endl;
@@ -39,6 +39,8 @@ namespace Pistachio {
 #ifdef IMGUI
 		PushOverlay(m_ImGuiLayer);
 #endif
+		InitTime = std::chrono::high_resolution_clock::now();
+		lastFrameTime = std::chrono::milliseconds(0);
 		//QueryPerformanceFrequency(&frequency);
 		//period = 1 / (float)frequency.QuadPart;
 		//QueryPerformanceCounter(&ticks);
@@ -89,7 +91,7 @@ namespace Pistachio {
 		}
 		return false;
 	}
-	inline Application& Application::Get()
+	Application& Application::Get()
 	{
 		return *s_Instance; 
 	}
@@ -102,28 +104,21 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION();
 		
 		while (m_Running) {
-			//QueryPerformanceCounter(&ticks);
-			//double time = (ticks.QuadPart * period) - InitTime;
-			//float delta = (float)(time - lastFrameTime);
+			auto now = std::chrono::high_resolution_clock::now();
+			std::chrono::milliseconds time = std::chrono::duration_cast<std::chrono::milliseconds>(now - InitTime);
+			std::chrono::duration<float,std::milli> delta;
+			delta = time - lastFrameTime;
+			lastFrameTime = time;
 			FrameMark;
-			float delta = 0.016;
-			//lastFrameTime = time;
-			//MSG msg = {};
-			//while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
-			//{
-			//	TranslateMessage(&msg);
-			//	DispatchMessageW(&msg);
-			//	if (msg.message == WM_QUIT)
-			//		m_Running = false;
-			//}
+			
 			if (!m_Running)
 				break;
 
 
-			m_Window->OnUpdate(delta);
+			m_Window->OnUpdate(delta.count());
 			if (!m_minimized) {
 				for (Layer* layer : m_layerstack)
-					layer->OnUpdate(delta);
+					layer->OnUpdate(delta.count());
 			}
 			for (Layer* layer : m_layerstack)
 				layer->OnImGuiRender();

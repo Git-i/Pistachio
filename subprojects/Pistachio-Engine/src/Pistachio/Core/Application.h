@@ -47,10 +47,10 @@ namespace Pistachio {
 		bool m_Running = true;
 		bool m_minimized = false;
 		static Application* s_Instance;
+		std::chrono::time_point<std::chrono::high_resolution_clock> InitTime;
+		std::chrono::milliseconds lastFrameTime;
 		//LARGE_INTEGER frequency;
 		double period;
-		double lastFrameTime = 0.0f;
-		double InitTime;
 		//LARGE_INTEGER ticks;
 	};
 	

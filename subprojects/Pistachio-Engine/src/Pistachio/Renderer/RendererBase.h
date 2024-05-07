@@ -2,6 +2,7 @@
 #include "Pistachio/Core.h"
 #include "Buffer.h"
 #include "../Core/Instance.h"
+#include "Pistachio/Core/Window.h"
 namespace Pistachio {
 	enum class CullMode {
 		None, Front, Back
@@ -73,9 +74,7 @@ namespace Pistachio {
 		static void EnableShadowMapRasetrizerState();
 		static void SetDepthStencilOp(DepthStencilOp op);
 		static void BindMainTarget();
-		#ifdef PT_PLATFORM_WINDOWS
-		static bool Init(HWND hwnd, InitOptions& options);
-		#endif
+		static bool Init(PlatformData* pd, InitOptions& options);
 		static RHI::Device* Getd3dDevice();
 		static RHI::GraphicsCommandList* GetMainCommandList();
 		static RHI::SwapChain* GetSwapChain();
