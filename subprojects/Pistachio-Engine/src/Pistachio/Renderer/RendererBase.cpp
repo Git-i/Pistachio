@@ -90,8 +90,7 @@ namespace Pistachio {
 		}
 		//wait for the the cmd allocator to be done
 	}
-	#ifdef WIN32
-	bool RendererBase::Init(HWND hwnd, InitOptions& options)
+	bool RendererBase::Init(PlatformData* pd, InitOptions& options)
 	{
 		PT_PROFILE_FUNCTION();
 		headless = options.headless;
@@ -116,9 +115,9 @@ namespace Pistachio {
 		RHI::Surface surface;
 
 		RHI::CommandQueueDesc commandQueueDesc[2] {};
-		commandQueueDesc[0].CommandListType = RHI::CommandListType::Direct;
+		commandQueueDesc[0].commandListType = RHI::CommandListType::Direct;
 		commandQueueDesc[0].Priority = 1.f;//only really used in vulkan
-		commandQueueDesc[1].CommandListType = RHI::CommandListType::Compute;
+		commandQueueDesc[1].commandListType = RHI::CommandListType::Compute;
 		commandQueueDesc[1].Priority = 1.f;
 
 		PT_CORE_INFO("Creating Device");
@@ -133,14 +132,19 @@ namespace Pistachio {
 		unsigned int width = 720;
 		if (!options.headless)
 		{
+			#ifdef WIN32
 			PT_CORE_INFO("Creating Surface for Win32");
-			surface.InitWin32(hwnd, instance->ID);
+			surface.InitWin32(pd.hwnd, instance->ID);
+			#else
+			PT_CORE_INFO("Creating Surface for GLFW window");
+			surface.InitGLFW(pd->window, instance->ID);
+			#endif
 			PT_CORE_INFO("Surface Initialized");
+
 			height = ((WindowData*)GetWindowDataPtr())->height;
 			width  = ((WindowData*)GetWindowDataPtr())->width;
 			RHI::SwapChainDesc sDesc;
 			sDesc.BufferCount = 2; //todo probably allow triple buffering
-			sDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // abstract this away from dxgi todo
 			sDesc.Flags = 0;
 			sDesc.Height = height;
 			sDesc.Width = width;
@@ -149,7 +153,6 @@ namespace Pistachio {
 			sDesc.SampleCount = 1; //disable multisampling for now, because RHI doesnt fully support it
 			sDesc.SampleQuality = 0;
 			sDesc.SwapChainFormat = RHI::Format::B8G8R8A8_UNORM;//todo add functionality to get supported formats in the RHI
-			sDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // todo anbstract this away from dxgi
 			sDesc.Windowed = true;
 			PT_CORE_INFO("Creating Swapchain");
 			instance->CreateSwapChain(&sDesc, physicalDevice, device, directQueue, &swapChain);
@@ -289,7 +292,6 @@ namespace Pistachio {
 		// meaning we'll have to have a set of static samplers globally in the rendererbase??
 		return 0;
 	}
-	#endif
 	void RendererBase::ClearTarget()
 	{
 		//todo

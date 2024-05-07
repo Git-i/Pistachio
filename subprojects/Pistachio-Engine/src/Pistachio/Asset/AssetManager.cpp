@@ -131,7 +131,7 @@ namespace Pistachio
 	{
 		for (auto [uuid, res] : assetResourceMap)
 		{
-			PT_CORE_INFO("Live object with id: {0} at memory location {1}", uuid, (void*)res);
+			PT_CORE_INFO("Live object with id: {0} at memory location {1}", (uint64_t)uuid, (void*)res);
 		}
 	}
 	Material* AssetManager::GetMaterialResource(Asset& a) 

@@ -7,3 +7,13 @@
 [submodule "subprojects/assimp"]
 	path = subprojects/assimp
 	url = git@github.com:assimp/assimp.git
+[submodule "subprojects/glfw"]
+	path = subprojects/glfw
+	url = git@github.com:glfw/glfw.git
+[submodule "subprojects/imgui"]
+	path = subprojects/imgui
+	url = git@github.com:Git-i/imgui.git
+	branch = docking
+[submodule "subprojects/spdlog"]
+	path = subprojects/spdlog
+	url = git@github.com:gabime/spdlog.git
