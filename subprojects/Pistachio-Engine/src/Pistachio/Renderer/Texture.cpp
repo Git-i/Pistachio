@@ -37,6 +37,8 @@ namespace Pistachio
             barrier.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
             barrier.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
             barrier.oldLayout = RHI::ResourceLayout::UNDEFINED;
+            barrier.previousQueue = RHI::QueueFamily::Graphics;
+            barrier.nextQueue = RHI::QueueFamily::Graphics;
             barrier.subresourceRange = range;
             barrier.texture = m_ID.Get();
             RendererBase::stagingCommandList->PipelineBarrier(
