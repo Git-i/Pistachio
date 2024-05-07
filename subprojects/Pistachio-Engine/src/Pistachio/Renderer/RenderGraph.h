@@ -236,8 +236,8 @@ namespace Pistachio
 		RGBufferHandle CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::QueueFamily family = RHI::QueueFamily::Graphics);
 		void Execute();
 	private:
-		inline void ExecuteGFXLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList);
-		inline void ExecuteCMPLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList);
+		inline void ExecuteGFXLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList,RHI::QueueFamily srcQueue);
+		inline void ExecuteCMPLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList,RHI::QueueFamily srcQueue);
 		void SortPasses();
 	private:
 		friend class Renderer;

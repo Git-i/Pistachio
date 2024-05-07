@@ -63,7 +63,8 @@ namespace Pistachio {
 		m_data.height = info.height;
 		m_data.width = info.width;
 		m_data.vsync = info.vsync;
-
+		glfwInit();
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         pd.window = glfwCreateWindow(info.width, info.height, info.title, NULL, NULL);
         glfwSetKeyCallback(pd.window, key_callback);
         glfwSetCursorPosCallback(pd.window, cursor_position_callback);
@@ -79,7 +80,7 @@ namespace Pistachio {
 	void LinuxWindow::OnUpdate(float delta)
 	{
 		#ifdef _DEBUG
-			int a = int(1/delta);
+			int a = int(1/(delta));
 			std::string title = std::string("FPS: ") + std::to_string(a);
 			glfwSetWindowTitle(pd.window, title.c_str());
 		#endif // _DEBUG

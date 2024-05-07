@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "Debug with Meson",
+            "type": "cppdbg",
+            "request": "launch",
+            "MIMode": "gdb",
+            "program": "${workspaceRoot}/builddir/Sandbox-app",
+            "cwd": "${workspaceRoot}/Sandbox",
+            "preLaunchTask": "Meson: Build Sandbox-app:executable"
+        },
+        
+    ],
+    "version": "2.0.0"
+}

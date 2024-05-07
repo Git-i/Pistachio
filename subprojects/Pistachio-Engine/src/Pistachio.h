@@ -7,7 +7,6 @@
 #include "Pistachio/Event/MouseEvent.h"
 #include "Pistachio/Core/Transform.h"
 #include "Pistachio/Renderer/Texture.h"
-#include "Pistachio/Renderer/Sampler.h"
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Input.h"
 #include "Pistachio/Core/KeyCodes.h"
@@ -21,7 +20,10 @@
 #include "Pistachio/Scene/Entity.h"
 #include "Pistachio/Scene/ScriptableComponent.h"
 #include "Pistachio/Renderer/FrameComposer.h"
+#include "Pistachio/Renderer/Material.h"
 //necessary for agility sdk
+#ifdef WIN32
 extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 611; }
 
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
+#endif

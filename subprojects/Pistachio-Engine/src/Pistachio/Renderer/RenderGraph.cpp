@@ -43,6 +43,7 @@ namespace Pistachio
                 RendererBase::directQueue->ExecuteCommandLists(&cmdLists[0].list->ID, 1);
                 RendererBase::directQueue->SignalFence(fence, ++maxFence);
             }
+            RESULT res = RendererBase::device->QueueWaitIdle(RendererBase::directQueue);
             return;
         }
 
@@ -387,6 +388,9 @@ namespace Pistachio
         else {gfxStage = &GFXstage; cmpStage = &CMPstage; }
         //we execute in order of fence vals with the gurantee that if passes overlap they do not share dependencies
         //this shouldnt be necessary as fence vals should alternate, but well do it anyway
+        
+        auto gfxQueue = RHI::QueueFamily::Graphics;
+        auto cmpQueue = RendererBase::MQ ? RHI::QueueFamily::Compute : RHI::QueueFamily::Graphics;
         while (gfxIndex < levelTransitionIndices.size() && cmpIndex < computeLevelTransitionIndices.size())
         {
             uint32_t gfx = gfxIndex == 0 ? 0 : levelTransitionIndices[gfxIndex - 1].first;
@@ -404,11 +408,10 @@ namespace Pistachio
                 cmpList = cmdLists[0].list;
                 gfxList = cmdLists[0].list;
             }
-            
             if (passesSortedAndFence[gfx].second < computePassesSortedAndFence[cmp].second)
-                ExecuteGFXLevel(gfxIndex++, *gfxStage, cmpList);
+                ExecuteGFXLevel(gfxIndex++, *gfxStage, cmpList, gfxQueue);
             else
-                ExecuteCMPLevel(cmpIndex++, *cmpStage, gfxList);
+                ExecuteCMPLevel(cmpIndex++, *cmpStage, gfxList, cmpQueue);
         }
         this;
         RHI::GraphicsCommandList* cmpList;
@@ -423,13 +426,14 @@ namespace Pistachio
             cmpList = cmdLists[0].list;
             gfxList = cmdLists[0].list;
         }
-        while (gfxIndex < levelTransitionIndices.size()) ExecuteGFXLevel(gfxIndex++, *gfxStage, cmpList);
-        while (cmpIndex < computeLevelTransitionIndices.size()) ExecuteCMPLevel(cmpIndex++, *cmpStage, gfxList);
+        while (gfxIndex < levelTransitionIndices.size()) ExecuteGFXLevel(gfxIndex++, *gfxStage, cmpList, gfxQueue);
+        while (cmpIndex < computeLevelTransitionIndices.size()) ExecuteCMPLevel(cmpIndex++, *cmpStage, gfxList,cmpQueue);
 
         
     }
 
-    inline void RenderGraph::ExecuteGFXLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList)
+    inline void RenderGraph::ExecuteGFXLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList,
+    RHI::QueueFamily srcQueue)
     {
         RHI::GraphicsCommandList* currentList = cmdLists[RendererBase::MQ ? levelInd : 0].list;
         uint32_t j = levelInd == 0 ? 0 : levelTransitionIndices[levelInd - 1].first;
@@ -466,12 +470,12 @@ namespace Pistachio
                 range.IndexOrFirstMipLevel = tex.mipSlice;
                 range.NumArraySlices = tex.IsArray ? tex.sliceCount : 1;
                 range.NumMipLevels = tex.mipSliceCount;
-                if (tex.currentFamily != RHI::QueueFamily::Graphics)
+                if (tex.currentFamily != srcQueue)
                 {
                     auto& barr = textureRelease.emplace_back();
                     barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
                     barr.previousQueue = tex.currentFamily;
-                    barr.nextQueue = RHI::QueueFamily::Graphics;
+                    barr.nextQueue = srcQueue;
                     barr.texture = tex.texture;
                     barr.subresourceRange = range;
                     barr.oldLayout = tex.current_layout;
@@ -479,7 +483,7 @@ namespace Pistachio
                 }
                 if (
                     tex.current_layout != barriers[barrierCount].newLayout ||
-                    tex.currentFamily != RHI::QueueFamily::Graphics
+                    tex.currentFamily != srcQueue
                     )
                 {
                     //transition
@@ -487,9 +491,9 @@ namespace Pistachio
                     barriers[barrierCount].oldLayout = tex.current_layout;
                     barriers[barrierCount].texture = tex.texture;
                     barriers[barrierCount].subresourceRange = range;
-                    barriers[barrierCount].previousQueue = tex.currentFamily == RHI::QueueFamily::Graphics ? RHI::QueueFamily::Ignored : tex.currentFamily;
-                    barriers[barrierCount].nextQueue = tex.currentFamily == RHI::QueueFamily::Graphics ? RHI::QueueFamily::Ignored : RHI::QueueFamily::Graphics;
-                    tex.currentFamily = RHI::QueueFamily::Graphics;
+                    barriers[barrierCount].previousQueue = tex.currentFamily == srcQueue ? RHI::QueueFamily::Ignored : tex.currentFamily;
+                    barriers[barrierCount].nextQueue = tex.currentFamily == srcQueue ? RHI::QueueFamily::Ignored : srcQueue;
+                    tex.currentFamily = srcQueue;
                     tex.current_layout = barriers[barrierCount].newLayout;
                     barrierCount++;
                 }
@@ -525,12 +529,12 @@ namespace Pistachio
                 range.IndexOrFirstMipLevel = tex.mipSlice;
                 range.NumArraySlices = tex.IsArray ? tex.sliceCount : 1;
                 range.NumMipLevels = tex.mipSliceCount;
-                if (tex.currentFamily != RHI::QueueFamily::Graphics)
+                if (tex.currentFamily != srcQueue)
                 {
                     auto& barr = textureRelease.emplace_back();
                     barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
                     barr.previousQueue = tex.currentFamily;
-                    barr.nextQueue = RHI::QueueFamily::Graphics;
+                    barr.nextQueue = srcQueue;
                     barr.texture = tex.texture;
                     barr.subresourceRange = range;
                     barr.oldLayout = tex.current_layout;
@@ -539,7 +543,7 @@ namespace Pistachio
 
                 if (
                     tex.current_layout != barriers[barrierCount].newLayout ||
-                    tex.currentFamily != RHI::QueueFamily::Graphics
+                    tex.currentFamily != srcQueue
                     )
                 {
                     //temporary
@@ -548,9 +552,9 @@ namespace Pistachio
                     barriers[barrierCount].oldLayout = tex.current_layout;
                     barriers[barrierCount].texture = tex.texture;
                     barriers[barrierCount].subresourceRange = range;
-                    barriers[barrierCount].previousQueue = tex.currentFamily == RHI::QueueFamily::Graphics ? RHI::QueueFamily::Ignored : tex.currentFamily;
-                    barriers[barrierCount].nextQueue = tex.currentFamily == RHI::QueueFamily::Graphics ? RHI::QueueFamily::Ignored : RHI::QueueFamily::Graphics;
-                    tex.currentFamily = RHI::QueueFamily::Graphics;
+                    barriers[barrierCount].previousQueue = tex.currentFamily == srcQueue ? RHI::QueueFamily::Ignored : tex.currentFamily;
+                    barriers[barrierCount].nextQueue = tex.currentFamily == srcQueue ? RHI::QueueFamily::Ignored : srcQueue;
+                    tex.currentFamily = srcQueue;
                     tex.current_layout = barriers[barrierCount].newLayout;
                     barrierCount++;
                 }
@@ -582,12 +586,12 @@ namespace Pistachio
                 range.IndexOrFirstMipLevel = 0;
                 range.NumArraySlices = 1;
                 range.NumMipLevels = 1;
-                if (tex.currentFamily != RHI::QueueFamily::Graphics)
+                if (tex.currentFamily != srcQueue)
                 {
                     auto& barr = textureRelease.emplace_back();
                     barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
                     barr.previousQueue = tex.currentFamily;
-                    barr.nextQueue = RHI::QueueFamily::Graphics;
+                    barr.nextQueue = srcQueue;
                     barr.texture = tex.texture;
                     barr.subresourceRange = range;
                     barr.oldLayout = tex.current_layout;
@@ -595,7 +599,7 @@ namespace Pistachio
                 }
                 if (
                     tex.current_layout != RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
-                    tex.currentFamily != RHI::QueueFamily::Graphics
+                    tex.currentFamily != srcQueue
                     )
                 {
                     //temporary
@@ -608,8 +612,8 @@ namespace Pistachio
                     barriers[barrierCount].texture = tex.texture;
                     barriers[barrierCount].subresourceRange = range;
                     barriers[barrierCount].previousQueue = tex.currentFamily;
-                    barriers[barrierCount].nextQueue = RHI::QueueFamily::Graphics;
-                    tex.currentFamily = RHI::QueueFamily::Graphics;
+                    barriers[barrierCount].nextQueue = srcQueue;
+                    tex.currentFamily = srcQueue;
                     tex.current_layout = RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                     barrierCount++;
                 }
@@ -617,12 +621,12 @@ namespace Pistachio
             for (auto& input : pass->bufferInputs)
             {
                 RGBuffer& buff = buffers[input.buffer.buffOffset];
-                if (buff.currentFamily != RHI::QueueFamily::Graphics)
+                if (buff.currentFamily != srcQueue)
                 {
                     auto& barr = bufferRelease.emplace_back();
                     barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
                     barr.previousQueue = buff.currentFamily;
-                    barr.nextQueue = RHI::QueueFamily::Graphics;
+                    barr.nextQueue = srcQueue;
                     barr.offset = buff.offset;
                     barr.size = buff.size;
                     barr.buffer = buff.buffer;
@@ -630,17 +634,17 @@ namespace Pistachio
 
                 bufferBarriers[bufferBarrierCount].AccessFlagsAfter = InputDstAccess(input.usage);
                 if (
-                    buff.currentFamily != RHI::QueueFamily::Graphics
+                    buff.currentFamily != srcQueue
                     )
                 {
                     //transition
                     bufferBarriers[bufferBarrierCount].AccessFlagsBefore = InputSrcAccess(input.usage);
                     bufferBarriers[bufferBarrierCount].buffer = buff.buffer;
                     bufferBarriers[bufferBarrierCount].previousQueue = buff.currentFamily;
-                    bufferBarriers[bufferBarrierCount].nextQueue = RHI::QueueFamily::Graphics;
+                    bufferBarriers[bufferBarrierCount].nextQueue = srcQueue;
                     bufferBarriers[bufferBarrierCount].offset = buff.offset;
                     bufferBarriers[bufferBarrierCount].size = buff.size;
-                    buff.currentFamily = RHI::QueueFamily::Graphics;
+                    buff.currentFamily = srcQueue;
                     bufferBarrierCount++;
                 }
             }
@@ -648,28 +652,28 @@ namespace Pistachio
             {
                 RGBuffer& buff = buffers[output.buffer.buffOffset];
                 bufferBarriers[bufferBarrierCount].AccessFlagsAfter = OutputDstAccess(output.usage);
-                if (buff.currentFamily != RHI::QueueFamily::Graphics)
+                if (buff.currentFamily != srcQueue)
                 {
                     auto& barr = bufferRelease.emplace_back();
                     barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
                     barr.previousQueue = buff.currentFamily;
-                    barr.nextQueue = RHI::QueueFamily::Graphics;
+                    barr.nextQueue = srcQueue;
                     barr.offset = buff.offset;
                     barr.size = buff.size;
                     barr.buffer = buff.buffer;
                 }
                 if (
-                    buff.currentFamily != RHI::QueueFamily::Graphics
+                    buff.currentFamily != srcQueue
                     )
                 {
                     //transition
                     bufferBarriers[bufferBarrierCount].AccessFlagsBefore = OutputSrcAccess(output.usage);
                     bufferBarriers[bufferBarrierCount].buffer = buff.buffer;
                     bufferBarriers[bufferBarrierCount].previousQueue = buff.currentFamily;
-                    bufferBarriers[bufferBarrierCount].nextQueue = RHI::QueueFamily::Compute;
+                    bufferBarriers[bufferBarrierCount].nextQueue = srcQueue;
                     bufferBarriers[bufferBarrierCount].offset = buff.offset;
                     bufferBarriers[bufferBarrierCount].size = buff.size;
-                    buff.currentFamily = RHI::QueueFamily::Graphics;
+                    buff.currentFamily = srcQueue;
                     bufferBarrierCount++;
                 }
             }
@@ -690,7 +694,8 @@ namespace Pistachio
         prevList->ReleaseBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::TOP_OF_PIPE_BIT, bufferRelease.size(), bufferRelease.data(), textureRelease.size(), textureRelease.data());
     }
 
-    inline void RenderGraph::ExecuteCMPLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList)
+    inline void RenderGraph::ExecuteCMPLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList,
+    RHI::QueueFamily srcQueue)
     {
         RHI::GraphicsCommandList* currentList =RendererBase::MQ ? computeCmdLists[levelInd].list : cmdLists[0].list;
         uint32_t j = levelInd == 0 ? 0 : computeLevelTransitionIndices[levelInd - 1].first;
@@ -714,12 +719,12 @@ namespace Pistachio
                 range.IndexOrFirstMipLevel = tex.mipSlice;
                 range.NumArraySlices = 1;
                 range.NumMipLevels = 1;
-                if (tex.currentFamily != RHI::QueueFamily::Compute)
+                if (tex.currentFamily != srcQueue)
                 {
                     auto& barr = textureRelease.emplace_back();
                     barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
                     barr.previousQueue = tex.currentFamily;
-                    barr.nextQueue = RHI::QueueFamily::Compute;
+                    barr.nextQueue = srcQueue;
                     barr.texture = tex.texture;
                     barr.subresourceRange = range;
                     barr.oldLayout = tex.current_layout;
@@ -727,7 +732,7 @@ namespace Pistachio
                 }
                 if (
                     tex.current_layout != barriers[barrierCount].newLayout ||
-                    tex.currentFamily != RHI::QueueFamily::Compute
+                    tex.currentFamily != srcQueue
                     )
                 {
                     //temporary
@@ -738,8 +743,8 @@ namespace Pistachio
                     barriers[barrierCount].texture = tex.texture;
                     barriers[barrierCount].subresourceRange = range;
                     barriers[barrierCount].previousQueue = tex.currentFamily;
-                    barriers[barrierCount].nextQueue = RHI::QueueFamily::Compute;
-                    tex.currentFamily = RHI::QueueFamily::Compute;
+                    barriers[barrierCount].nextQueue = srcQueue;
+                    tex.currentFamily = srcQueue;
                     tex.current_layout = barriers[barrierCount].newLayout;
                     barrierCount++;
                 }
@@ -755,12 +760,12 @@ namespace Pistachio
                 range.IndexOrFirstMipLevel = tex.mipSlice;
                 range.NumArraySlices = 1;
                 range.NumMipLevels = 1;
-                if (tex.currentFamily != RHI::QueueFamily::Compute)
+                if (tex.currentFamily != srcQueue)
                 {
                     auto& barr = textureRelease.emplace_back();
                     barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
                     barr.previousQueue = tex.currentFamily;
-                    barr.nextQueue = RHI::QueueFamily::Compute;
+                    barr.nextQueue = srcQueue;
                     barr.texture = tex.texture;
                     barr.subresourceRange = range;
                     barr.oldLayout = tex.current_layout;
@@ -768,7 +773,7 @@ namespace Pistachio
                 }
                 if (
                     tex.current_layout != barriers[barrierCount].newLayout ||
-                    tex.currentFamily != RHI::QueueFamily::Compute
+                    tex.currentFamily != srcQueue
                     )
                 {
                     //temporary
@@ -779,8 +784,8 @@ namespace Pistachio
                     barriers[barrierCount].texture = tex.texture;
                     barriers[barrierCount].subresourceRange = range;
                     barriers[barrierCount].previousQueue = tex.currentFamily;
-                    barriers[barrierCount].nextQueue = RHI::QueueFamily::Compute;
-                    tex.currentFamily = RHI::QueueFamily::Compute;
+                    barriers[barrierCount].nextQueue = srcQueue;
+                    tex.currentFamily = srcQueue;
                     tex.current_layout = barriers[barrierCount].newLayout;
                     barrierCount++;
                 }
@@ -790,28 +795,28 @@ namespace Pistachio
             {
                 RGBuffer& buff = buffers[input.buffer.buffOffset];
                 bufferBarriers[bufferBarrierCount].AccessFlagsAfter = InputDstAccess(input.usage);
-                if (buff.currentFamily != RHI::QueueFamily::Compute)
+                if (buff.currentFamily != srcQueue)
                 {
                     auto& barr = bufferRelease.emplace_back();
                     barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
                     barr.previousQueue = buff.currentFamily;
-                    barr.nextQueue = RHI::QueueFamily::Compute;
+                    barr.nextQueue = srcQueue;
                     barr.offset = buff.offset;
                     barr.size = buff.size;
                     barr.buffer = buff.buffer;
                 }
                 if (
-                    buff.currentFamily != RHI::QueueFamily::Compute
+                    buff.currentFamily != srcQueue
                     )
                 {
                     //transition
                     bufferBarriers[bufferBarrierCount].AccessFlagsBefore = InputSrcAccess(input.usage);
                     bufferBarriers[bufferBarrierCount].buffer = buff.buffer;
                     bufferBarriers[bufferBarrierCount].previousQueue = buff.currentFamily;
-                    bufferBarriers[bufferBarrierCount].nextQueue = RHI::QueueFamily::Compute;
+                    bufferBarriers[bufferBarrierCount].nextQueue = srcQueue;
                     bufferBarriers[bufferBarrierCount].offset = buff.offset;
                     bufferBarriers[bufferBarrierCount].size = buff.size;
-                    buff.currentFamily = RHI::QueueFamily::Compute;
+                    buff.currentFamily = srcQueue;
                     bufferBarrierCount++;
                 }
             }
@@ -819,28 +824,28 @@ namespace Pistachio
             {
                 RGBuffer& buff = buffers[output.buffer.buffOffset];
                 bufferBarriers[bufferBarrierCount].AccessFlagsAfter = OutputDstAccess(output.usage);
-                if (buff.currentFamily != RHI::QueueFamily::Compute)
+                if (buff.currentFamily != srcQueue)
                 {
                     auto& barr = bufferRelease.emplace_back();
                     barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
                     barr.previousQueue = buff.currentFamily;
-                    barr.nextQueue = RHI::QueueFamily::Compute;
+                    barr.nextQueue = srcQueue;
                     barr.offset = buff.offset;
                     barr.size = buff.size;
                     barr.buffer = buff.buffer;
                 }
                 if (
-                    buff.currentFamily != RHI::QueueFamily::Compute
+                    buff.currentFamily != srcQueue
                     )
                 {
                     //transition
                     bufferBarriers[bufferBarrierCount].AccessFlagsBefore = OutputSrcAccess(output.usage);
                     bufferBarriers[bufferBarrierCount].buffer = buff.buffer;
                     bufferBarriers[bufferBarrierCount].previousQueue = buff.currentFamily;
-                    bufferBarriers[bufferBarrierCount].nextQueue = RHI::QueueFamily::Compute;
+                    bufferBarriers[bufferBarrierCount].nextQueue = srcQueue;
                     bufferBarriers[bufferBarrierCount].offset = buff.offset;
                     bufferBarriers[bufferBarrierCount].size = buff.size;
-                    buff.currentFamily = RHI::QueueFamily::Compute;
+                    buff.currentFamily = srcQueue;
                     bufferBarrierCount++;
                 }
             }
