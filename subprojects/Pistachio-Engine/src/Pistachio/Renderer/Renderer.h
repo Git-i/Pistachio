@@ -37,7 +37,7 @@ namespace Pistachio {
 		RHI::DynamicDescriptor* transformBufferDescPS;
 	};
 	struct PISTACHIO_API Light {
-		DirectX::XMFLOAT3 position;// for directional lights this is direction
+		DirectX::XMFLOAT3 position;
 		LightType type;
 		DirectX::XMFLOAT3 color;
 		float intensity;

@@ -39,6 +39,12 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     Pistachio::OnMouseScroll(xoffset, yoffset);
 }
+void window_close(GLFWwindow* window)
+{
+	glfwDestroyWindow(window);
+	glfwTerminate();
+	exit(0);
+}
 
 
 namespace Pistachio {
@@ -69,6 +75,7 @@ namespace Pistachio {
         glfwSetKeyCallback(pd.window, key_callback);
         glfwSetCursorPosCallback(pd.window, cursor_position_callback);
         glfwSetScrollCallback(pd.window, scroll_callback);
+		glfwSetWindowCloseCallback(pd.window, window_close);
         return 0;
 	}
 	void LinuxWindow::Shutdown()

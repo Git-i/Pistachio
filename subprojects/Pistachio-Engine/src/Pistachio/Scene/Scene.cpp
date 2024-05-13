@@ -1,3 +1,6 @@
+#include "ptpch.h"
+#include "Pistachio/Core/Math.h"
+#include <cstdint>
 #define NOMINMAX //temporary till i find the root file to include this
 #include "Scene.h"
 #include "ptpch.h"
@@ -90,7 +93,6 @@ static DirectX::XMMATRIX GetLightMatrixFromCamera(const DirectX::XMMATRIX& camVi
 	const DirectX::XMMATRIX lightProjection = DirectX::XMMatrixOrthographicOffCenterLH(minX, maxX, minY, maxY, minZ, maxZ);
 	return DirectX::XMMatrixMultiplyTranspose(lightView, lightProjection);
 }
-static RHI::Viewport vp[4];
 static const uint32_t clusterAABBsize = ((sizeof(float) * 4) * 2);
 namespace Pistachio {
 	static bool RenderSpotShadow(ShadowCastingLight& light, entt::registry& reg)
@@ -144,19 +146,20 @@ namespace Pistachio {
 		zPrepass.CreateStack(resolution.x, resolution.y, 1, RHI::Format::D32_FLOAT);
 		finalRender.CreateStack(resolution.x, resolution.y, 1, RHI::Format::R16G16B16A16_FLOAT);
 		shadowMarker.CreateStack(nullptr, sizeof(uint32_t));
+		shadowMapAtlas.CreateStack(1024, 1024,1, RHI::Format::D32_FLOAT);
 
 		ComputeShader* shd_buildClusters = Renderer::GetBuiltinComputeShader("Build Clusters");
 		ComputeShader* shd_activeClusters = Renderer::GetBuiltinComputeShader("Filter Clusters");
 		ComputeShader* shd_tightenList = Renderer::GetBuiltinComputeShader("Tighten Clusters");
 		ComputeShader* shd_cullLights = Renderer::GetBuiltinComputeShader("Cull Lights");
-		Shader* shd_default = Renderer::GetBuiltinShader("Z-Prepass");
+		Shader* shd_prepass = Renderer::GetBuiltinShader("Z-Prepass");
 		Shader* shd_fwd = assetMan->GetShaderResource(assetMan->CreateShaderAsset("Default Shader"))->GetShader();
-		Shader* shd_sptShadow = Renderer::GetBuiltinShader("Spot Shadow Shader");
+		Shader* shd_Shadow = Renderer::GetBuiltinShader("Shadow Shader");
 		for (uint32_t i = 0; i < RendererBase::numFramesInFlight; i++)
 		{
 			passCB[i].CreateStack(nullptr, sizeof(PassConstants));
 			shd_buildClusters->GetShaderBinding(passCBinfoCMP[i], 1);
-			shd_default->GetVSShaderBinding(passCBinfoGFX[i], 1);
+			shd_prepass->GetVSShaderBinding(passCBinfoGFX[i], 1);
 			shd_fwd->GetVSShaderBinding(passCBinfoVS_PS[i], 1);
 
 			BufferBindingUpdateDesc bbud;
@@ -184,9 +187,8 @@ namespace Pistachio {
 		sceneInfo.UpdateSamplerBinding(Renderer::defaultSampler, 8);
 		sceneInfo.UpdateSamplerBinding(Renderer::shadowSampler, 9);
 
-		shd_sptShadow->GetVSShaderBinding(shadowSetInfo, 1);
+		shd_Shadow->GetVSShaderBinding(shadowSetInfo, 1);
 		shadowSetInfo.UpdateBufferBinding(lightList.GetID(), 0, lightListSize, RHI::DescriptorType::StructuredBuffer, 0);
-		shadowSetInfo.UpdateBufferBinding(shadowMarker.GetID(), 0, sizeof(uint32_t), RHI::DescriptorType::StructuredBuffer, 1);
 
 		shd_buildClusters->GetShaderBinding(buildClusterInfo, 0);
 		buildClusterInfo.UpdateBufferBinding(clusterAABB.GetID(), 0, clusterBufferSize, RHI::DescriptorType::CSBuffer, 0);
@@ -207,13 +209,15 @@ namespace Pistachio {
 
 		RGTextureHandle depthTex = graph.CreateTexture(&zPrepass);
 		finalRenderTex = graph.CreateTexture(&finalRender);
-		RGTextureHandle shadowMap = graph.CreateTexture(&Renderer::shadowMapAtlas);
+		RGTextureHandle shadowMap = graph.CreateTexture(&shadowMapAtlas);
 		RGBufferHandle clustersBuffer = graph.CreateBuffer(clusterAABB.GetID(), 0, clusterBufferSize);
 		RGBufferHandle sparseActiveClusterBuffer = graph.CreateBuffer(sparseActiveClustersBuffer_lightIndices.GetID(), 0, sizeof(uint32_t) * numClusters * 50);
 		RGBufferHandle ActiveClusterBuffer = graph.CreateBuffer(activeClustersBuffer.GetID(), 0, numClusters * sizeof(uint32_t));
 		RGBufferInstance LightIndices = graph.MakeUniqueInstance(sparseActiveClusterBuffer);//we alias the sparse buffer
 		RGBufferHandle LightList = graph.CreateBuffer(lightList.GetID(), 0, lightListSize);//light list is transient as it switches queue families
 		RGBufferHandle LightGrid = graph.CreateBuffer(lightGrid.GetID(), 0, numClusters * 4 * sizeof(uint32_t));
+
+
 		AttachmentInfo a_info;
 		BufferAttachmentInfo b_info;
 		Matrix4 view = Matrix4::CreateLookAt({ 0,3,-10 }, { 0,0,0 }, { 0,1,0 });;
@@ -243,7 +247,7 @@ namespace Pistachio {
 			passCB[i].Update(&pc, sizeof(PassConstants), 0);
 		}
 
-		RenderPass& zprepass = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Z-Prepass");
+		RenderPass& zprepass = graph.AddPass(RHI::PipelineStage::LATE_FRAGMENT_TESTS_BIT, "Z-Prepass");
 		{
 			a_info.format = RHI::Format::D32_FLOAT;//?
 			a_info.loadOp = RHI::LoadOp::Clear;
@@ -251,7 +255,7 @@ namespace Pistachio {
 			a_info.texture = depthTex;
 			zprepass.SetDepthStencilOutput(&a_info);
 			zprepass.SetPassArea({ {0,0}, resolution });
-			zprepass.SetShader(Renderer::GetBuiltinShader("Z-Prepass"));
+			zprepass.SetShader(shd_prepass);
 			zprepass.pass_fn = [this](RHI::GraphicsCommandList* list) 
 				{
 					RHI::Viewport vp;
@@ -261,7 +265,7 @@ namespace Pistachio {
 					vp.maxDepth = 1;
 					vp.x = vp.y = 0;
 					list->SetViewports(1, &vp);
-					RHI::Area2D rect = { 0,0,sceneResolution[0],sceneResolution[1]};
+					RHI::Area2D rect = { {0,0},{sceneResolution[0],sceneResolution[1]}};
 					list->SetScissorRects(1, &rect);
 					Shader* shd = Renderer::GetBuiltinShader("Z-Prepass");
 					list->SetRootSignature(shd->GetRootSignature());
@@ -274,26 +278,80 @@ namespace Pistachio {
 						auto& meshc = m_Registry.get<MeshRendererComponent>(entity);
 						Model* model = assetMan->GetModelResource(meshc.Model);
 						Mesh& mesh = model->meshes[meshc.modelIndex];
-						list->BindDynamicDescriptor(shd->GetRootSignature(), Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
+						list->BindDynamicDescriptor(Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
 						Renderer::Submit(list, mesh.GetVBHandle(), mesh.GetIBHandle(), sizeof(Vertex));
 					}
 				};
 		}
-		RenderPass& dirShadow = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Directional Shadow");
+		RenderPass& dirShadow = graph.AddPass(RHI::PipelineStage::LATE_FRAGMENT_TESTS_BIT, "Directional Shadow");
 		{
 			a_info.format = RHI::Format::D32_FLOAT;//?
 			a_info.loadOp = RHI::LoadOp::Load;
-			a_info.usage = AttachmentUsage::Graphics;
+			a_info.usage = AttachmentUsage::Unspec;
 			a_info.texture = shadowMap;
+			b_info.buffer = LightList;
+			b_info.usage = AttachmentUsage::Graphics;
 			dirShadow.SetDepthStencilOutput(&a_info);
+			dirShadow.AddBufferOutput(&b_info);
 			dirShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });
-			//dirShadow.SetShader(nullptr);
+			dirShadow.SetShader(shd_Shadow);
 			dirShadow.pass_fn = [this](RHI::GraphicsCommandList* list) 
 				{
-					
+					RHI::RenderingAttachmentDesc attachDesc{};
+					attachDesc.clearColor = { 1,1,1,1 };
+					attachDesc.ImageView = RendererBase::GetCPUHandle(Renderer::shadowMapAtlas.DSView);
+					attachDesc.loadOp = RHI::LoadOp::Clear;
+					attachDesc.storeOp = RHI::StoreOp::Store;
+					RHI::RenderingBeginDesc rbDesc{};
+					rbDesc.pDepthStencilAttachment = &attachDesc;
+
+					AssetManager* assetMan = GetAssetManager();
+					uint32_t baseOffset = (regularLights.size() * sizeof(RegularLight)) / (sizeof(float) * 4);
+					uint32_t offsetMul = sizeof(ShadowCastingLight) / (sizeof(float) * 4);
+					uint32_t index = 0;
+					Shader* shd = Renderer::GetBuiltinShader("Shadow Shader");
+					for (auto& light : shadowLights)
+					{
+						if ((light.light.type != LightType::Directional) || !isShadowDirty[index]) 
+						{ index++; continue; }
+
+						RHI::Viewport vp[4];
+						vp[0].height = light.shadowMap.size.y/2; vp[0].width = light.shadowMap.size.x/2;
+						vp[0].minDepth = 0; vp[0].maxDepth = 1;
+						vp[0].x = light.shadowMap.offset.x; vp[0].y = light.shadowMap.offset.y;
+						vp[1] = vp[2] = vp[3] = vp[0];
+
+						vp[1].x += vp[1].width; vp[2].y += vp[2].height; vp[3].y += vp[3].height; vp[3].x += vp[3].width;
+
+						RHI::Area2D rect = { {(int)vp[0].x,(int)vp[0].y},{(uint32_t)vp[0].width*2, (uint32_t)vp[0].height*2 }};
+						
+						shd->ApplyBinding(list, shadowSetInfo);
+						list->SetScissorRects(1, &rect);
+						auto meshes = m_Registry.view<MeshRendererComponent>();
+						rbDesc.renderingArea = { {(int)light.shadowMap.offset.x,(int)light.shadowMap.offset.y},
+							{light.shadowMap.size.x, light.shadowMap.size.y} };
+						list->BeginRendering(&rbDesc);
+						uint32_t offset_cascade[2] = {baseOffset + (index * offsetMul),0};
+						for (auto entity : meshes)
+						{
+							auto& meshc = meshes.get<MeshRendererComponent>(entity);
+							Model* model = assetMan->GetModelResource(meshc.Model);
+							Mesh& mesh = model->meshes[meshc.modelIndex];
+							list->BindDynamicDescriptor(Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
+							for(uint32_t i = 0; i < 4; i++)
+							{
+								list->SetViewports(1, &vp[i]);
+								offset_cascade[1] = i;
+								list->PushConstant(1,2,offset_cascade,0);
+								Renderer::Submit(list, mesh.GetVBHandle(), mesh.GetIBHandle(), sizeof(Vertex));
+							}
+						}
+						list->EndRendering();
+						index++;
+					}
 				};
 		}
-		RenderPass& pntShadow = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Point Shadow");
+		RenderPass& pntShadow = graph.AddPass(RHI::PipelineStage::LATE_FRAGMENT_TESTS_BIT, "Point Shadow");
 		{
 			a_info.format = RHI::Format::D32_FLOAT;//?
 			a_info.loadOp = RHI::LoadOp::Load;//dont clear the shadow map
@@ -315,7 +373,7 @@ namespace Pistachio {
 			b_info.usage = AttachmentUsage::Graphics;
 			sptShadow.SetDepthStencilOutput(&a_info);
 			sptShadow.AddBufferOutput(&b_info);
-			sptShadow.SetShader(Renderer::GetBuiltinShader("Spot Shadow Shader"));
+			sptShadow.SetShader(shd_Shadow);
 			sptShadow.pass_fn = [this](RHI::GraphicsCommandList* list)
 				{
 					RHI::RenderingAttachmentDesc attachDesc{};
@@ -330,7 +388,7 @@ namespace Pistachio {
 					uint32_t baseOffset = (regularLights.size() * sizeof(RegularLight)) / (sizeof(float) * 4);
 					uint32_t offsetMul = sizeof(ShadowCastingLight) / (sizeof(float) * 4);
 					uint32_t index = 0;
-					Shader* shd = Renderer::GetBuiltinShader("Spot Shadow Shader");
+					Shader* shd = Renderer::GetBuiltinShader("Shadow Shader");
 					for (auto& light : shadowLights)
 					{
 						if ((light.light.type != LightType::Spot) || !isShadowDirty[index] || !RenderSpotShadow(light, m_Registry)) 
@@ -340,20 +398,21 @@ namespace Pistachio {
 						vp.minDepth = 0; vp.maxDepth = 1;
 						vp.x = light.shadowMap.offset.x; vp.y = light.shadowMap.offset.y;
 						list->SetViewports(1, &vp);
-						RHI::Area2D rect = { vp.x,vp.y,vp.width, vp.height };
+						RHI::Area2D rect = { {(int)vp.x,(int)vp.y},{(uint32_t)vp.width, (uint32_t)vp.height }};
 						shd->ApplyBinding(list, shadowSetInfo);
 						list->SetScissorRects(1, &rect);
-						list->MarkBuffer(shadowMarker.GetID(), 0, baseOffset + (index * offsetMul));
+						uint32_t offset[2] = {baseOffset + (index * offsetMul),0};
+						list->PushConstant(1,2,offset,0);
 						auto meshes = m_Registry.view<MeshRendererComponent>();
-						rbDesc.renderingArea = { (int)light.shadowMap.offset.x,(int)light.shadowMap.offset.y,
-							light.shadowMap.size.x, light.shadowMap.size.y };
+						rbDesc.renderingArea = { {(int)light.shadowMap.offset.x,(int)light.shadowMap.offset.y},
+							{light.shadowMap.size.x, light.shadowMap.size.y} };
 						list->BeginRendering(&rbDesc);
 						for (auto entity : meshes)
 						{
 							auto& meshc = meshes.get<MeshRendererComponent>(entity);
 							Model* model = assetMan->GetModelResource(meshc.Model);
 							Mesh& mesh = model->meshes[meshc.modelIndex];
-							list->BindDynamicDescriptor(shd->GetRootSignature(), Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
+							list->BindDynamicDescriptor(Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
 							Renderer::Submit(list, mesh.GetVBHandle(), mesh.GetIBHandle(), sizeof(Vertex));
 						}
 						list->EndRendering();
@@ -489,7 +548,7 @@ namespace Pistachio {
 						Mesh& mesh = model->meshes[meshc.modelIndex];
 						shd->ApplyBinding(list, passCBinfoVS_PS[RendererBase::GetCurrentFrameIndex()]);
 						shd->ApplyBinding(list, sceneInfo);
-						list->BindDynamicDescriptor(shd->GetRootSignature(), Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
+						list->BindDynamicDescriptor(Renderer::GetCBDesc(), 0, Renderer::GetCBOffset(meshc.handle));
 						Renderer::Submit(list, mesh.GetVBHandle(), mesh.GetIBHandle(), sizeof(Vertex));
 					}
 				};
@@ -1334,6 +1393,14 @@ namespace Pistachio {
 		}
 		DEBUG_BREAK;
 	}
+	//Pratical Subdivision Scheme, i(index), n(num cascades), lambda(number btw 0 and 1)
+	static float pss(int i, int n, float lambda, float near, float far)
+	{
+    	float uni = ((far-near)/((float)n)) * ((float)i) + near;
+    	float log = near * powf((far/near), ((float)i)/((float)n));
+    
+    	return lambda*uni + (1-lambda)*log;
+	}
 	void Scene::FrustumCull(const Matrix4& view, const Matrix4& proj, float fovRad, float nearClip, float farClip, float aspect)
 	{
 		auto mesh_transform = m_Registry.view<MeshRendererComponent, TransformComponent>();
@@ -1390,27 +1457,36 @@ namespace Pistachio {
 				if (lightcomponent.Type == LightType::Directional)
 				{
 					sclight = &*shadowLights.insert(shadowLights.begin(),ShadowCastingLight());
+					sclight->light = light;
 					numShadowDirLights++;
 					dirty = true;
 					allocation_size = { 256 * 4, 256 * 4 };
-					DirectX::XMStoreFloat4x4(&sclight->projection[0],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, nearClip, 30.f), light, 1.05f));
-					DirectX::XMStoreFloat4x4(&sclight->projection[1],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, 30.f, 100.f), light, 1.2f));
-					DirectX::XMStoreFloat4x4(&sclight->projection[2],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, 100.f, 500.f), light, 1.2f));
-					DirectX::XMStoreFloat4x4(&sclight->projection[3],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, 500.f, farClip), light, 1.2f));
+					float pss_vals[3];
+					for(uint32_t i = 0; i < 3; i++) pss_vals[i] = pss(i+1,4,0.3,nearClip,farClip);
+					/*
+						Massive Hack, But for a directional light, the translation doesn't matter, so we store the cascade plane distances there
+					*/
+					sclight->light.position = Vector3(pss_vals);
+					DirectX::XMStoreFloat4x4(&sclight->projection[0],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, nearClip, pss_vals[0]), light, 1.05f));
+					DirectX::XMStoreFloat4x4(&sclight->projection[1],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, pss_vals[0], pss_vals[1]), light, 1.2f));
+					DirectX::XMStoreFloat4x4(&sclight->projection[2],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, pss_vals[1], pss_vals[2]), light, 1.2f));
+					DirectX::XMStoreFloat4x4(&sclight->projection[3],GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(fovRad, aspect, pss_vals[2], farClip), light, 1.2f));
 				}
 				else if (lightcomponent.Type == LightType::Spot)
 				{
 					sclight = &shadowLights.emplace_back();
+					sclight->light = light;
 					allocation_size = { 512, 512 };
 					DirectX::XMStoreFloat4x4(&sclight->projection[0],DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(tc.Translation, DirectX::XMVectorAdd(tc.Translation, DirectX::XMLoadFloat4(&light.rotation)), DirectX::XMVectorSet(0, 1, 0, 0)) * DirectX::XMMatrixPerspectiveFovLH(DirectX::XMScalarACos(lightcomponent.exData.x) * 2, 1, 0.1f, lightcomponent.exData.z)));
 				}
 				else if (lightcomponent.Type == LightType::Point)
 				{
 					sclight = &shadowLights.emplace_back();
+					sclight->light = light;
 					allocation_size = { 256 * 3, 256 * 2 };
 					//todo : Handle point light matrices;
 				}
-				sclight->light = light;
+				
 				if (tc.bDirty) dirty = true;
 				if (lightcomponent.shadowMap != 0) // if there was a shadow map dont allocate a new one unnecessarily
 				{

@@ -142,8 +142,9 @@ float4 main(PSINTPUT input) : SV_TARGET
     
     float2 tileSize = float2(screenSize) / float2(numClusters.xy);
     //uint zslice = getSlice(input.depthViewSpace, scale, bias);
-    float4 temp = mul(float4(input.WorldPos, 1.0), View);
-    uint zslice = getSlice(temp.z,scale,bias);
+    float4 viewSpace = mul(float4(input.WorldPos, 1.0), View);
+    float depthViewSpace = viewSpace.z;
+    uint zslice = getSlice(depthViewSpace,scale,bias);
     
     uint3 cluster = uint3(uint2(input.pos.xy / tileSize), zslice);
     float4 colors[6] =
@@ -202,20 +203,23 @@ float4 main(PSINTPUT input) : SV_TARGET
 
         Lo += (kD * diffuse.xyz / PI + specular) * radiance * NdotL;
     }
+    int shadowMaplayer = 3;
+
     for (int shd_i = entry.shadow_offset; shd_i < entry.size + entry.offset;shd_i++)
     {
         ShadowCastingLight light = ShadowLight(lightIndices[shd_i]);
         // -------------Calculate shadow and continue if object is occluded---------- //
-        float4 lightSpacePos = mul(float4(WorldPos, 1.0), light.projection[0]);
-        lightSpacePos = lightSpacePos / lightSpacePos.w;
         float shadow = 1.f;
         if (light.light.type == 2)
+        {
+            float4 lightSpacePos = mul(float4(WorldPos, 1.0), light.projection[0]);
+            lightSpacePos = lightSpacePos / lightSpacePos.w;
             shadow = SpotShadow(lightSpacePos.xyz, light.shadowMapOffset, light.shadowMapSize);
+        }
+        
         //return shadow.xxxx;
         // -------------Evaluate L and Attenuation-----------------//
-        float3 Ls[3] = { normalize(light.light.rotation.xyz), normalize(light.light.position - WorldPos), float3(0, 0, 0) };
-        Ls[2] = Ls[1];
-        float3 L = Ls[light.light.type];
+        float3 L = normalize(light.light.position - WorldPos);
         
         float distance = length(light.light.position - WorldPos);
         float window = Window(distance, light.light.exData.z);
@@ -243,7 +247,48 @@ float4 main(PSINTPUT input) : SV_TARGET
 
         Lo += (kD * diffuse.xyz / PI + specular) * radiance * NdotL * shadow;
     }
-        float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    for(uint dir_shd_i = numRegularLights * RegularLightStepSize; 
+        dir_shd_i <  (numShadowDirLights * ShadowLightStepSize) + (numRegularLights * RegularLightStepSize); dir_shd_i += ShadowLightStepSize)
+    {
+        ShadowCastingLight light = ShadowLight(dir_shd_i);
+        float cascadePlaneDistances[4] = {light.light.position.xyz, zFar};
+        if (depthViewSpace <= cascadePlaneDistances[3])
+        {
+            shadowMaplayer = 3;
+        }
+        if (depthViewSpace <= cascadePlaneDistances[2])
+        {
+            shadowMaplayer = 2;
+        }
+        if (depthViewSpace <= cascadePlaneDistances[1])
+        {
+            shadowMaplayer = 1;
+        }
+        if (depthViewSpace <= cascadePlaneDistances[0])
+        {
+            shadowMaplayer = 0;
+        }
+        float4 lightSpacePos = mul(float4(WorldPos, 1.0), light.projection[shadowMaplayer]);
+        lightSpacePos = lightSpacePos / lightSpacePos.w;
+        float shadow = DirShadow(lightSpacePos.xyz, shadowMaplayer, light.shadowMapOffset, light.shadowMapSize);
+        float3 L = normalize(light.light.rotation.xyz);
+        float NdotL = dot(N, L);
+        NdotL = max(NdotL, 0.0);
+        float3 H = normalize(V + L);
+        float3 radiance = (light.light.colorxintensity.xyz) * light.light.colorxintensity.w;
+        float NDF = DistributionGGX(N, H, roughness);
+        float G = GeometrySmith(N, V, L, roughness);
+        float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+        float3 kS = F;
+        float3 kD = float3(1.0, 1.0, 1.0) - kS;
+        kD *= 1.0 - metallic;
+        float3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+        float3 specular = numerator / max(denominator, 0.001);
+
+        Lo += (kD * diffuse.xyz / PI + specular) * radiance * NdotL * shadow;
+    }
+    float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
     float3 kS = F;
     float3 kD = 1.0 - kS;
@@ -328,8 +373,8 @@ float DirShadow(float3 projCoords, int layer, uint2 Offset, uint2 Size)
     {
         return 0.0;
     }
-    float2 offset_uv = Offset / 4096.f.xx;
-    float2 size_uv = Size / 8196.f.xx;
+    float2 offset_uv = Offset / 1024.f.xx;
+    float2 size_uv = Size / 2048.f.xx;
     projCoords.xy *= size_uv;
     float4 x = { offset_uv.x, offset_uv.x + size_uv.x, offset_uv.x, offset_uv.x + size_uv.x };
     float4 y = { offset_uv.y, offset_uv.x, offset_uv.y + size_uv.y, offset_uv.y + size_uv.y };

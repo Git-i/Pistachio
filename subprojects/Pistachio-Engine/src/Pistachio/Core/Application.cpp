@@ -31,7 +31,7 @@ namespace Pistachio {
 			RendererBase::Init(&m_Window->pd, ropt);
 		}
 		else RendererBase::Init(NULL, ropt);
-		Renderer::Init("resources/textures/hdr/Alexs_Apt_2k.hdr");
+		Renderer::Init("resources/textures/hdr/golden_bay_1k.hdr");
 		Renderer2D::Init();
 		std::cout << "phys time" << std::endl;
 		//Physics::Init();

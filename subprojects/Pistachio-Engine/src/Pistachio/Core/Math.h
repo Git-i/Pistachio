@@ -16,8 +16,8 @@ namespace Pistachio
     struct iVector2
     {
         iVector2() : x(0), y(0) {};
-        iVector2(std::uint32_t _x, std::uint32_t _y) : x(_x), y(_y) {};
-        std::uint32_t x, y;
+        iVector2(uint32_t _x, uint32_t _y) : x(_x), y(_y) {};
+        uint32_t x, y;
         iVector2 operator+(const iVector2& other)
         {
             return { x + other.x, y + other.y };
@@ -57,7 +57,7 @@ namespace Pistachio
     };
     struct hiVector2
     {
-        std::uint16_t x, y;
+        uint16_t x, y;
         hiVector2(iVector2 vec) : x(vec.x), y(vec.y) {}
         hiVector2() : x(0), y(0) {}
     };

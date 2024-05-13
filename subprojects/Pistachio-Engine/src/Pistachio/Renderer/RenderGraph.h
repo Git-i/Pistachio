@@ -25,14 +25,16 @@ namespace Pistachio
 		RGBuffer& operator=(const RGBuffer&) = default;
 	private:
 		friend class RenderGraph;
-		RGBuffer(RHI::Buffer* _buffer, uint32_t _offset, uint32_t _size, RHI::QueueFamily family) :
+		RGBuffer(RHI::Buffer* _buffer, uint32_t _offset, uint32_t _size, RHI::QueueFamily family, RHI::ResourceAcessFlags access) :
 			buffer(_buffer),
 			currentFamily(family),
 			offset(_offset),
 			size  (_size),
-			numInstances(1)
+			numInstances(1),
+			currentAccess(access)
 		{}
 		RHI::Buffer* buffer;
+		RHI::ResourceAcessFlags currentAccess;
 		RHI::QueueFamily currentFamily;
 		uint32_t offset;
 		uint32_t size;
@@ -62,20 +64,22 @@ namespace Pistachio
 		friend class RenderGraph;
 		friend class Renderer;
 		friend class Scene;
-		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice, uint32_t numSlices,uint32_t numMips) :
+		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice, uint32_t numSlices,uint32_t numMips, RHI::ResourceAcessFlags access) :
 			texture(_texture),
 			current_layout(layout),
 			mipSlice(MipSlice),
+			mipSliceCount(numMips),
 			IsArray(isArray),
 			arraySlice(Slice),
-			currentFamily(family),
-			numInstances(1),
 			sliceCount(numSlices),
-			mipSliceCount(numMips)
+			currentFamily(family),
+			currentAccess(access),
+			numInstances(1)
 		{}
 		
 		RHI::Texture* texture;
 		RHI::ResourceLayout current_layout;
+		RHI::ResourceAcessFlags currentAccess;
 		uint32_t mipSlice;
 		uint32_t mipSliceCount;
 		bool IsArray;
@@ -94,7 +98,7 @@ namespace Pistachio
 		uint32_t instID;
 		bool operator==(const RGTextureInstance& other) const
 		{
-			return (texOffset == other.texOffset) && (instID == instID);
+			return (texOffset == other.texOffset) && (instID == other.instID);
 		}
 		bool operator!=(const RGTextureInstance& other) const
 		{
@@ -174,6 +178,7 @@ namespace Pistachio
 		RHI::Area2D area;
 		const char* name;//temp
 		RHIPtr<RHI::PipelineStateObject> pso = nullptr;
+		RHIPtr<RHI::RootSignature> rsig = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
 		std::vector<BufferAttachmentInfo> bufferInputs;
@@ -196,6 +201,7 @@ namespace Pistachio
 	private:
 		friend class RenderGraph;
 		RHIPtr<RHI::ComputePipeline> computePipeline = nullptr;
+		RHIPtr<RHI::RootSignature> rsig = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
 		std::vector<BufferAttachmentInfo> bufferInputs;

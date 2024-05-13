@@ -436,7 +436,7 @@ namespace Pistachio {
 
 	void Shader::ApplyBinding(RHI::GraphicsCommandList* list,const SetInfo& info)
 	{
-		list->BindDescriptorSet(rootSig, info.set, info.setIndex);
+		list->BindDescriptorSet(info.set, info.setIndex);
 	}
 
 	
@@ -744,6 +744,7 @@ namespace Pistachio {
 	void ComputeShader::Bind(RHI::GraphicsCommandList* list)
 	{
 		//set the root signature too
+		list->SetRootSignature(rSig);
 		list->SetComputePipeline(pipeline);
 	}
 
@@ -760,7 +761,7 @@ namespace Pistachio {
 
 	void ComputeShader::ApplyShaderBinding(RHI::GraphicsCommandList* list, const SetInfo& info)
 	{
-		list->BindComputeDescriptorSet(rSig, info.set, info.setIndex);
+		list->BindComputeDescriptorSet(info.set, info.setIndex);
 	}
 
 	ComputeShader* ComputeShader::CreateWithRs(const RHI::ShaderCode& code, RHI::ShaderMode mode, RHI::RootSignature* rSig)
