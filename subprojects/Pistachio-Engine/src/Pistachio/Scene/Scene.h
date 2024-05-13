@@ -109,6 +109,7 @@ namespace Pistachio {
 		SetInfo cullLightsInfo;
 		SetInfo sceneInfo;
 		SetInfo shadowSetInfo;
+		DepthTexture shadowMapAtlas;
 		PassConstants passCBInfo;
 		DepthTexture zPrepass;
 		RenderTexture finalRender;

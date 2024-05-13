@@ -1,9 +1,9 @@
 #include "ptpch.h"
 #include "Renderer.h"
-#include "Renderer2D.h"
 #include "Material.h"
+#include "../Scene/Scene.h"
 #include "Pistachio/Core/Window.h"
-#include "DirectX11/DX11Texture.h"
+#include "Pistachio/Core/Math.h"
 DirectX::XMMATRIX Pistachio::Renderer::viewproj = DirectX::XMMatrixIdentity();
 DirectX::XMVECTOR Pistachio::Renderer::m_campos = DirectX::XMVectorZero();
 Pistachio::Texture2D Pistachio::Renderer::BrdfTex;
@@ -54,8 +54,7 @@ std::vector<uint32_t>    Pistachio::Renderer::vbUnusedHandles;
 std::vector<uint32_t>    Pistachio::Renderer::cbHandleOffsets;
 std::vector<uint32_t>    Pistachio::Renderer::cbUnusedHandles; 
 
-static uint32_t     numDirtyCBFrames;
- void (*Pistachio::Renderer::CBInvalidated)() = nullptr;
+void (*Pistachio::Renderer::CBInvalidated)() = nullptr;
 static const uint32_t VB_INITIAL_SIZE = 1024;
 static const uint32_t IB_INITIAL_SIZE = 1024;
 static const uint32_t INITIAL_NUM_LIGHTS = 20;
@@ -287,16 +286,20 @@ namespace Pistachio {
 		{
 			if (layouts[i]) layouts[i]->Release();
 		}
-		RHI::DescriptorRange shadowRanges[2];
+		RHI::DescriptorRange shadowRanges[1];
 		Pistachio::Helpers::FillDescriptorRange(shadowRanges + 0, 1, 0, RHI::ShaderStage::Vertex, RHI::DescriptorType::StructuredBuffer);
-		Pistachio::Helpers::FillDescriptorRange(shadowRanges + 1, 1, 1, RHI::ShaderStage::Vertex, RHI::DescriptorType::StructuredBuffer);
-		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 1, 2, 1, shadowRanges);
-		
+		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 1, 1, 1, shadowRanges);
+		rpDesc[2].type = RHI::RootParameterType::PushConstant;
+		rpDesc[2].pushConstant.bindingIndex = 1;
+		rpDesc[2].pushConstant.numConstants = 2;
+		rpDesc[2].pushConstant.offset = 0;
+		rpDesc[2].pushConstant.stage = RHI::ShaderStage::Vertex;
+		rsDesc.numRootParameters = 3;
 		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
 		//shadow shaders
-		ShaderDesc.VS = RHI::ShaderCode{ (char*)"resources/shaders/vertex/Compiled/SpotShadow_vs",0 };
+		ShaderDesc.VS = RHI::ShaderCode{ (char*)"resources/shaders/vertex/Compiled/Shadow_vs",0 };
 		ShaderDesc.RasterizerModes->cullMode = RHI::CullMode::Front;
-		shaders["Spot Shadow Shader"] = Shader::CreateWithRs(&ShaderDesc, rs, layouts, 2);
+		shaders["Shadow Shader"] = Shader::CreateWithRs(&ShaderDesc, rs, layouts, 2);
 		rs->Release();
 		for (int i = 0; i < 2; i++)
 		{
@@ -309,7 +312,7 @@ namespace Pistachio {
 		brdfShader->GetShaderBinding(brdfTexInfo, 0);
 		brdfTexInfo.UpdateTextureBinding(BrdfTex.GetView(), 0, RHI::DescriptorType::CSTexture);
 		RHI::TextureMemoryBarrier barr;
-		barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
+		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_WRITE;barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
 		barr.newLayout = RHI::ResourceLayout::GENERAL;
 		barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
 		barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
@@ -327,7 +330,9 @@ namespace Pistachio {
 		RendererBase::mainCommandList->Dispatch(512,512,1);
 		barr.oldLayout = RHI::ResourceLayout::GENERAL;
 		barr.newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
-		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 0, 0, 1, &barr);
+		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::SHADER_WRITE;
+		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
+		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::FRAGMENT_SHADER_BIT, 0, 0, 1, &barr);
 
 		
 		ChangeSkybox(skyboxFile);
@@ -341,9 +346,7 @@ namespace Pistachio {
 		tex.CreateStack(filename, RHI::Format::R32G32B32A32_FLOAT);
 
 		static Mesh cube;
-		static Mesh plane;
 		cube.CreateStack("cube.obj");
-		plane.CreateStack("plane.obj");
 
 
 		//probably remove this
@@ -358,7 +361,6 @@ namespace Pistachio {
 		CameraCB.CreateStack(nullptr, 256*6);//add padding
 		
 		//fbo.CreateStack(512, 512, 6);
-		float clearcolor[] = { 0.7f, 0.7f, 0.7f, 1.0f };
 		DirectX::XMMATRIX captureProjection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f), 1.0f, 0.1f, 10.0f);
 		DirectX::XMMATRIX captureViews[] =
 		{
@@ -410,7 +412,7 @@ namespace Pistachio {
 			info.texture = skyboxFaces[i];
 			auto& eqpass = skyboxRG.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Equirectangular to cubemap");
 			eqpass.AddColorOutput(&info);
-			eqpass.SetPassArea({0,0,512,512});
+			eqpass.SetPassArea({{0,0},{512,512}});
 			eqpass.SetShader(eqShader);
 			eqpass.pass_fn = [&,i](RHI::GraphicsCommandList* list)
 				{
@@ -420,7 +422,7 @@ namespace Pistachio {
 					vp.maxDepth = 1;
 					vp.x = vp.y = 0;
 					list->SetViewports(1, &vp);
-					RHI::Area2D rect = { 0,0,512,512 };
+					RHI::Area2D rect = { {0,0},{512,512} };
 					list->SetScissorRects(1, &rect);
 					list->BindVertexBuffers(0, 1, &meshVertices->ID);
 					list->BindIndexBuffer(meshIndices, 0);
@@ -442,7 +444,7 @@ namespace Pistachio {
 				info.texture = skyboxFaces[j];
 				irradiancePass.AddColorInput(&info);//inject pass dependency
 			}
-			irradiancePass.SetPassArea({ 0,0,32,32 });
+			irradiancePass.SetPassArea({ {0,0},{32,32} });
 			irradiancePass.SetShader(irradianceShader);
 			AttachmentInfo irrInfo;
 			irrInfo.loadOp = RHI::LoadOp::Load;
@@ -457,7 +459,7 @@ namespace Pistachio {
 					vp.maxDepth = 1;
 					vp.x = vp.y = 0;
 					list->SetViewports(1, &vp);
-					RHI::Area2D rect = { 0,0,32,32 };
+					RHI::Area2D rect = { {0,0},{32,32} };
 					list->SetScissorRects(1, &rect);
 					list->BindVertexBuffers(0, 1, &meshVertices->ID);
 					list->BindIndexBuffer(meshIndices, 0);
@@ -495,7 +497,7 @@ namespace Pistachio {
 				info.format = RHI::Format::R16G16B16A16_FLOAT;
 				info.texture = prefilterRGTextures[mipFaceIndex];
 				prefilterPass.AddColorOutput(&info);
-				prefilterPass.SetPassArea({ 0,0,mipWidth,mipHeight });
+				prefilterPass.SetPassArea({ {0,0},{mipWidth,mipHeight} });
 				prefilterPass.SetShader(prefilterShader);
 				mipFaceIndex++;
 				prefilterPass.pass_fn = [&, i, mip,mipWidth,mipHeight](RHI::GraphicsCommandList* list)
@@ -506,7 +508,7 @@ namespace Pistachio {
 						vp.maxDepth = 1;
 						vp.x = vp.y = 0;
 						list->SetViewports(1, &vp);
-						RHI::Area2D rect = { 0,0,mipWidth,mipHeight };
+						RHI::Area2D rect = { {0,0},{mipWidth,mipHeight} };
 						list->SetScissorRects(1, &rect);
 						list->BindVertexBuffers(0, 1, &meshVertices->ID);
 						list->BindIndexBuffer(meshIndices, 0);
@@ -719,8 +721,19 @@ namespace Pistachio {
 		RHI::AutomaticAllocationInfo allocInfo;
 		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
 		RendererBase::device->CreateBuffer(&desc, &newVB, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic);
+		RHI::BufferMemoryBarrier barr;
+		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_READ;
+		barr.buffer = meshVertices;
+		barr.nextQueue = barr.previousQueue = RHI::QueueFamily::Ignored;
+		barr.size = vbCapacity;
+		barr.offset = 0;
+		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, 1,&barr,0,0);
 		//Queue it with staging stuff
 		RendererBase::stagingCommandList->CopyBufferRegion(0, 0, vbCapacity, meshVertices, newVB);
+		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+		barr.buffer = newVB;
+		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, 1,&barr,0,0);
 		//wait until copy is finished?
 		RendererBase::FlushStagingBuffer();
 		//before destroying old buffer, wait for old frames to render
@@ -744,7 +757,18 @@ namespace Pistachio {
 		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
 		RendererBase::device->CreateBuffer(&desc, &newIB, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic);
 		//Queue it with staging stuff
+		RHI::BufferMemoryBarrier barr;
+		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_READ;
+		barr.buffer = meshIndices;
+		barr.nextQueue = barr.previousQueue = RHI::QueueFamily::Ignored;
+		barr.size = ibCapacity;
+		barr.offset = 0;
+		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, 1,&barr,0,0);
 		RendererBase::stagingCommandList->CopyBufferRegion(0, 0, ibCapacity, meshIndices, newIB);
+		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+		barr.buffer = newIB;
+		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, 1,&barr,0,0);
 		//wait until copy is finished?
 		RendererBase::FlushStagingBuffer();
 		//before destroying old buffer, wait for old frames to render

@@ -125,6 +125,6 @@ namespace Pistachio
 		Shader* shd = shader_asset->GetShader();
 		shd->Bind(list);
 		shd->ApplyBinding(list, mtlInfo);
-		list->BindDynamicDescriptor(shd->GetRootSignature(), Renderer::GetCBDescPS(), 4, Renderer::GetCBOffset(parametersBuffer));
+		list->BindDynamicDescriptor(Renderer::GetCBDescPS(), 4, Renderer::GetCBOffset(parametersBuffer));
 	}
 }

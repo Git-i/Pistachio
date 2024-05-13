@@ -21,7 +21,7 @@ namespace Pistachio {
         if (!Pistachio::Error::CheckFileExistence(path))
             return Error(ErrorType::NonExistentFile, std::string(__FUNCTION__) + ", filename: " + path);
         Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded | aiProcess_GenBoundingBoxes);
+        const aiScene* scene = importer.ReadFile(path, aiProcess_GenNormals | aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded | aiProcess_GenBoundingBoxes);
         if (!scene)
         {
             PT_CORE_ERROR(importer.GetErrorString());
@@ -72,16 +72,11 @@ namespace Pistachio {
             vertex.position.y = mesh->mVertices[i].y;
             vertex.position.z = mesh->mVertices[i].z;
             // normals
-            if (mesh->HasNormals())
-            {
-                vertex.normal.x = mesh->mNormals[i].x;
-                vertex.normal.y = mesh->mNormals[i].y;
-                vertex.normal.z = mesh->mNormals[i].z;
-            }
-            else 
-                vertex.normal = { 0.f, 0.f, 0.f };
+            vertex.normal.x = mesh->mNormals[i].x;
+            vertex.normal.y = mesh->mNormals[i].y;
+            vertex.normal.z = mesh->mNormals[i].z;
             // texture coordinates
-            if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
+            if (mesh->mTextureCoords[0])
             {
                 // a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
                 // use models where a vertex can have multiple texture coordinates so we always take the first set (0).

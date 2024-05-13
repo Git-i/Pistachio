@@ -43,7 +43,17 @@ std::vector<Pistachio::TrackedDescriptorHeap> Pistachio::RendererBase::samplerHe
 std::vector<Pistachio::SamplerHandle> Pistachio::RendererBase::freeSamplers;
 static const uint32_t STAGING_BUFFER_INITIAL_SIZE = 80 * 1024 * 1024; //todo: reduce this
 namespace Pistachio {
-	
+	static uint32_t SwapImageCount(std::pair<uint32_t, uint32_t> minMax, uint32_t preferred)
+	{
+		PT_CORE_ASSERT(preferred >= 1);
+		uint32_t chosen;
+		if (minMax.second == 0) minMax.second = UINT32_MAX;
+		chosen = minMax.first;
+		//we opt for at least double buffering if available
+		uint32_t max_available = std::min(preferred, minMax.second);
+		if(chosen < max_available) chosen = max_available;
+		return chosen;
+	}
 	void RendererBase::Shutdown()
 	{
 	}
@@ -52,10 +62,10 @@ namespace Pistachio {
 		RHI::TextureMemoryBarrier barr{};
 		if (!headless)
 		{
-			barr.oldLayout = (RHI::ResourceLayout::TRANSFER_DST_OPTIMAL);
-			barr.newLayout = (RHI::ResourceLayout::PRESENT);
-			barr.AccessFlagsBefore = (RHI::ResourceAcessFlags::NONE);
-			barr.AccessFlagsAfter = (RHI::ResourceAcessFlags::NONE);
+			barr.oldLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
+			barr.newLayout = RHI::ResourceLayout::PRESENT;
+			barr.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+			barr.AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
 			barr.subresourceRange.imageAspect = RHI::Aspect::COLOR_BIT,
 				barr.subresourceRange.IndexOrFirstMipLevel = 0,
 				barr.subresourceRange.NumMipLevels = 1,
@@ -71,7 +81,6 @@ namespace Pistachio {
 		fence_vals[currentFrameIndex] = ++currentFenceVal;
 		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
 		if(!headless) swapChain->Present(currentRTVindex, swapCycleIndex);
-		device->QueueWaitIdle(directQueue);
 		//cycle frame Index
 		swapCycleIndex = (swapCycleIndex +1)%numSwapImages;
 		currentFrameIndex = (currentFrameIndex + 1) % 3;
@@ -147,7 +156,7 @@ namespace Pistachio {
 			height = ((WindowData*)GetWindowDataPtr())->height;
 			width  = ((WindowData*)GetWindowDataPtr())->width;
 			RHI::SwapChainDesc sDesc;
-			sDesc.BufferCount = 3; //todo probably allow triple buffering
+			sDesc.BufferCount = SwapImageCount(instance->GetSwapChainMinMaxImageCount(physicalDevice, &surface), 2);
 			sDesc.Flags = 0;
 			sDesc.Height = height;
 			sDesc.Width = width;
