@@ -57,9 +57,13 @@ namespace Pistachio {
 		void OnUpdateRuntime(float delta);
 		void OnViewportResize(unsigned int width, unsigned int height);
 		void DestroyEntity(Entity entity);
+		void DefferedDelete(Entity entity);
 		template<typename _ComponentTy> auto GetAllComponents() { return m_Registry.view<_ComponentTy>(); }
 		Entity GetRootEntity();
 		Entity GetPrimaryCameraEntity();
+		Entity GetEntityByUUID(UUID id);
+		Entity GetEntityByName(const std::string& name);
+		std::vector<Entity> GetAllEntitesWithName(const std::string& name);
 		void UpdatePassConstants(const Matrix4& view, const SceneCamera& cam, const Vector3& camPos, float delta);
 		void UpdatePassConstants(const EditorCamera& cam, float delta);
 		const RenderTexture& GetFinalRender();
@@ -78,6 +82,7 @@ namespace Pistachio {
 		std::vector<ShadowCastingLight> shadowLights;
 		std::vector<RegularLight> regularLights;
 		std::vector<bool> isShadowDirty;
+		std::vector<entt::entity> deletionQueue;
 		uint32_t numShadowDirLights = 0;
 		uint32_t numRegularDirLights = 0;
 		AtlasAllocator sm_allocator;
@@ -110,7 +115,6 @@ namespace Pistachio {
 		SetInfo sceneInfo;
 		SetInfo shadowSetInfo;
 		DepthTexture shadowMapAtlas;
-		PassConstants passCBInfo;
 		DepthTexture zPrepass;
 		RenderTexture finalRender;
 		ConstantBuffer passCB[RendererBase::numFramesInFlight];

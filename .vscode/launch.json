@@ -9,6 +9,15 @@
             "cwd": "${workspaceRoot}/Sandbox",
             "preLaunchTask": "Meson: Build Sandbox-app:executable"
         },
+        {
+            "name": "Debug Tests with Meson",
+            "type": "cppdbg",
+            "request": "launch",
+            "MIMode": "gdb",
+            "program": "${workspaceRoot}/builddir/subprojects/Pistachio-Engine/Pistachio-Tests",
+            "cwd": "${workspaceRoot}/subprojects/Pistachio-Engine/tests",
+            "preLaunchTask": "Meson: Build subprojects/Pistachio-Engine/Pistachio-Tests:executable"
+        },
         
     ],
     "version": "2.0.0"

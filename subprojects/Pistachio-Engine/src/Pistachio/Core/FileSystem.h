@@ -1,5 +1,7 @@
 #pragma once
-
+#include "ptpch.h"
+#include <cstddef>
+#include <fstream>
 namespace Pistachio
 {
 	/*
@@ -11,10 +13,13 @@ namespace Pistachio
 	class File
 	{
 	public:
+		bool IsOpen();
+		size_t GetSize();
 		void ReadAllToBuf(std::vector<char>& buf);
 		void ReadAllToBuf(char* buf);
 		void ReadToBuf(std::vector<char>& buf, uint32_t numBytes);
 		void ReadToBuf(char* buf, uint32_t numBytes);
+		std::fstream& GetFile();
 	private:
 		friend class FileSystem;
 		std::fstream file;
@@ -25,6 +30,6 @@ namespace Pistachio
 	class FileSystem
 	{
 	public:
-		static File OpenFile(const std::string& in);
+		static File* OpenFile(const std::string& in);
 	};
 }

@@ -7,6 +7,7 @@
 #include "Pistachio/Allocators/AtlasAllocator.h"
 #include "Pistachio/Core/Property.h"
 #include "Entity.h"
+#include "Pistachio/Scene/Scene.h"
 namespace Pistachio{
 	// Generic ----------------------------------------------------------------------------------
 	struct PISTACHIO_API IDComponent
@@ -18,7 +19,7 @@ namespace Pistachio{
 		{}
 	};
 	struct PISTACHIO_API ParentComponent {
-		std::int64_t parentID = 0;
+		entt::entity parentID = entt::null;
 	};
 	struct PISTACHIO_API TagComponent {
 		std::string Tag;
@@ -52,8 +53,8 @@ namespace Pistachio{
 			NumNegativeScaleComps = 0;
 			for (int i = 0; i < 3; i++)
 				if (((float*)&Scale)[i] < 0) NumNegativeScaleComps++;
-			int64_t PID = parent.GetComponent<ParentComponent>().parentID;
-			DirectX::XMMATRIX parentTransform = PID >= 0 ? (parent.GetComponent<TransformComponent>().GetTransform({ (entt::entity)PID, parent.m_Scene})) : parent.GetComponent<TransformComponent>().GetLocalTransform();
+			entt::entity PID = parent.GetComponent<ParentComponent>().parentID;
+			DirectX::XMMATRIX parentTransform = PID != entt::null ? (parent.GetComponent<TransformComponent>().GetTransform({ PID, parent.m_Scene})) : parent.GetComponent<TransformComponent>().GetLocalTransform();
 			return (DirectX::XMMatrixScalingFromVector(Scale) * DirectX::XMMatrixRotationQuaternion(Rotation) * DirectX::XMMatrixTranslationFromVector(Translation)) * parentTransform;
 		}
 		DirectX::XMMATRIX GetLocalTransform() const

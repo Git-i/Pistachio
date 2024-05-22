@@ -125,7 +125,7 @@ namespace Pistachio {
 		//envshader = new Shader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso");
 		//envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		PT_PROFILE_FUNCTION();
-		CreateEntity("Root").GetComponent<ParentComponent>().parentID = -1;
+		CreateEntity("Root").GetComponent<ParentComponent>().parentID = entt::null;
 		ScreenSpaceQuad = MeshFactory::CreatePlane();
 		RHI::UVector2D resolution = { (uint32_t)desc.Resolution.x, (uint32_t)desc.Resolution.y };
 		sceneResolution[0] = resolution.x;
@@ -568,7 +568,7 @@ namespace Pistachio {
 	}
 	Entity Scene::DuplicateEntity(Entity entity)
 	{
-		if (entity.GetComponent<ParentComponent>().parentID == -1)
+		if (entity.GetComponent<ParentComponent>().parentID == entt::null)
 			return entity;
 		Entity newEntity = CreateEntity(entity.GetComponent<TagComponent>().Tag + "-Copy");
 		newEntity.GetComponent<TransformComponent>() = entity.GetComponent<TransformComponent>();
@@ -585,7 +585,7 @@ namespace Pistachio {
 	{
 		Entity entity = { m_Registry.create(), this };
 		entity.AddComponent<IDComponent>(ID);
-		entity.AddComponent<ParentComponent>(0);
+		entity.AddComponent<ParentComponent>((entt::entity)0);
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		char id[100] = {'E','n','t','i','t', 'y', '0', '0', '0', '\0'};
@@ -677,10 +677,20 @@ namespace Pistachio {
 		auto view = m_Registry.view<ParentComponent>();
 		for (auto child : view)
 		{
-			if (view.get<ParentComponent>(child).parentID == (std::uint32_t)entity)
+			if (view.get<ParentComponent>(child).parentID == entity)
 				DestroyEntity(Entity(child, this));
 		}
 		m_Registry.destroy(entity);
+	}
+	void Scene::DefferedDelete(Entity entity)
+	{
+		auto view = m_Registry.view<ParentComponent>();
+		for (auto child : view)
+		{
+			if (view.get<ParentComponent>(child).parentID == entity)
+				DefferedDelete(Entity(child, this));
+		}
+		deletionQueue.push_back(entity);
 	}
 	Entity Scene::GetRootEntity()
 	{
@@ -688,7 +698,7 @@ namespace Pistachio {
 		auto view = m_Registry.view<ParentComponent>();
 		for (auto entity : view)
 		{
-			if (view.get<ParentComponent>(entity).parentID == -1)
+			if (view.get<ParentComponent>(entity).parentID == entt::null)
 				return Entity(entity, this);
 		}
 		return Entity();
@@ -705,6 +715,47 @@ namespace Pistachio {
 				return Entity(entity, this);
 		}
 		return Entity();
+	}
+	Entity Scene::GetEntityByUUID(UUID id)
+	{
+		auto view = m_Registry.view<IDComponent>();
+		Entity retVal = Entity(entt::null, this);
+		for(auto entity : view)
+		{
+			auto [in_id] = view.get(entity);
+			if(in_id.uuid == id)
+			{
+				retVal = Entity(entity, this);
+				break;
+			}
+		}
+		return retVal;
+	}
+	Entity Scene::GetEntityByName(const std::string& name)
+	{
+		auto view = m_Registry.view<TagComponent>();
+		Entity retVal = Entity(entt::null, this);
+		for(auto entity : view)
+		{
+			auto [tag] = view.get(entity);
+			if(tag.Tag == name)
+			{
+				retVal = Entity(entity, this);
+				break;
+			}
+		}
+		return retVal;
+	}
+	std::vector<Entity> Scene::GetAllEntitesWithName(const std::string& name)
+	{
+		auto view = m_Registry.view<TagComponent>();
+		std::vector<Entity> retVal;
+		for(auto entity : view)
+		{
+			auto [tag] = view.get(entity);
+			if(tag.Tag == name) retVal.push_back(Entity(entity, this));
+		}
+		return retVal;
 	}
 	void Scene::UpdatePassConstants(const Matrix4& view, const SceneCamera& cam, const Vector3& camPos,float delta)
 	{
@@ -1096,7 +1147,7 @@ namespace Pistachio {
 		for (auto entity : transform_parent_view)
 		{
 			auto [tc,pc] = transform_parent_view.get(entity);
-			if (pc.parentID < 0) tc.worldSpaceTransform = tc.GetLocalTransform();
+			if (pc.parentID == entt::null) tc.worldSpaceTransform = tc.GetLocalTransform();
 			else tc.worldSpaceTransform = tc.GetTransform(Entity((entt::entity)pc.parentID,this));
 		}
 		FrustumCull(camera.GetViewMatrix(), camera.GetProjection(),Math::ToRadians(camera.GetFOVdeg()),camera.GetNearClip(), camera.GetFarClip(), camera.GetAspectRatio());
@@ -1135,8 +1186,10 @@ namespace Pistachio {
 		for (auto entity : transform_view)
 		{
 			auto [tc] = transform_view.get(entity);
-			//tc.bDirty = false;
+			tc.bDirty = false;
 		}
+		m_Registry.destroy(deletionQueue.begin(), deletionQueue.end());
+		deletionQueue.clear();
 	}
 	void Scene::OnUpdateRuntime(float delta)
 	{

@@ -11,6 +11,7 @@ float4 main(float3 localPos : WORLD_POSITION) : SV_TARGET
     float3 right = normalize(cross(up, normal));
     up = normalize(cross(normal, right));
 
+    
     float sampleDelta = 0.025;
     float nrSamples = 0.0;
     for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
@@ -26,7 +27,7 @@ float4 main(float3 localPos : WORLD_POSITION) : SV_TARGET
             nrSamples++;
         }
     }
-    irradiance = PI * irradiance * (1.0 / float(nrSamples)); //shaderTexture.Sample(textureSampler, normal).rgb * 0.3f;//
+    irradiance = PI * irradiance * (1.0 / float(nrSamples));
 
     return float4(irradiance, 1.0);
 }

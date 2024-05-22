@@ -17,7 +17,9 @@ namespace Pistachio {
 		Entity(const Entity& other) = default;
 		bool IsValid()
 		{
-			return m_Scene->m_Registry.valid(m_EntityHandle);
+			return 
+			m_Scene->m_Registry.valid(m_EntityHandle) &&
+			m_Scene->m_Registry.current(m_EntityHandle) == version;
 		}
 		template<typename T, typename... Args>
 		T& AddComponent(Args&&... args)
@@ -50,8 +52,9 @@ namespace Pistachio {
 		operator unsigned int() const { return (unsigned int)m_EntityHandle; }
 		bool operator==(const Entity& other) const { return m_EntityHandle == other.m_EntityHandle && m_Scene == other.m_Scene; }
 	private:
-		entt::entity m_EntityHandle = entt::null;
 		Scene* m_Scene = nullptr;
+		entt::entity m_EntityHandle = entt::null;
+		entt::entt_traits<entt::entity>::version_type version;
 		friend struct TransformComponent;
 	};
 }

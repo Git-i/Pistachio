@@ -14,6 +14,10 @@ glfw_opt.add_cmake_defines({'GLFW_BUILD_X11':get_option('linux_use_x11')})
 glfw3 = cmake.subproject('glfw',options: glfw_opt)
 glfw3_dep = glfw3.dependency('glfw')
 
+angelscript = subproject('angelscript')
+angelscript_dep = angelscript.get_variable('angelscript_dep')
+as_addons_dep = angelscript.get_variable('as_addons_dep')
+
 rhi = subproject('RHI')
 rhi_dep = rhi.get_variable('rhi_dep')
 
@@ -32,7 +36,16 @@ physx = subproject('physx')
 px_deps = physx.get_variable('px_all_deps')
 
 
-deps = [rhi_dep,yaml_dep,assimp_dep,imgui_dep,spdlog_dep,xxhash_dep,px_deps]
+deps = [
+    rhi_dep,
+    yaml_dep,
+    assimp_dep,
+    imgui_dep,
+    spdlog_dep,
+    xxhash_dep,
+    px_deps,
+    angelscript_dep,
+    as_addons_dep]
 
 inc_dirs = ['src/',
     'vendor/entt/include/',
@@ -76,9 +89,15 @@ sources = [
     'src/Pistachio/Asset/AssetManager.cpp',
     'src/Pistachio/Physics/Physics.cpp',
     'src/Pistachio/Allocators/FreeList.cpp',
+    'src/Pistachio/Scripting/AngelScript/script_file.cpp',
+    'src/Pistachio/Scripting/AngelScript/ScriptAPIBase.cpp',
+    'src/Pistachio/Scripting/AngelScript/ScriptAPI_ECS.cpp',
     'src/Pistachio/Allocators/AtlasAllocator.cpp',
     'vendor/SimpleMath/SimpleMath.cpp', #we don't need the entire DXTK
     'vendor/stb_image/stb_image.cpp'
+]
+tests_src = [
+    'tests/script_test.cpp'
 ]
 args = ['-DPAL_STDCPP_COMPAT','-D_DEBUG']
 if(build_machine.system() == 'linux')
@@ -95,3 +114,4 @@ lib = shared_library('Pistachio',sources,include_directories:inc,dependencies:de
 pistachio_dep = [
     declare_dependency(include_directories:inc, link_with:lib), deps
 ]
+exe = executable('Pistachio-Tests', tests_src,dependencies: pistachio_dep)

@@ -129,6 +129,7 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness);
 float DirShadow(float3 projCoords, int layer, uint2 Offset, uint2 Size);
 float SpotShadow(float3 projCoords, uint2 Offset, uint2 Size);
 float Window(float distance, float max_distance);
+float3 PBR(float3 N, float3 L, float3 V, Light light, float roughness, float attenuation, float3 diffuse, float3 F0, float metallic);
 uint getSlice(float z, float scale, float bias)
 {
     return (log10(z) * scale) - bias;
@@ -147,16 +148,6 @@ float4 main(PSINTPUT input) : SV_TARGET
     uint zslice = getSlice(depthViewSpace,scale,bias);
     
     uint3 cluster = uint3(uint2(input.pos.xy / tileSize), zslice);
-    float4 colors[6] =
-    {
-        float4(1, 0, 0, 0),
-        float4(1, 1, 0, 0),
-        float4(0, 0, 1, 0),
-        float4(0, 1, 1, 0),
-        float4(1, 0, 1, 0),
-        float4(0, 1, 0, 0)
-
-    };
     uint clusterIndex = cluster.x + (cluster.y * numClusters.x) + (cluster.z * numClusters.x * numClusters.y);
     
     LightGridEntry entry = lightGrid[clusterIndex];
@@ -173,9 +164,7 @@ float4 main(PSINTPUT input) : SV_TARGET
     {
         Light light = RegularLight(lightIndices[i]);
         // -------------Evaluate L and Attenuation-----------------//
-        float3 Ls[3] = { normalize(light.rotation.xyz), normalize(light.position - WorldPos), float3(0, 0, 0) };
-        Ls[2] = Ls[1];
-        float3 L = Ls[light.type];
+        float3 L = normalize(light.position - WorldPos);
         
         float distance = length(light.position - WorldPos);
         float window = Window(distance, light.exData.z);
@@ -183,25 +172,8 @@ float4 main(PSINTPUT input) : SV_TARGET
         float attenuations[3] = { 1, window / (distance * distance), window * t * t / (distance * distance) };
         float attenuation = attenuations[light.type];
         //-----------------------------------------------------------//
-        float NdotL = dot(N, L);
-        NdotL = max(NdotL, 0.0);
-        float3 H = normalize(V + L);
-        float3 radiance = (light.colorxintensity.xyz) * attenuation * light.colorxintensity.w;
 
-        // cook-torrance brdf
-        float NDF = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-        float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-        float3 kS = F;
-        float3 kD = float3(1.0, 1.0, 1.0) - kS;
-        kD *= 1.0 - metallic;
-
-        float3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-        float3 specular = numerator / max(denominator, 0.001);
-
-        Lo += (kD * diffuse.xyz / PI + specular) * radiance * NdotL;
+        Lo += PBR(N, L, V, light, roughness, attenuation, diffuse.xyz, F0, metallic);
     }
     int shadowMaplayer = 3;
 
@@ -227,25 +199,14 @@ float4 main(PSINTPUT input) : SV_TARGET
         float attenuations[3] = { 1, window / (distance * distance), window * t * t / (distance * distance) };
         float attenuation = attenuations[light.light.type];
         //-----------------------------------------------------------//
-        float NdotL = dot(N, L);
-        NdotL = max(NdotL, 0.0);
-        float3 H = normalize(V + L);
-        float3 radiance = (light.light.colorxintensity.xyz) * attenuation * light.light.colorxintensity.w;
 
-        // cook-torrance brdf
-        float NDF = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-        float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-        float3 kS = F;
-        float3 kD = float3(1.0, 1.0, 1.0) - kS;
-        kD *= 1.0 - metallic;
-
-        float3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-        float3 specular = numerator / max(denominator, 0.001);
-
-        Lo += (kD * diffuse.xyz / PI + specular) * radiance * NdotL * shadow;
+        Lo += PBR(N, L, V, light.light, roughness, attenuation, diffuse.xyz, F0, metallic) * shadow;
+    }
+    for(uint dir_i = 0; dir_i < numRegularDirLights * RegularLightStepSize; dir_i += RegularLightStepSize)
+    {
+        Light light = RegularLight(dir_i);
+        float3 L = normalize(light.rotation.xyz);
+        Lo += PBR(N, L, V, light, roughness, 1.0, diffuse.xyz, F0, metallic);
     }
     for(uint dir_shd_i = numRegularLights * RegularLightStepSize; 
         dir_shd_i <  (numShadowDirLights * ShadowLightStepSize) + (numRegularLights * RegularLightStepSize); dir_shd_i += ShadowLightStepSize)
@@ -272,21 +233,9 @@ float4 main(PSINTPUT input) : SV_TARGET
         lightSpacePos = lightSpacePos / lightSpacePos.w;
         float shadow = DirShadow(lightSpacePos.xyz, shadowMaplayer, light.shadowMapOffset, light.shadowMapSize);
         float3 L = normalize(light.light.rotation.xyz);
-        float NdotL = dot(N, L);
-        NdotL = max(NdotL, 0.0);
-        float3 H = normalize(V + L);
-        float3 radiance = (light.light.colorxintensity.xyz) * light.light.colorxintensity.w;
-        float NDF = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-        float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-        float3 kS = F;
-        float3 kD = float3(1.0, 1.0, 1.0) - kS;
-        kD *= 1.0 - metallic;
-        float3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-        float3 specular = numerator / max(denominator, 0.001);
+        
 
-        Lo += (kD * diffuse.xyz / PI + specular) * radiance * NdotL * shadow;
+        Lo += PBR(N, L, V, light.light, roughness, 1.0, diffuse.xyz, F0, metallic) * shadow;
     }
     float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
@@ -401,4 +350,21 @@ float SpotShadow(float3 projCoords, uint2 Offset, uint2 Size)
 float Window(float distance, float max_distance)
 {
     return pow(max((1 - pow((distance / max_distance), 4)), 0), 2);
+}
+float3 PBR(float3 N, float3 L, float3 V, Light light, float roughness, float attenuation, float3 diffuse,float3 F0, float metallic)
+{
+    float NdotL = dot(N, L);
+    NdotL = max(NdotL, 0.0);
+    float3 H = normalize(V + L);
+    float3 radiance = (light.colorxintensity.xyz) * attenuation * light.colorxintensity.w;
+    float NDF = DistributionGGX(N, H, roughness);
+    float G = GeometrySmith(N, V, L, roughness);
+    float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+    float3 kS = F;
+    float3 kD = float3(1.0, 1.0, 1.0) - kS;
+    kD *= 1.0 - metallic;
+    float3 numerator = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+    float3 specular = numerator / max(denominator, 0.001);
+    return (kD * diffuse / PI + specular) * radiance * NdotL;
 }
