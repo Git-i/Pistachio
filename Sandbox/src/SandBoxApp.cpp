@@ -64,6 +64,8 @@ public:
 	{
 		Entity e = scene.CreateEntity("Mesh");
 		auto& mrc = e.AddComponent<MeshRendererComponent>("torus.obj");
+		auto& lol = e.GetComponent<TransformComponent>();
+		lol.Translation.z -= 2.f;
 		e = scene.CreateEntity("Mesh2");
 		auto& mrc2 = e.AddComponent<MeshRendererComponent>("cube.obj");
 		auto& tc = e.GetComponent<TransformComponent>();
@@ -142,7 +144,7 @@ private:
 class Sandbox : public Pistachio::Application
 {
 public:
-	Sandbox() : Application("SandBoc", {false,0,0,0,0,0,0,0,0}) { PushLayer(new ExampleLayer("lol"));  }
+	Sandbox() : Application("SandBoc", {false,{0,0,0,0,0,0,0,0}}) { PushLayer(new ExampleLayer("lol"));  }
 	~Sandbox() { }
 private:
 };

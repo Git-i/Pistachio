@@ -1,3 +1,4 @@
+#include "Pistachio/Scene/Scene.h"
 #include "ptpch.h"
 #include "SceneSerializer.h"
 #include "Entity.h"
@@ -90,7 +91,7 @@ namespace Pistachio {
 			out << YAML::BeginMap;
 			auto pid = entity.GetComponent<ParentComponent>().parentID;
 			auto parent = Entity((entt::entity)entity.GetComponent<ParentComponent>().parentID, scene.get());
-			if(pid >= 0)
+			if(pid != entt::null)
 				out << YAML::Key << "ParentID" << YAML::Value << parent.GetComponent<IDComponent>().uuid;
 			else
 				out << YAML::Key << "ParentID" << YAML::Value << 0;
@@ -310,13 +311,13 @@ namespace Pistachio {
 				auto pida = parentComponent["ParentID"];
 				auto pid = pida.as<std::uint64_t>();
 				auto view = m_Scene->m_Registry.view<IDComponent>();
-				entities[i].GetComponent<ParentComponent>().parentID = -1;
+				entities[i].GetComponent<ParentComponent>().parentID = entt::null;
 				for (auto entt : view)
 				{
 					auto id = view.get<IDComponent>(entt);
 					if (pid == id.uuid)
 					{
-						entities[i].GetComponent<ParentComponent>().parentID = (std::uint32_t)entt;
+						entities[i].GetComponent<ParentComponent>().parentID = entt;
 					}
 				}
 				i++;
