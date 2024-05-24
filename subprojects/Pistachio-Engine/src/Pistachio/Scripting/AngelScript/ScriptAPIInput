@@ -142,11 +142,14 @@ namespace Pistachio
             }
             void Initialize()
             {
+                engine->SetDefaultNamespace("Pistachio::Input");
                 engine->RegisterEnum("KeyCode");
                 RegisterKeyCodes();
                 engine->RegisterGlobalFunction("bool IsKeyJustPressed(KeyCode code)",asFUNCTION(Input::IsKeyJustPressed),0);
                 engine->RegisterGlobalFunction("bool IsKeyDown(KeyCode code)",asFUNCTION(Input::IsKeyPressed),0);
+                engine->RegisterGlobalFunction("int GetMouseY(bool windowCoordinates = false)", asFUNCTION(Input::GetMouseY), asCALL_CDECL);
                 engine->RegisterGlobalFunction("int GetMouseX(bool windowCoordinates = false)", asFUNCTION(Input::GetMouseX), asCALL_CDECL);
+                engine->SetDefaultNamespace("");
             }
         }
     }

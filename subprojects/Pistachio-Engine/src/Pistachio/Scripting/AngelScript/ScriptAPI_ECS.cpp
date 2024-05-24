@@ -5,6 +5,7 @@
 #include "ScriptAPICommon.h"
 #include "scriptarray.h"
 #include <fstream>
+#include <unordered_map>
 namespace Pistachio
 {
     namespace Scripting
@@ -14,6 +15,25 @@ namespace Pistachio
             asITypeInfo* entityType;
             Entity current_e;
             Scene* current_s = nullptr;
+            std::unordered_map<Scene*, int> scene_ref_count; //used to keep track of reference counts for scenes used in script
+
+            /*
+            * Every Scene that goes into a script must be refcounted i.e
+            * registeres in the ref count map, this is done automatically for scenes created
+            * in a script.
+            */
+            void Scene_AddRef(Scene* scene)
+            {
+                scene_ref_count[scene]++;
+            }
+            void Scene_Release(Scene* scene)
+            {
+                int newRef = --scene_ref_count[scene];
+                if(!newRef)
+                {
+                    delete scene;
+                }
+            }
             CScriptArray* GetAllEntitiesWithName(Scene* scene, const std::string& name)
             {
                 auto entities = scene->GetAllEntitesWithName(name);
@@ -24,8 +44,12 @@ namespace Pistachio
             void Initialize()
             {
                 engine->SetDefaultNamespace("Pistachio::ECS");
-                engine->RegisterObjectType("Entity", sizeof(Entity), asOBJ_VALUE);
+                engine->RegisterObjectType("Entity", sizeof(Entity), asOBJ_VALUE | asGetTypeTraits<Entity>());
                 engine->RegisterObjectType("Scene", 0, asOBJ_REF);
+
+                engine->RegisterObjectBehaviour("Entity", asBEHAVE_CONSTRUCT, "Entity (const Entity& other)", asMETHOD(Entity, operator=), asCALL_THISCALL);
+                engine->RegisterObjectBehaviour("Scene", asBEHAVE_ADDREF, "void f()", asFUNCTION(Scene_AddRef), asCALL_CDECL_OBJFIRST);
+                engine->RegisterObjectBehaviour("Scene", asBEHAVE_RELEASE, "void f()", asFUNCTION(Scene_Release), asCALL_CDECL_OBJFIRST);
 
                 engine->RegisterObjectType("Transform", 0, asOBJ_REF | asOBJ_NOCOUNT);
                 engine->RegisterObjectType("MeshRenderer", 0, asOBJ_REF | asOBJ_NOCOUNT);
