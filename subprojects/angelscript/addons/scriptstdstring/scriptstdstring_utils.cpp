@@ -1,4 +1,5 @@
 #include <assert.h>
+#include "angelscript.h"
 #include "scriptstdstring.h"
 #include "../scriptarray/scriptarray.h"
 #include <stdio.h>
@@ -121,7 +122,7 @@ void RegisterStdStringUtils(asIScriptEngine *engine)
 		r = engine->RegisterGlobalFunction("string join(const array<string> &in, const string &in)", asFUNCTION(StringJoin_Generic), asCALL_GENERIC); assert(r >= 0);
 	}
 	else
-	{
+	{	
 		r = engine->RegisterObjectMethod("string", "array<string>@ split(const string &in) const", asFUNCTION(StringSplit), asCALL_CDECL_OBJLAST); assert(r >= 0);
 		r = engine->RegisterGlobalFunction("string join(const array<string> &in, const string &in)", asFUNCTION(StringJoin), asCALL_CDECL); assert(r >= 0);
 	}

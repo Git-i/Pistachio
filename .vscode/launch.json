@@ -6,7 +6,18 @@
             "request": "launch",
             "MIMode": "gdb",
             "program": "${workspaceRoot}/builddir/Sandbox-app",
-            "cwd": "${workspaceRoot}/Sandbox",
+            "cwd": "${workspaceRoot}/Sandbox","setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
             "preLaunchTask": "Meson: Build Sandbox-app:executable"
         },
         {
@@ -15,7 +26,7 @@
             "request": "launch",
             "MIMode": "gdb",
             "program": "${workspaceRoot}/builddir/subprojects/Pistachio-Engine/Pistachio-Tests",
-            "cwd": "${workspaceRoot}/subprojects/Pistachio-Engine/tests",
+            "cwd": "${workspaceRoot}/Sandbox",
             "preLaunchTask": "Meson: Build subprojects/Pistachio-Engine/Pistachio-Tests:executable"
         },
         

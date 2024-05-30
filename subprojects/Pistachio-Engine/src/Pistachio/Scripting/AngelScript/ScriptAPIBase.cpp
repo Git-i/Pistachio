@@ -1,9 +1,12 @@
+#include "Pistachio/Core.h"
 #include "Pistachio/Core/Log.h"
+#include "Pistachio/Core/UUID.h"
 #include "ptpch.h"
 #include "angelscript.h"
 #include "scriptstdstring.h"
 #include "scriptarray.h"
 #include <algorithm>
+#include <cstdint>
 #include <regex>
 #include <string>
 #include <unordered_map>
@@ -129,19 +132,54 @@ namespace Pistachio
 
                 PT_CORE_INFO(final_str);
             }
+            void UUID_Construct(void* memory)
+            {
+                new(memory)UUID;
+            }
+            void UUID_Construct_ID(uint64_t id, void* memory)
+            {
+                new(memory)UUID(id);
+            }
+            void UUID_Construct_UUID(const UUID& other, void* memory)
+            {
+                new(memory)UUID(other);
+            }
+            //angelscript reclaims its memory
+            void UUID_Destruct(void* memory){}
+        }
+        //TODO: Customize this Message Callback
+        void MessageCallback(const asSMessageInfo *msg, void *param)
+        {
+          const char *type = "ERR ";
+          if( msg->type == asMSGTYPE_WARNING ) 
+            type = "WARN";
+          else if( msg->type == asMSGTYPE_INFORMATION ) 
+            type = "INFO";
+          printf("%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
         }
         void Initialize()
         {
             engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+            engine->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
             RegisterStdString(engine);
-            RegisterStdStringUtils(engine);
             RegisterScriptArray(engine, true);
+            RegisterStdStringUtils(engine);
+            int r;
+            r = engine->RegisterInterface("IDebug"); PT_CORE_ASSERT(r >= 0);
+            r = engine->RegisterInterfaceMethod("IDebug", "string ToString()");PT_CORE_ASSERT(r >= 0);
 
-            engine->RegisterInterface("IDebug");
-            engine->RegisterInterfaceMethod("IDebug", "string ToString()");
-
-            engine->RegisterGlobalFunction("void print(const string& msg)", asFUNCTION(Base::print), asCALL_CDECL);
+            r = engine->RegisterGlobalFunction("void print(const string &in msg)", asFUNCTION(Base::print), asCALL_CDECL); PT_CORE_ASSERT(r >= 0);
             debugInterface = engine->GetTypeInfoByName("IDebug");
+
+            //Pistachio Specific Stuff
+            r = engine->SetDefaultNamespace("Pistachio"); PT_CORE_ASSERT(r >= 0);
+            r = engine->RegisterObjectType("UUID", sizeof(Pistachio::UUID), asOBJ_VALUE|asGetTypeTraits<UUID>()); PT_CORE_ASSERT(r >= 0);
+            r = engine->RegisterObjectBehaviour("UUID", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(Base::UUID_Construct), asCALL_CDECL_OBJLAST); PT_CORE_ASSERT(r >= 0);
+            r = engine->RegisterObjectBehaviour("UUID", asBEHAVE_CONSTRUCT, "void f(uint64 ID)", asFUNCTION(Base::UUID_Construct), asCALL_CDECL_OBJLAST); PT_CORE_ASSERT(r >= 0);
+            r = engine->RegisterObjectBehaviour("UUID", asBEHAVE_CONSTRUCT, "void f(const UUID &in ID)", asFUNCTION(Base::UUID_Construct), asCALL_CDECL_OBJLAST); PT_CORE_ASSERT(r >= 0);
+            r = engine->RegisterObjectBehaviour("UUID", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(Base::UUID_Destruct), asCALL_CDECL_OBJLAST); PT_CORE_ASSERT(r >= 0);
+            r = engine->RegisterObjectMethod("UUID", "bool opEquals(const UUID& in) const", asMETHODPR(UUID, operator==, (const UUID& other) const, bool), asCALL_THISCALL); PT_CORE_ASSERT(r >= 0);
+            r = engine->SetDefaultNamespace(""); PT_CORE_ASSERT(r >= 0);
         }
     }
 }
