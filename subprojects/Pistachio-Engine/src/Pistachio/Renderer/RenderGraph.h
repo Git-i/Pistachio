@@ -27,11 +27,11 @@ namespace Pistachio
 		friend class RenderGraph;
 		RGBuffer(RHI::Buffer* _buffer, uint32_t _offset, uint32_t _size, RHI::QueueFamily family, RHI::ResourceAcessFlags access) :
 			buffer(_buffer),
+			currentAccess(access),
 			currentFamily(family),
 			offset(_offset),
 			size  (_size),
-			numInstances(1),
-			currentAccess(access)
+			numInstances(1)
 		{}
 		RHI::Buffer* buffer;
 		RHI::ResourceAcessFlags currentAccess;
@@ -67,13 +67,13 @@ namespace Pistachio
 		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice, uint32_t numSlices,uint32_t numMips, RHI::ResourceAcessFlags access) :
 			texture(_texture),
 			current_layout(layout),
+			currentAccess(access),
 			mipSlice(MipSlice),
 			mipSliceCount(numMips),
 			IsArray(isArray),
 			arraySlice(Slice),
 			sliceCount(numSlices),
 			currentFamily(family),
-			currentAccess(access),
 			numInstances(1)
 		{}
 		
@@ -113,7 +113,7 @@ namespace Pistachio
 		uint32_t instID;
 		bool operator==(const RGBufferInstance& other) const
 		{
-			return (buffOffset == other.buffOffset) && (instID == instID);
+			return (buffOffset == other.buffOffset) && (instID == other.instID);
 		}
 		bool operator!=(const RGBufferInstance& other) const
 		{

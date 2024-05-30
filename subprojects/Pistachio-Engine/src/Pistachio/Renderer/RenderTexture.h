@@ -1,4 +1,5 @@
 #pragma once
+#include "Pistachio/Core/Log.h"
 #include "Texture.h"
 #include "RendererBase.h"
 #include "RendererID_t.h"
@@ -20,8 +21,8 @@ namespace Pistachio {
 	{
 
 	public:
-		static RenderTexture* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
-		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		static RenderTexture* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name));
+		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name));
 		void SwitchToRenderTargetMode(RHI::GraphicsCommandList* list);
 		void SwitchToShaderUsageMode( RHI::GraphicsCommandList* list);
 		RHI::TextureView* GetView()  const{ return m_view; }
@@ -40,8 +41,8 @@ namespace Pistachio {
 	class PISTACHIO_API DepthTexture : public Texture
 	{
 	public:
-		static DepthTexture* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
-		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format);
+		static DepthTexture* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name));
+		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name));
 		RHI::TextureView* GetView() { return m_view; }
 		RHI::Format GetFormat() const override;
 		uint32_t GetWidth() const override;
@@ -57,8 +58,8 @@ namespace Pistachio {
 	class PISTACHIO_API RenderCubeMap : public Texture
 	{
 	public:
-		static RenderCubeMap* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format, RHI::TextureUsage extraUsage = RHI::TextureUsage::None);
-		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format, RHI::TextureUsage extraUsage=RHI::TextureUsage::None);
+		static RenderCubeMap* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name), RHI::TextureUsage extraUsage = RHI::TextureUsage::None);
+		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name), RHI::TextureUsage extraUsage=RHI::TextureUsage::None);
 		RHI::TextureView* GetView() { return m_view; }
 		void SwitchToRenderTargetMode(RHI::GraphicsCommandList* list=nullptr);
 		void SwitchToShaderUsageMode( RHI::GraphicsCommandList* list=nullptr);

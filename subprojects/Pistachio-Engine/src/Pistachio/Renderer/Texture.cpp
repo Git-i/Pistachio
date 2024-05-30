@@ -1,3 +1,4 @@
+#include "Pistachio/Core/Log.h"
 #include "ptpch.h"
 #include "Texture.h"
 #include "Util/FormatUtils.h"
@@ -86,14 +87,14 @@ namespace Pistachio
         PT_PROFILE_FUNCTION();
     }
 
-    Texture2D* Texture2D::Create(const char* path, RHI::Format format, TextureFlags flags)
+    Texture2D* Texture2D::Create(const char* path PT_DEBUG_REGION(, const char* name), RHI::Format format, TextureFlags flags)
     {
-        PT_PROFILE_FUNCTION()
-            Texture2D* result = new Texture2D;
-        result->CreateStack(path, format);
+        PT_PROFILE_FUNCTION();
+        Texture2D* result = new Texture2D;
+        result->CreateStack(path, format PT_DEBUG_REGION(, name));
         return result;
     }
-    void Texture2D::CreateStack(const char* path, RHI::Format format, TextureFlags flags)
+    void Texture2D::CreateStack(const char* path, RHI::Format format PT_DEBUG_REGION(, const char* name), TextureFlags flags )
     {
         PT_PROFILE_FUNCTION();
         int Width, Height, nChannels;
@@ -114,15 +115,17 @@ namespace Pistachio
         m_Height = Height;
         m_format = format;
         CreateTexture(data, flags);
+        PT_DEBUG_REGION(if(m_ID.Get()) m_ID->SetName(name)); 
         stbi_image_free(data);
     }
-    void Texture2D::CreateStack(uint32_t width, uint32_t height, RHI::Format format, void* data, TextureFlags flags)
+    void Texture2D::CreateStack(uint32_t width, uint32_t height, RHI::Format format, void* data PT_DEBUG_REGION(, const char* name),TextureFlags flags)
     {
         PT_PROFILE_FUNCTION();
         m_Width = width;
         m_Height = height;
         m_format = format;
         CreateTexture(data, flags);
+        PT_DEBUG_REGION(if(m_ID.Get()) m_ID->SetName(name));
     }
     void Texture2D::CopyIntoRegion(Texture2D& source, unsigned int location_x, unsigned int location_y, unsigned int src_left, unsigned int src_right, unsigned int src_up, unsigned int src_down, unsigned int mipSlice, unsigned int arraySlice)
     {
@@ -176,13 +179,13 @@ namespace Pistachio
         //memcpy(buffer, sr.pData, m_Height * m_Width * RendererUtils::TextureFormatBytesPerPixel(m_format));
         //Pistachio::RendererBase::Getd3dDeviceContext()->Unmap((ID3D11Texture2D*)tex, 0);
     }
-    Texture2D* Texture2D::Create(uint32_t width, uint32_t height, RHI::Format format, void* data, TextureFlags flags)
+    Texture2D* Texture2D::Create(uint32_t width, uint32_t height, RHI::Format format, void* data PT_DEBUG_REGION(, const char* name), TextureFlags flags)
     {
         PT_PROFILE_FUNCTION()
             Texture2D* result = new Texture2D;
         result->m_Width = width;
         result->m_Height = height;
-        result->CreateStack(width, height, format, data, flags);
+        result->CreateStack(width, height, format, data PT_DEBUG_REGION(, name), flags);
         return result;
     }
     bool Texture2D::operator==(const Texture2D& texture) const

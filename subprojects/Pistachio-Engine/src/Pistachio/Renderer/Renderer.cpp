@@ -174,24 +174,24 @@ namespace Pistachio {
 		eqShader->GetPSShaderBinding(eqShaderPS, 1);
 		for(uint32_t i = 0; i < 6; i++)
 			eqShader->GetVSShaderBinding(eqShaderVS[i], 0);
-		skybox.CreateStack(512, 512, 1, RHI::Format::R16G16B16A16_FLOAT);
+		skybox.CreateStack(512, 512, 1,  RHI::Format::R16G16B16A16_FLOAT PT_DEBUG_REGION(,"Renderer -> Skybox Texture"));
 		ShaderDesc.PS = { (char*)"resources/shaders/pixel/Compiled/irradiance_fs",0 };
 		irradianceShader = Shader::Create(&ShaderDesc);
 		irradianceShader->GetPSShaderBinding(irradianceShaderPS,1);
-		irradianceSkybox.CreateStack(32, 32, 1, RHI::Format::R16G16B16A16_FLOAT);
+		irradianceSkybox.CreateStack(32, 32, 1, RHI::Format::R16G16B16A16_FLOAT, "Renderer -> Irradiance Texture");
 
 		ShaderDesc.VS = {(char*)"resources/shaders/vertex/Compiled/prefilter_vs",0};
 		ShaderDesc.PS = {(char*)"resources/shaders/pixel/Compiled/prefilter_fs" ,0};
 		prefilterShader = Shader::Create(&ShaderDesc);
 		for(uint32_t i = 0; i < 5; i++)
 			prefilterShader->GetVSShaderBinding(prefilterShaderVS[i], 2);
-		prefilterSkybox.CreateStack(128, 128, 5, RHI::Format::R16G16B16A16_FLOAT,RHI::TextureUsage::CopyDst);
+		prefilterSkybox.CreateStack(128, 128, 5, RHI::Format::R16G16B16A16_FLOAT PT_DEBUG_REGION(,"Renderer -> Prefilter Texture"),RHI::TextureUsage::CopyDst);
 
 		
 		uint8_t data[4] = { 255,255,255,255 };
-		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data);
+		whiteTexture.CreateStack(1, 1, RHI::Format::R8G8B8A8_UNORM,data PT_DEBUG_REGION(,"Renderer -> White Texture"));
 
-		shadowMapAtlas.CreateStack(1024, 1024, 1, RHI::Format::D32_FLOAT);
+		shadowMapAtlas.CreateStack(1024, 1024, 1, RHI::Format::D32_FLOAT, "Renderer -> Shadow Texture");
 
 		computeShaders["Build Clusters"] = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/CFBuildClusters_cs",0 }, RHI::ShaderMode::File);
 		computeShaders["Filter Clusters"] = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/CFActiveClusters_cs",0 }, RHI::ShaderMode::File);
@@ -306,7 +306,7 @@ namespace Pistachio {
 			if (layouts[i]) layouts[i]->Release();
 		}
 
-		BrdfTex.CreateStack(512, 512, RHI::Format::R16G16_FLOAT, nullptr, TextureFlags::Compute);
+		BrdfTex.CreateStack(512, 512, RHI::Format::R16G16_FLOAT, nullptr PT_DEBUG_REGION(,"Renderer -> White Texture"),TextureFlags::Compute);
 		ComputeShader* brdfShader = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/BRDF_LUT_cs",0 },RHI::ShaderMode::File);
 		SetInfo brdfTexInfo;
 		brdfShader->GetShaderBinding(brdfTexInfo, 0);
@@ -334,7 +334,6 @@ namespace Pistachio {
 		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
 		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::FRAGMENT_SHADER_BIT, 0, 0, 1, &barr);
 
-		
 		ChangeSkybox(skyboxFile);
 		EndScene();
 	}
@@ -343,7 +342,7 @@ namespace Pistachio {
 		//the skybox texture
 		RenderGraph skyboxRG;
 		static Texture2D tex;
-		tex.CreateStack(filename, RHI::Format::R32G32B32A32_FLOAT);
+		tex.CreateStack(filename, RHI::Format::R32G32B32A32_FLOAT PT_DEBUG_REGION(,"Renderer -> Skybox Texture"));
 
 		static Mesh cube;
 		cube.CreateStack("cube.obj");
@@ -480,7 +479,7 @@ namespace Pistachio {
 			uint32_t mipWidth  = (int)(128 * std::pow(0.5, mip));
 			uint32_t mipHeight = (int)(128 * std::pow(0.5, mip));
 			//create the cubemap
-			prefilterMipLevels[mip].CreateStack(mipWidth, mipHeight, 1, RHI::Format::R16G16B16A16_FLOAT,RHI::TextureUsage::CopySrc);
+			prefilterMipLevels[mip].CreateStack(mipWidth, mipHeight, 1, RHI::Format::R16G16B16A16_FLOAT PT_DEBUG_REGION(,"Renderer -> Prefilter Mip") ,RHI::TextureUsage::CopySrc);
 			//for each face
 			for (uint32_t i = 0; i < 6; i++)
 			{

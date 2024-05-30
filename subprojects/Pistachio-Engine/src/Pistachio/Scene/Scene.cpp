@@ -143,10 +143,10 @@ namespace Pistachio {
 		lightListSize = ((sizeof(float) * 4) * 100);
 		lightList.CreateStack(nullptr, lightListSize, SBCreateFlags::AllowCPUAccess);
 		lightGrid.CreateStack(nullptr, numClusters * sizeof(uint32_t) * 4);
-		zPrepass.CreateStack(resolution.x, resolution.y, 1, RHI::Format::D32_FLOAT);
-		finalRender.CreateStack(resolution.x, resolution.y, 1, RHI::Format::R16G16B16A16_FLOAT);
+		zPrepass.CreateStack(resolution.x, resolution.y, 1, RHI::Format::D32_FLOAT PT_DEBUG_REGION(, "Scene -> ZPrepass"));
+		finalRender.CreateStack(resolution.x, resolution.y, 1, RHI::Format::R16G16B16A16_FLOAT PT_DEBUG_REGION(, "Scene -> Final Render"));
 		shadowMarker.CreateStack(nullptr, sizeof(uint32_t));
-		shadowMapAtlas.CreateStack(1024, 1024,1, RHI::Format::D32_FLOAT);
+		shadowMapAtlas.CreateStack(1024, 1024,1, RHI::Format::D32_FLOAT PT_DEBUG_REGION(, "Scene -> Shadow Map"));
 
 		ComputeShader* shd_buildClusters = Renderer::GetBuiltinComputeShader("Build Clusters");
 		ComputeShader* shd_activeClusters = Renderer::GetBuiltinComputeShader("Filter Clusters");
@@ -177,7 +177,7 @@ namespace Pistachio {
 		sceneInfo.UpdateTextureBinding(Renderer::BrdfTex.GetView(), 0);
 		sceneInfo.UpdateTextureBinding(Renderer::irradianceSkybox.GetView(), 1);
 		sceneInfo.UpdateTextureBinding(Renderer::prefilterSkybox.GetView(), 2);
-		sceneInfo.UpdateTextureBinding(Renderer::shadowMapAtlas.GetView(), 3);
+		sceneInfo.UpdateTextureBinding(shadowMapAtlas.GetView(), 3);
 
 		sceneInfo.UpdateBufferBinding(lightGrid.GetID(), 0, numClusters * sizeof(uint32_t) * 4, RHI::DescriptorType::StructuredBuffer, 4);
 		sceneInfo.UpdateBufferBinding(lightList.GetID(), 0, lightListSize, RHI::DescriptorType::StructuredBuffer, 5);
@@ -293,13 +293,13 @@ namespace Pistachio {
 			b_info.usage = AttachmentUsage::Graphics;
 			dirShadow.SetDepthStencilOutput(&a_info);
 			dirShadow.AddBufferOutput(&b_info);
-			dirShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });
+			dirShadow.SetPassArea({ {0,0}, {shadowMapAtlas.GetWidth(), shadowMapAtlas.GetHeight()} });
 			dirShadow.SetShader(shd_Shadow);
 			dirShadow.pass_fn = [this](RHI::GraphicsCommandList* list) 
 				{
 					RHI::RenderingAttachmentDesc attachDesc{};
 					attachDesc.clearColor = { 1,1,1,1 };
-					attachDesc.ImageView = RendererBase::GetCPUHandle(Renderer::shadowMapAtlas.DSView);
+					attachDesc.ImageView = RendererBase::GetCPUHandle(shadowMapAtlas.DSView);
 					attachDesc.loadOp = RHI::LoadOp::Clear;
 					attachDesc.storeOp = RHI::StoreOp::Store;
 					RHI::RenderingBeginDesc rbDesc{};
@@ -358,7 +358,7 @@ namespace Pistachio {
 			a_info.usage = AttachmentUsage::Graphics;
 			a_info.texture = shadowMap;
 			pntShadow.SetDepthStencilOutput(&a_info);
-			pntShadow.SetPassArea({ {0,0}, {Renderer::shadowMapAtlas.GetWidth(), Renderer::shadowMapAtlas.GetHeight()} });;
+			pntShadow.SetPassArea({ {0,0}, {shadowMapAtlas.GetWidth(), shadowMapAtlas.GetHeight()} });;
 			//sptShadow.SetShader(nullptr);
 			pntShadow.pass_fn = [this](RHI::GraphicsCommandList* list) {
 				};
@@ -378,7 +378,7 @@ namespace Pistachio {
 				{
 					RHI::RenderingAttachmentDesc attachDesc{};
 					attachDesc.clearColor = { 1,1,1,1 };
-					attachDesc.ImageView = RendererBase::GetCPUHandle(Renderer::shadowMapAtlas.DSView);
+					attachDesc.ImageView = RendererBase::GetCPUHandle(shadowMapAtlas.DSView);
 					attachDesc.loadOp = RHI::LoadOp::Clear;
 					attachDesc.storeOp = RHI::StoreOp::Store;
 					RHI::RenderingBeginDesc rbDesc{};

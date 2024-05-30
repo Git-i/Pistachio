@@ -118,8 +118,7 @@ namespace Pistachio {
 			instance->GetPhysicalDevice(i, &pDevice);
 			RHI::PhysicalDeviceDesc pDDesc;
 			pDevice->GetDesc(&pDDesc);
-			if(options.useLuid)
-			if (memcmp(options.luid.data, pDDesc.AdapterLuid.data, 8) == 0)pDevInd = i;
+			if(options.useLuid) if (memcmp(options.luid.data, pDDesc.AdapterLuid.data, 8) == 0) pDevInd = i;
 			std::wcout << pDDesc.Description << " [" << i << ']' << std::endl;
 		}
 		instance->GetPhysicalDevice(pDevInd, &physicalDevice);
@@ -173,6 +172,11 @@ namespace Pistachio {
 			for(uint32_t i = 0; i < numSwapImages; i++)
 			{
 				device->GetSwapChainImage(swapChain, i, &backBufferTextures[i]);
+				PT_DEBUG_REGION(
+					char name[20] = {"Back Buffer Image 1"};
+					name[18] += i;				
+					backBufferTextures[i]->SetName(name);
+				)
 			}
 			PT_CORE_INFO("Swapchain Created ID:{0} Internal_ID:{1}", (void*)swapChain, (void*)swapChain->ID);
 			swapChain->AcquireImage(&currentRTVindex,swapCycleIndex);
@@ -228,6 +232,7 @@ namespace Pistachio {
 		RHI::AutomaticAllocationInfo DAinfo;
 		DAinfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
 		device->CreateTexture(&depthTextureDsc, &depthTexture,0,0,&DAinfo, 0, RHI::ResourceType::Automatic);
+		PT_DEBUG_REGION(depthTexture->SetName("Default Depth Texture"));
 		PT_CORE_INFO("Created Default depth texture");
 		RHI::DepthStencilViewDesc dsvDesc;
 		dsvDesc.arraySlice = dsvDesc.TextureArray = dsvDesc.textureMipSlice = 0;
@@ -299,7 +304,7 @@ namespace Pistachio {
 			barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
 			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
 		}
-		PT_CORE_INFO("done initializing rhi");
+		PT_CORE_INFO("Done Initializing RHI");
 		// todo find a pso handling strategy, especially for custom shaders.
 		// since every pso can only hold a single shader set, probably have a bunch of
 		// must have pso's for every shader, where they all create it with thier own programs

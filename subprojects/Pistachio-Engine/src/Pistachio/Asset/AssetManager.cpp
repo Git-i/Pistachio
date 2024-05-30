@@ -70,7 +70,7 @@ namespace Pistachio
 	}
 	Asset::~Asset()
 	{
-		if (m_uuid == 0) return;
+		if (m_uuid == UUID(0)) return;
 		auto assetMan = GetAssetManager();
 		auto res = assetMan->assetResourceMap[m_uuid];
 		if (m_uuid) {
@@ -181,7 +181,7 @@ namespace Pistachio
 		{
 			UUID uuid = UUID();
 			RefCountedObject* obj;
-			if (type == ResourceType::Texture) obj = Texture2D::Create(filename.c_str());
+			if (type == ResourceType::Texture) obj = Texture2D::Create(filename.c_str() PT_DEBUG_REGION(, filename.c_str()));
 			else if (type == ResourceType::Material) obj = Material::Create(filename.c_str());
 			else if (type == ResourceType::Shader) obj = ShaderAsset::Create(filename.c_str());
 			else if (type == ResourceType::Model) obj = Model::Create(filename.c_str());

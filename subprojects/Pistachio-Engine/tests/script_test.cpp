@@ -1,3 +1,7 @@
+#include "Pistachio/Scene/Entity.h"
+#include "ptpch.h"
+#include "Pistachio/Core/Application.h"
+#include "Pistachio/Scene/Scene.h"
 #include "angelscript.h"
 #include "scriptarray.h"
 #include "scriptstdstring.h"
@@ -7,8 +11,18 @@
 #include <iostream>
 #include <unordered_map>
 #include <regex>
-asIScriptEngine* engine;
-asITypeInfo* debugInterface;
+#include "Pistachio/Scripting/AngelScript/ScriptAPICommon.h"
+namespace Pistachio {
+    namespace Scripting {
+        extern void Initialize();
+        namespace ECS {
+            extern void Initialize();
+            extern void SetCurrentScene(Scene* scene);
+        }
+    }
+}
+asIScriptEngine* engine = Pistachio::Scripting::engine;
+asITypeInfo* debugInterface = Pistachio::Scripting::debugInterface;
 std::string as_type_to_string(std::pair<int, void*> entry)
 {
     switch (entry.first) {
@@ -84,15 +98,7 @@ std::string replace_var(const std::string& in, std::unordered_map<std::string, s
     return as_type_to_string(entry);
     
 }
-void MessageCallback(const asSMessageInfo *msg, void *param)
-{
-  const char *type = "ERR ";
-  if( msg->type == asMSGTYPE_WARNING ) 
-    type = "WARN";
-  else if( msg->type == asMSGTYPE_INFORMATION ) 
-    type = "INFO";
-  printf("%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
-}
+
 struct Stream{};
 Stream* pt_info = (Stream*)100;
 Stream* pt_warn = (Stream*)200;
@@ -146,25 +152,54 @@ int doa(int code)
 {
     raise(SIGTRAP);
 }
+class App : public Pistachio::Application
+{
+    public:
+    App() : Pistachio::Application("")
+    {
+
+    }
+};
+Pistachio::Application* Pistachio::CreateApplication()
+{
+    return new App();
+}
+void LineCallback(asIScriptContext* ctx, void* data)
+{
+    const char* sc;
+    int ln = ctx->GetLineNumber(0, 0, &sc);
+    
+    if(ln == 26)
+    {
+        ctx->Suspend();
+        uint32_t var_count = ctx->GetVarCount();
+        for(uint32_t n = 0; n < var_count; n++)
+        {
+            const char* name;
+            int type_id;
+            ctx->GetVar(n, 0, &name, &type_id);
+            auto ptr = ctx->GetAddressOfVar(n);
+            if(type_id == engine->GetTypeIdByDecl("array<Pistachio::ECS::Entity>"))
+            {
+                CScriptArray* arr = (CScriptArray*)ptr;
+                if(arr->GetElementTypeId() != engine->GetTypeIdByDecl("Pistachio::ECS::Entity")) raise(SIGTRAP);
+                Pistachio::Entity* e = (Pistachio::Entity*)arr->At(0);
+                if(!e->IsValid()) raise(SIGTRAP);
+            }
+        }
+    }
+    int a = 9;
+}
 int main()
 {
-    engine = asCreateScriptEngine();
-    engine->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
-    RegisterScriptArray(engine, true);
-    RegisterStdString(engine);
-    RegisterStdStringUtils(engine);
-    engine->RegisterObjectType("Stream", 0, asOBJ_REF | asOBJ_NOCOUNT);
-    engine->RegisterGlobalProperty("Stream@ pt_info", &pt_info);
-    engine->RegisterGlobalProperty("Stream@ pt_warn", &pt_warn);
-    engine->RegisterGlobalProperty("Stream@ pt_error", &pt_error);
-    engine->RegisterInterface("IDebug");
-    engine->RegisterInterfaceMethod("IDebug", "string ToString()");
-    debugInterface = engine->GetTypeInfoByDecl("IDebug");
-    engine->RegisterGlobalFunction("void print(const string& in, Stream@ stream = null)", asFUNCTION(Printer::print), asCALL_CDECL);
-    engine->RegisterEnum("Enamm");
-    engine->RegisterEnumValue("Enamm", "Big", 1029);
-    engine->RegisterGlobalFunction("int doa(Enamm enam)", asFUNCTION(doa), asCALL_CDECL);
-    auto mod = engine->GetModule("module", asGM_ALWAYS_CREATE);
+    auto app = Pistachio::CreateApplication();
+    Pistachio::Scripting::Initialize();
+    Pistachio::Scripting::ECS::Initialize();
+    engine = Pistachio::Scripting::engine;
+    Pistachio::Scene scene;
+    Pistachio::Scripting::ECS::SetCurrentScene(&scene);
+    debugInterface = Pistachio::Scripting::debugInterface;
+    auto mod=engine->GetModule("mod", asGM_ALWAYS_CREATE);
     const char* code = R"(
         class Custom : IDebug
         {
@@ -188,20 +223,15 @@ int main()
         }
         void function()
         {
-            Custom cstm;
-            Enamm lol = Enamm::Big;
-            lola[] elems;
-            elems.insertLast(lola(4));
-            elems.insertLast(lola(3));
-            elems.insertLast(lola(2));
-            doa(lol);
-            print("{cstm}, are you {lol}, {elems}, {cstm}");
-            print("this goes to error", pt_error);
+            Pistachio::ECS::Entity e = Pistachio::ECS::current_scene.CreateEntity("Name");
+            array<Pistachio::ECS::Entity> es = Pistachio::ECS::current_scene.GetAllEntitiesWithName("Name");
+            int a = 9;
         }
     )";
     mod->AddScriptSection("script.as", code);
     mod->Build();
     asIScriptContext* ctx = engine->RequestContext();
+    ctx->SetLineCallback(asFUNCTION(LineCallback), 0, asCALL_CDECL);
     ctx->Prepare(mod->GetFunctionByDecl("void function()"));
     ctx->Execute();
 }

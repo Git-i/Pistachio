@@ -23,7 +23,7 @@ namespace Pistachio {
 #define PT_CORE_INFO(...)  Pistachio::Log::GetCoreLogger()->info(__VA_ARGS__)
 #define PT_CORE_WARN(...)  Pistachio::Log::GetCoreLogger()->warn(__VA_ARGS__)
 #define PT_CORE_ERROR(...) Pistachio::Log::GetCoreLogger()->error(__VA_ARGS__)
-#define PT_DEBUG_REGION(x) x
+#define PT_DEBUG_REGION(...) __VA_ARGS__
 
 #define PT_TRACE(...)      Pistachio::Log::GetClientLogger()->trace(__VA_ARGS__)
 #define PT_INFO(...)       Pistachio::Log::GetClientLogger()->info(__VA_ARGS__)
@@ -34,7 +34,7 @@ namespace Pistachio {
 #define PT_CORE_INFO(...) 
 #define PT_CORE_WARN(...) 
 #define PT_CORE_ERROR(...)
-#define PT_DEBUG_REGION(x)
+#define PT_DEBUG_REGION(...)
 #define PT_TRACE(...)     
 #define PT_INFO(...)      
 #define PT_WARN(...)      

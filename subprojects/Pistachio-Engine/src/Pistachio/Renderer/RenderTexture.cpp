@@ -1,16 +1,17 @@
+#include "Pistachio/Core/Log.h"
 #include "ptpch.h"
 #include "RendererBase.h"
 #include "RenderTexture.h"
 
 namespace Pistachio
 {
-    RenderTexture* RenderTexture::Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format)
+    RenderTexture* RenderTexture::Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(, const char* name))
     {
         RenderTexture* returnVal = new RenderTexture;
-        returnVal->CreateStack(width,height,mipLevels,format);
+        returnVal->CreateStack(width,height,mipLevels,format PT_DEBUG_REGION(, name));
         return returnVal;
     }
-    void RenderTexture::CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format)
+    void RenderTexture::CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(, const char* name))
 	{
         m_width = width;
         m_height = height;
@@ -30,6 +31,7 @@ namespace Pistachio
         RHI::AutomaticAllocationInfo allocInfo;
         allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
         RendererBase::device->CreateTexture(&desc, &m_ID, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic);
+        PT_DEBUG_REGION(m_ID->SetName(name));
         RHI::SubResourceRange range;
         range.FirstArraySlice = 0;
         range.imageAspect = RHI::Aspect::COLOR_BIT;
@@ -54,13 +56,13 @@ namespace Pistachio
     RHI::Format RenderTexture::GetFormat() const{return m_format;}
     uint32_t RenderTexture::GetWidth()  const{ return m_width; }
     uint32_t RenderTexture::GetHeight() const{ return m_height; }
-    RenderCubeMap* RenderCubeMap::Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format, RHI::TextureUsage extraUsage)
+    RenderCubeMap* RenderCubeMap::Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(, const char* name), RHI::TextureUsage extraUsage)
     {
         RenderCubeMap* returnVal = new RenderCubeMap;
-        returnVal->CreateStack(width, height, mipLevels, format,extraUsage);
+        returnVal->CreateStack(width, height, mipLevels, format PT_DEBUG_REGION(, name) ,extraUsage );
         return returnVal;
     }
-    void RenderCubeMap::CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format, RHI::TextureUsage extraUsage)
+    void RenderCubeMap::CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(, const char* name), RHI::TextureUsage extraUsage)
     {
         m_width = width;
         m_height = height;
@@ -80,6 +82,7 @@ namespace Pistachio
         RHI::AutomaticAllocationInfo allocInfo;
         allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
         RendererBase::device->CreateTexture(&desc, &m_ID, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic);
+        PT_DEBUG_REGION(m_ID->SetName(name));
         RHI::SubResourceRange range;
         range.FirstArraySlice = 0;
         range.imageAspect = RHI::Aspect::COLOR_BIT;
@@ -128,13 +131,13 @@ namespace Pistachio
         else
             RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::ALL_GRAPHICS_BIT, 0, 0, 1, &barrier);
     }
-    DepthTexture* DepthTexture::Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format)
+    DepthTexture* DepthTexture::Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name))
     {
         DepthTexture* returnVal = new DepthTexture;
-        returnVal->CreateStack(width, height, mipLevels, format);
+        returnVal->CreateStack(width, height, mipLevels, format PT_DEBUG_REGION(, name));
         return returnVal;
     }
-    void DepthTexture::CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format)
+    void DepthTexture::CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name))
     {
         m_width = width;
         m_height = height;
@@ -154,6 +157,7 @@ namespace Pistachio
         RHI::AutomaticAllocationInfo allocInfo;
         allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
         RendererBase::device->CreateTexture(&desc, &m_ID, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic);
+        PT_DEBUG_REGION(m_ID->SetName(name));
         RHI::SubResourceRange range;
         range.FirstArraySlice = 0;
         range.imageAspect = RHI::Aspect::DEPTH_BIT;

@@ -45,11 +45,12 @@ angel_srcs = [
 addons_src = [
   'addons/scriptarray/scriptarray.cpp',
   'addons/scriptstdstring/scriptstdstring.cpp',
-  'addons/scriptstdstring/scriptstdstring_utils.cpp'
+  'addons/scriptstdstring/scriptstdstring_utils.cpp',
 ]
 addons_inc = [
   'addons/scriptstdstring/',
-  'addons/scriptarray/'
+  'addons/scriptarray/',
+  'addons/autowrapper/'
 ]
 if host_machine.cpu_family() == 'arm'
   add_languages('c')
