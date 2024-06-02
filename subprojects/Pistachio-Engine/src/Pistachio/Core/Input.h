@@ -28,4 +28,23 @@ namespace Pistachio {
 		static float GetLeftTriggerState(int ID);
 		static float GetRightTriggerState(int ID);
 	};
+	class PISTACHIO_API InputHandler
+	{
+	public:
+		virtual bool IsKeyPressed(KeyCode code) = 0;
+		virtual bool IsKeyJustPressed(KeyCode code) = 0;
+		virtual bool IsMouseButtonPressed(MouseButton code) = 0;
+		virtual bool IsMouseButtonJustPressed(MouseButton code) = 0;
+		virtual int GetMouseX(bool WindowCoordinates = false) = 0;
+		virtual int GetMouseY(bool WindowCoordinates = false) = 0;
+		virtual float GetLeftAnalogX(int ID) = 0;
+		virtual float GetLeftAnalogY(int ID) = 0;
+		virtual float GetRightAnalogX(int ID) = 0;
+		virtual float GetRightAnalogY(int ID) = 0;
+		virtual bool IsGamepadButtonPressed(int ID, int code) = 0;
+		virtual bool IsGamepadButtonJustPressed(int ID, int code) = 0;
+		virtual void VibrateController(int ID, int left, int right) = 0;
+		virtual float GetLeftTriggerState(int ID) = 0;
+		virtual float GetRightTriggerState(int ID) = 0;
+	};
 }

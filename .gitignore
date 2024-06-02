@@ -465,3 +465,4 @@ subprojects/packagecache/
 subprojects/physx/linux.gcc/checked/
 Sandbox/resources/textures/hdr/golden_bay_1k.hdr
 compile_commands.json
+*.spv

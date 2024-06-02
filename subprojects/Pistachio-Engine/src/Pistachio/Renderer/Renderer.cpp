@@ -1,3 +1,7 @@
+#include "FormatsAndTypes.h"
+#include "PipelineStateObject.h"
+#include "Pistachio/Renderer/RendererBase.h"
+#include "Pistachio/Renderer/Shader.h"
 #include "ptpch.h"
 #include "Renderer.h"
 #include "Material.h"
@@ -53,6 +57,8 @@ std::vector<uint32_t>    Pistachio::Renderer::vbHandleOffsets;
 std::vector<uint32_t>    Pistachio::Renderer::vbUnusedHandles;
 std::vector<uint32_t>    Pistachio::Renderer::cbHandleOffsets;
 std::vector<uint32_t>    Pistachio::Renderer::cbUnusedHandles; 
+Pistachio::SetInfo 		 Pistachio::Renderer::backgroundInfo;
+Pistachio::Mesh    		 Pistachio::Renderer::cube;
 
 void (*Pistachio::Renderer::CBInvalidated)() = nullptr;
 static const uint32_t VB_INITIAL_SIZE = 1024;
@@ -102,9 +108,7 @@ namespace Pistachio {
 				PT_CORE_INFO("Initializing Frame Resources {0} of 3", i + 1);
 				PT_CORE_INFO("Creating Constant Buffer(s)");
 				resources[i].transformBuffer.CreateStack(nullptr, cbCapacity);//better utilise the free 256 bytes
-				resources[i].passCB.CreateStack(nullptr, RendererUtils::ConstantBufferElementSize(sizeof(PassConstants)));//we should still have about 50 free bytes
 				PT_CORE_INFO("Creating Structured Buffer(s)");
-				resources[i].LightSB.CreateStack(nullptr, sizeof(ShadowCastingLight) * INITIAL_NUM_LIGHTS);
 				RendererBase::device->CreateDynamicDescriptor(
 					RendererBase::heap,
 					&resources[i].transformBufferDesc,
@@ -308,6 +312,20 @@ namespace Pistachio {
 
 		BrdfTex.CreateStack(512, 512, RHI::Format::R16G16_FLOAT, nullptr PT_DEBUG_REGION(,"Renderer -> White Texture"),TextureFlags::Compute);
 		ComputeShader* brdfShader = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/BRDF_LUT_cs",0 },RHI::ShaderMode::File);
+
+		ShaderDesc.DepthStencilModes->DepthWriteMask = RHI::DepthWriteMask::None;
+		ShaderDesc.RasterizerModes->cullMode = RHI::CullMode::None;
+		ShaderDesc.VS = {(char*)"resources/shaders/vertex/Compiled/background_vs", 0};
+		ShaderDesc.PS = {(char*)"resources/shaders/pixel/Compiled/background_ps", 0};
+		ShaderDesc.NumRenderTargets = 1;
+		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
+		auto background_shader = Shader::Create(&ShaderDesc);
+		shaders["Background Shader"] = background_shader;
+		
+		background_shader->GetPSShaderBinding(backgroundInfo, 1);
+		backgroundInfo.UpdateTextureBinding(skybox.GetView(), 0);
+		backgroundInfo.UpdateSamplerBinding(defaultSampler, 1);
+
 		SetInfo brdfTexInfo;
 		brdfShader->GetShaderBinding(brdfTexInfo, 0);
 		brdfTexInfo.UpdateTextureBinding(BrdfTex.GetView(), 0, RHI::DescriptorType::CSTexture);
@@ -333,7 +351,8 @@ namespace Pistachio {
 		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::SHADER_WRITE;
 		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
 		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::FRAGMENT_SHADER_BIT, 0, 0, 1, &barr);
-
+		//Replace with mesh generation engine
+		cube.CreateStack("cube.obj");
 		ChangeSkybox(skyboxFile);
 		EndScene();
 	}
@@ -344,8 +363,8 @@ namespace Pistachio {
 		static Texture2D tex;
 		tex.CreateStack(filename, RHI::Format::R32G32B32A32_FLOAT PT_DEBUG_REGION(,"Renderer -> Skybox Texture"));
 
-		static Mesh cube;
-		cube.CreateStack("cube.obj");
+		RendererBase::FlushStagingBuffer();
+		
 
 
 		//probably remove this
@@ -565,22 +584,22 @@ namespace Pistachio {
 		Range.NumMipLevels = 1;
 		RHI::TextureMemoryBarrier barr[2];
 		barr[0].AccessFlagsBefore = RHI::ResourceAcessFlags::SHADER_WRITE;
-		barr[0].AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
+		barr[0].AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
 		barr[0].newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
 		barr[0].oldLayout = RHI::ResourceLayout::UNDEFINED;
 		barr[0].texture = irradianceSkybox.m_ID.Get();
 		barr[0].subresourceRange = barr[1].subresourceRange = Range;
 		barr[1].AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
-		barr[1].AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
+		barr[1].AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
 		barr[1].newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
-		barr[1].oldLayout = RHI::ResourceLayout::UNDEFINED;
+		barr[1].oldLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
 		barr[1].texture = prefilterSkybox.m_ID.Get();
 		barr[1].subresourceRange.NumMipLevels = 5;
 		
 
 		skyboxRG.Execute();
-		skyboxRG.cmdLists[0].list->PipelineBarrier(RHI::PipelineStage::ALL_GRAPHICS_BIT, RHI::PipelineStage::TOP_OF_PIPE_BIT, 0, 0, 1, barr);
-		skyboxRG.cmdLists[0].list->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT,     RHI::PipelineStage::TOP_OF_PIPE_BIT,0,0,1,barr+1);
+		skyboxRG.cmdLists[0].list->PipelineBarrier(RHI::PipelineStage::ALL_GRAPHICS_BIT, RHI::PipelineStage::FRAGMENT_SHADER_BIT, 0, 0, 1, barr);
+		skyboxRG.cmdLists[0].list->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT,     RHI::PipelineStage::FRAGMENT_SHADER_BIT,0,0,1,barr+1);
 		skyboxRG.SubmitToQueue();
 	}
 	void Renderer::EndScene()
@@ -589,6 +608,7 @@ namespace Pistachio {
 		RendererBase::EndFrame();
 	}
 	void Renderer::Shutdown() {
+		
 		RendererBase::Shutdown();
 	}
 	const RendererVBHandle Renderer::AllocateVertexBuffer(uint32_t size,const void* initialData)

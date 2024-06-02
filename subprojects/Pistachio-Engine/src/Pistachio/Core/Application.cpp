@@ -8,9 +8,11 @@
 #include "Pistachio/Renderer/Renderer2D.h"
 #include "Tracy.hpp"
 #include "imgui.h"
+#include <memory>
 namespace Pistachio {
+	extern InputHandler* CreateDefaultInputHandler();
 	Application* Application::s_Instance = nullptr;
-	Application::Application(const char* name, ApplicationOptions opt)
+	Application::Application(const char* name, const ApplicationOptions& opt)
 	{
 		PT_PROFILE_FUNCTION();
 		s_Instance = this;
@@ -19,6 +21,13 @@ namespace Pistachio {
 		RendererBase::InitOptions ropt;
 		ropt.headless = opt.headless;
 		ropt.luid = opt.gpu_luid;
+		ropt.exportTexture = opt.exportTextures;
+		ropt.custom_device = opt.custom_device;
+		ropt.custom_instance = opt.custom_instance;
+		ropt.custom_physical_device = opt.custom_physical_device;
+		ropt.custom_direct_queue = opt.custom_direct_queue;
+		ropt.custom_compute_queue = opt.custom_compute_queue;
+		ropt.indices = opt.indices;
 		if (!opt.headless)
 		{
 			WindowInfo info;
@@ -28,6 +37,7 @@ namespace Pistachio {
 			info.title = name;
 			m_Window = Scope<Window>(Window::Create(info));
 			m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
+			handler = std::unique_ptr<InputHandler>(CreateDefaultInputHandler());
 			RendererBase::Init(&m_Window->pd, ropt);
 		}
 		else RendererBase::Init(NULL, ropt);
@@ -65,7 +75,10 @@ namespace Pistachio {
 		m_layerstack.PushOverlay(overlay);
 		overlay->OnAttach();
 	}
-
+	void Application::SetInputHandler(std::unique_ptr<InputHandler> _handler)
+	{
+		handler = std::move(_handler);
+	}
 	void Application::OnEvent(Event& e)
 	{
 		
@@ -126,17 +139,21 @@ namespace Pistachio {
 		}
 		
 	}
-
+	bool Application::Exists()
+	{
+		return s_Instance;
+	}
 	void Application::Step()
 	{
-		//QueryPerformanceCounter(&ticks);
-		//double time = (ticks.QuadPart * period) - InitTime;
-		//float delta = (float)(time - lastFrameTime);
+		auto now = std::chrono::high_resolution_clock::now();
+		std::chrono::milliseconds time = std::chrono::duration_cast<std::chrono::milliseconds>(now - InitTime);
+		std::chrono::duration<float> delta;
+		delta = time - lastFrameTime;
+		lastFrameTime = time;
 		FrameMark;
-		double delta = 0.016;
-		//lastFrameTime = time;
+		if(!m_headless) m_Window->OnUpdate(delta.count());
 		for (Layer* layer : m_layerstack)
-			layer->OnUpdate(delta);
+			layer->OnUpdate(delta.count());
 		for (Layer* layer : m_layerstack)
 			layer->OnImGuiRender();
 		Renderer::EndScene();

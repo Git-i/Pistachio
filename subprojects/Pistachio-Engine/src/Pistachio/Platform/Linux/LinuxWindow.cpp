@@ -1,3 +1,5 @@
+#include "GLFW/glfw3.h"
+#include "Pistachio/Core/Application.h"
 #include "ptpch.h"
 #include "LinuxWindow.h"
 #include "Pistachio/Core/Log.h"
@@ -41,9 +43,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 void window_close(GLFWwindow* window)
 {
-	glfwDestroyWindow(window);
-	glfwTerminate();
-	exit(0);
+	Pistachio::Application::Get().Stop();
 }
 
 
@@ -82,6 +82,7 @@ namespace Pistachio {
 	{
         if(pd.window)
         glfwDestroyWindow(pd.window);
+		glfwTerminate();
         pd.window = nullptr;
 	}
 	void LinuxWindow::OnUpdate(float delta)

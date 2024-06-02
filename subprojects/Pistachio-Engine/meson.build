@@ -63,6 +63,7 @@ sources = [
     'src/Pistachio/Core/FileSystem.cpp',
     'src/Pistachio/Core/Application.cpp',
     'src/Pistachio/Core/Log.cpp',
+    'src/Pistachio/Core/Input.cpp',
     'src/Pistachio/Core/Transform.cpp',
     'src/Pistachio/Core/InputCallbacks.cpp',
     'src/Pistachio/Scene/CullingManager.cpp',

@@ -3,6 +3,7 @@
 #include "RenderGraph.h"
 #include "Renderer.h"
 #include "Util/FormatUtils.h"
+#include <string>
 namespace Pistachio
 {
     const RGTextureInstance RGTextureInstance::Invalid = { UINT32_MAX,UINT32_MAX };
@@ -1118,11 +1119,15 @@ namespace Pistachio
         {
             RendererBase::device->CreateCommandList(RHI::CommandListType::Direct,
                 RendererBase::commandAllocators[RendererBase::currentFrameIndex], &cmdLists[i].list);
+            std::string name = "Render Graph Direct List" + std::to_string(i);
+            cmdLists[i].list->SetName(name.c_str());
         }
         for (uint32_t i = 0; i < numComputeCmdLists; i++)
         {
             RendererBase::device->CreateCommandList(RHI::CommandListType::Compute,
                 RendererBase::computeCommandAllocators[RendererBase::currentFrameIndex], &computeCmdLists[i].list);
+            std::string name = "Render Graph Compute List" + std::to_string(i);
+            cmdLists[i].list->SetName(name.c_str());
         }
         dirty = false;
         NewFrame();

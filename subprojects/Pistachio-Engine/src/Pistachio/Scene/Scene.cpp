@@ -1,3 +1,9 @@
+#include "CommandList.h"
+#include "Pistachio/Renderer/BufferHandles.h"
+#include "Pistachio/Renderer/Mesh.h"
+#include "Pistachio/Renderer/RenderGraph.h"
+#include "Pistachio/Renderer/Renderer.h"
+#include "Pistachio/Renderer/RendererBase.h"
 #include "ptpch.h"
 #include "Pistachio/Core/Math.h"
 #include <cstdint>
@@ -155,6 +161,7 @@ namespace Pistachio {
 		Shader* shd_prepass = Renderer::GetBuiltinShader("Z-Prepass");
 		Shader* shd_fwd = assetMan->GetShaderResource(assetMan->CreateShaderAsset("Default Shader"))->GetShader();
 		Shader* shd_Shadow = Renderer::GetBuiltinShader("Shadow Shader");
+		Shader* shd_background = Renderer::GetBuiltinShader("Background Shader");
 		for (uint32_t i = 0; i < RendererBase::numFramesInFlight; i++)
 		{
 			passCB[i].CreateStack(nullptr, sizeof(PassConstants));
@@ -216,7 +223,7 @@ namespace Pistachio {
 		RGBufferInstance LightIndices = graph.MakeUniqueInstance(sparseActiveClusterBuffer);//we alias the sparse buffer
 		RGBufferHandle LightList = graph.CreateBuffer(lightList.GetID(), 0, lightListSize);//light list is transient as it switches queue families
 		RGBufferHandle LightGrid = graph.CreateBuffer(lightGrid.GetID(), 0, numClusters * 4 * sizeof(uint32_t));
-
+		RGTextureInstance finalRenderWithBackground = graph.MakeUniqueInstance(finalRenderTex);
 
 		AttachmentInfo a_info;
 		BufferAttachmentInfo b_info;
@@ -554,12 +561,49 @@ namespace Pistachio {
 				};
 			
 		}
+		RenderPass& backgroundPass = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Background Pass");
+		{
+			a_info.format = RHI::Format::R16G16B16A16_FLOAT;
+			a_info.texture = finalRenderTex;
+			a_info.loadOp = RHI::LoadOp::Load;
+			backgroundPass.AddColorInput(&a_info);
+			a_info.texture = finalRenderWithBackground;
+			backgroundPass.AddColorOutput(&a_info);
+			a_info.format = RHI::Format::D32_FLOAT;
+			a_info.texture = depthTex;
+			a_info.loadOp = RHI::LoadOp::Load;
+			a_info.usage = AttachmentUsage::Graphics;
+			backgroundPass.SetDepthStencilOutput(&a_info);
+			backgroundPass.SetShader(shd_background);
+			backgroundPass.SetPassArea({ { 0,0},resolution });
+			backgroundPass.pass_fn = [this](RHI::GraphicsCommandList* list)
+			{
+				RHI::Viewport vp;
+				vp.height = sceneResolution[1];
+				vp.width = sceneResolution[0];
+				vp.minDepth = 0;
+				vp.maxDepth = 1;
+				vp.x = vp.y = 0;
+				list->SetViewports(1, &vp);
+				RHI::Area2D rect = { 0,0,sceneResolution[0],sceneResolution[1] };
+				list->SetScissorRects(1, &rect);
+				auto* shader = Renderer::GetBuiltinShader("Background Shader");
+				auto& cb_info = passCBinfoGFX[RendererBase::GetCurrentFrameIndex()];
+				uint32_t old_ind = cb_info.setIndex;
+				cb_info.setIndex = 0;
+				shader->ApplyBinding(list, passCBinfoGFX[RendererBase::GetCurrentFrameIndex()]);
+				cb_info.setIndex = old_ind;
+				shader->ApplyBinding(list, Renderer::backgroundInfo);
+				Renderer::Submit(list, Renderer::cube.GetVBHandle(), Renderer::cube.GetIBHandle(), sizeof(Vertex));
+			};
+		}
 		graph.Compile();
 		//graph.Execute();
 		//graph.SubmitToQueue();
 	}
 	Scene::~Scene()
 	{
+		//finish all operations on the scene and it resources
 		delete ScreenSpaceQuad;
 	}
 	Entity Scene::CreateEntity(const std::string& name)

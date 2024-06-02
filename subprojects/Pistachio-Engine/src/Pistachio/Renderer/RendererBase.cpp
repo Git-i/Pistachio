@@ -56,9 +56,11 @@ namespace Pistachio {
 	}
 	void RendererBase::Shutdown()
 	{
+		mainFence->Wait(fence_vals[(currentFrameIndex+2)%3]);
 	}
 	void RendererBase::EndFrame()
 	{
+		
 		RHI::TextureMemoryBarrier barr{};
 		if (!headless)
 		{
@@ -80,15 +82,19 @@ namespace Pistachio {
 		directQueue->ExecuteCommandLists(&mainCommandList->ID, 1);
 		fence_vals[currentFrameIndex] = ++currentFenceVal;
 		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
-		if(!headless) swapChain->Present(currentRTVindex, swapCycleIndex);
+		if(!headless)
+		{
+			swapChain->Present(currentRTVindex, swapCycleIndex);
+			swapCycleIndex = (swapCycleIndex +1)%numSwapImages;
+			 swapChain->AcquireImage(&currentRTVindex,swapCycleIndex);
+
+		} 
 		//cycle frame Index
-		swapCycleIndex = (swapCycleIndex +1)%numSwapImages;
 		currentFrameIndex = (currentFrameIndex + 1) % 3;
 		//prep for next frame
-		if (!headless) swapChain->AcquireImage(&currentRTVindex,swapCycleIndex);
 		mainFence->Wait(fence_vals[currentFrameIndex]);
 		commandAllocators[currentFrameIndex]->Reset();
-		computeCommandAllocators[currentFrameIndex]->Reset();
+		if(MQ) computeCommandAllocators[currentFrameIndex]->Reset();
 		mainCommandList->Begin(commandAllocators[currentFrameIndex]);
 		if (!headless)
 		{
@@ -104,40 +110,61 @@ namespace Pistachio {
 	bool RendererBase::Init(PlatformData* pd, InitOptions& options)
 	{
 		PT_PROFILE_FUNCTION();
+		PT_CORE_ASSERT((options.custom_instance && options.custom_device) || !options.custom_instance && !options.custom_device);
 		headless = options.headless;
-		RHICreateInstance(&instance);
+		if(options.custom_instance) instance = RHI::Instance::FromNativeHandle(options.custom_instance);
+		else RHICreateInstance(&instance);
 		//todo implement device selection
 		PT_CORE_INFO("Initializing RendererBase");
 		RHI::PhysicalDevice* physicalDevice;
-		uint32_t pDevInd = 1;
-		uint32_t num_devices =  instance->GetNumPhysicalDevices();
-		PT_CORE_INFO("Found {0} physical devices: ", num_devices);
-		for (uint32_t i = 0; i < num_devices; i++)
+		if(options.custom_device)
 		{
-			RHI::PhysicalDevice* pDevice;
-			instance->GetPhysicalDevice(i, &pDevice);
-			RHI::PhysicalDeviceDesc pDDesc;
-			pDevice->GetDesc(&pDDesc);
-			if(options.useLuid) if (memcmp(options.luid.data, pDDesc.AdapterLuid.data, 8) == 0) pDevInd = i;
-			std::wcout << pDDesc.Description << " [" << i << ']' << std::endl;
+			PT_CORE_INFO("Custom Device Provided");
+			MQ = false; //with a custom device we only require one queue
+			RHI::CommandQueueDesc desc;
+			desc.commandListType = RHI::CommandListType::Direct;
+			desc.Priority = 1.f;
+			device = RHI::Device::FromNativeHandle(options.custom_device, options.custom_physical_device,options.custom_instance, options.indices);
+			physicalDevice = RHI::PhysicalDevice::FromNativeHandle(options.custom_physical_device);
+			directQueue = RHI::CommandQueue::FromNativeHandle(options.custom_direct_queue);
+			if(options.custom_compute_queue)
+			{
+				MQ = true;
+				computeQueue = RHI::CommandQueue::FromNativeHandle(options.custom_compute_queue);
+			}
 		}
-		instance->GetPhysicalDevice(pDevInd, &physicalDevice);
+		else {
+			uint32_t pDevInd = 1;
+			uint32_t num_devices =  instance->GetNumPhysicalDevices();
+			PT_CORE_INFO("Found {0} physical devices: ", num_devices);
+			for (uint32_t i = 0; i < num_devices; i++)
+			{
+				RHI::PhysicalDevice* pDevice;
+				instance->GetPhysicalDevice(i, &pDevice);
+				RHI::PhysicalDeviceDesc pDDesc;
+				pDevice->GetDesc(&pDDesc);
+				if(options.useLuid) if (memcmp(options.luid.data, pDDesc.AdapterLuid.data, 8) == 0) pDevInd = i;
+				std::wcout << pDDesc.Description << " [" << i << ']' << std::endl;
+			}
+			instance->GetPhysicalDevice(pDevInd, &physicalDevice);
+			RHI::CommandQueueDesc commandQueueDesc[2] {};
+			commandQueueDesc[0].commandListType = RHI::CommandListType::Direct;
+			commandQueueDesc[0].Priority = 1.f;//only really used in vulkan
+			commandQueueDesc[1].commandListType = RHI::CommandListType::Compute;
+			commandQueueDesc[1].Priority = 1.f;
+	
+			PT_CORE_INFO("Creating Device");
+			RHI::CommandQueue* queues[2];
+			auto flag = options.exportTexture ? RHI::DeviceCreateFlags::ShareAutomaticMemory: RHI::DeviceCreateFlags::None;
+			RHICreateDevice(physicalDevice, commandQueueDesc, 2, queues, instance->ID ,&device ,&MQ,flag);
+			directQueue = queues[0];
+			computeQueue = queues[1];
+			PT_CORE_INFO("Device Created ID:{0} Internal_ID:{1}, Physical Device used [{2}]", (void*)device, (void*)device->ID,pDevInd);
+		}
 
+
+		
 		RHI::Surface surface;
-
-		RHI::CommandQueueDesc commandQueueDesc[2] {};
-		commandQueueDesc[0].commandListType = RHI::CommandListType::Direct;
-		commandQueueDesc[0].Priority = 1.f;//only really used in vulkan
-		commandQueueDesc[1].commandListType = RHI::CommandListType::Compute;
-		commandQueueDesc[1].Priority = 1.f;
-
-		PT_CORE_INFO("Creating Device");
-		RHI::CommandQueue* queues[2];
-		auto flag = options.exportTexture ? RHI::DeviceCreateFlags::ShareAutomaticMemory: RHI::DeviceCreateFlags::None;
-		RHICreateDevice(physicalDevice, commandQueueDesc, 2, queues, instance->ID ,&device ,&MQ,flag);
-		directQueue = queues[0];
-		computeQueue = queues[1];
-		PT_CORE_INFO("Device Created ID:{0} Internal_ID:{1}, Physical Device used [{2}]", (void*)device, (void*)device->ID,pDevInd);
 		//todo handle multiplatform surface creation
 		unsigned int height = 1280;
 		unsigned int width = 720;
@@ -241,17 +268,28 @@ namespace Pistachio {
 		// allocators are handled with a "frames in flight approach"
 		RESULT res = device->CreateCommandAllocators(RHI::CommandListType::Direct, 3, commandAllocators);
 		if (res != 0) PT_CORE_INFO("Main allocator creation failed with code :{0}", res);
-		else PT_CORE_INFO("Created main command allocators");
-		device->CreateCommandAllocators(RHI::CommandListType::Compute, 3, computeCommandAllocators);
-		PT_CORE_INFO("Created compute command allicators");
+		else 
+		{
+			commandAllocators[0]->SetName("Main Command Allocator 0");
+			commandAllocators[1]->SetName("Main Command Allocator 1");
+			commandAllocators[2]->SetName("Main Command Allocator 2");
+			PT_CORE_INFO("Created main command allocators");
+		}
+		if(MQ)
+		{
+			device->CreateCommandAllocators(RHI::CommandListType::Compute, 3, computeCommandAllocators);
+			PT_CORE_INFO("Created compute command allocators");
+		}
 		device->CreateCommandAllocators(RHI::CommandListType::Direct, 1, &stagingCommandAllocator);
 		PT_CORE_INFO("Created staging command allocator(s)");
 		device->CreateCommandList(RHI::CommandListType::Direct, stagingCommandAllocator, &stagingCommandList);
+		PT_DEBUG_REGION(stagingCommandList->SetName("Staging List"));
 		PT_CORE_INFO("Created staging command list");
 		stagingCommandList->Begin(stagingCommandAllocator);
 		PT_CORE_INFO("Began staging command list");
 		//create a main command list for now, multithreading will come later
 		device->CreateCommandList(RHI::CommandListType::Direct, commandAllocators[0], &mainCommandList);
+		PT_DEBUG_REGION(mainCommandList->SetName("Main Command List"));
 		PT_CORE_INFO("Created main command list");
 		device->CreateFence(&mainFence, 0);
 		device->CreateFence(&stagingFence, 0);
@@ -346,7 +384,10 @@ namespace Pistachio {
 	{
 		//todo implement
 	}
-
+	RHI::Instance* RendererBase::GetInstance()
+	{
+		return instance;
+	}
 	void RendererBase::PushBufferUpdate(RHI::Buffer* buffer, uint32_t offsetFromBufferStart, const void* data, uint32_t size)
 	{
 		//check if we have enough space to queue the write
