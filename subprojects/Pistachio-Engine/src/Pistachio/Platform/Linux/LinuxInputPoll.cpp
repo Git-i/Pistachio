@@ -1,16 +1,20 @@
 #include "ptpch.h"
-#include "Pistachio/Core/Input.h"
+#include "LinuxInputHandler.h"
 #include "Pistachio/Core/Application.h"
 #include "Pistachio/Core/KeyCodes.h"
 namespace Pistachio {
+	InputHandler* CreateDefaultInputHandler()
+	{
+		return new LinuxInputHandler;
+	}
 	bool KeyRepeatPoll;
 	int LastKeyPoll;
-	bool Input::IsKeyPressed(KeyCode code)
+	bool LinuxInputHandler::IsKeyPressed(KeyCode code)
 	{
 		if(code >= PT_MOUSE_BUTTON_1 && code <= PT_MOUSE_BUTTON_8) return glfwGetMouseButton(Application::Get().GetWindow().pd.window, code)==GLFW_PRESS;
 		return glfwGetKey(Application::Get().GetWindow().pd.window, code) == GLFW_PRESS;
 	}
-	bool Input::IsKeyJustPressed(KeyCode code)
+	bool LinuxInputHandler::IsKeyJustPressed(KeyCode code)
 	{
 		bool a = 0;
 		bool first = 1;
@@ -28,66 +32,66 @@ namespace Pistachio {
 		}
 		return a;
 	}
-	int Input::GetMouseX(bool wndcoord)
+	int LinuxInputHandler::GetMouseX(bool wndcoord)
 	{
 		double xpos, ypos;
 		glfwGetCursorPos(Application::Get().GetWindow().pd.window, &xpos, &ypos);
 		return xpos;
 	}
-	int Input::GetMouseY(bool wndcoord)
+	int LinuxInputHandler::GetMouseY(bool wndcoord)
 	{
 		double xpos, ypos;
 		glfwGetCursorPos(Application::Get().GetWindow().pd.window, &xpos, &ypos);
 		return ypos;
 	}
 
-	bool Input::IsMouseButtonPressed(MouseButton button)
+	bool LinuxInputHandler::IsMouseButtonPressed(MouseButton button)
 	{
-		return Input::IsKeyPressed(button);
+		return LinuxInputHandler::IsKeyPressed(button);
 	}
-	bool Input::IsMouseButtonJustPressed(MouseButton button)
+	bool LinuxInputHandler::IsMouseButtonJustPressed(MouseButton button)
 	{
-		return Input::IsKeyJustPressed(button);
+		return LinuxInputHandler::IsKeyJustPressed(button);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 	///Gamepad/////////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	float Input::GetLeftAnalogX(int ID)
+	float LinuxInputHandler::GetLeftAnalogX(int ID)
 	{
 		
 		return 0.0f;
 	}
-	float Input::GetLeftAnalogY(int ID)
+	float LinuxInputHandler::GetLeftAnalogY(int ID)
 	{
 		return 0.0f;
 	}
-	float Input::GetRightAnalogX(int ID)
+	float LinuxInputHandler::GetRightAnalogX(int ID)
 	{
 		return 0.0f;
 	}
-	float Input::GetRightAnalogY(int ID)
+	float LinuxInputHandler::GetRightAnalogY(int ID)
 	{
 		return 0.0f;
 	}
-	bool Input::IsGamepadButtonPressed(int ID, int code)
+	bool LinuxInputHandler::IsGamepadButtonPressed(int ID, int code)
 	{
 		return false;
 	}
-	bool Input::IsGamepadButtonJustPressed(int ID, int code)
+	bool LinuxInputHandler::IsGamepadButtonJustPressed(int ID, int code)
 	{
 		return false;
 	}
-	void Input::VibrateController(int ID, int left, int right)
+	void LinuxInputHandler::VibrateController(int ID, int left, int right)
 	{
 		
 	}
-	float Input::GetLeftTriggerState(int ID)
+	float LinuxInputHandler::GetLeftTriggerState(int ID)
 	{
 		return 0.0f;
 	}
-	float Input::GetRightTriggerState(int ID)
+	float LinuxInputHandler::GetRightTriggerState(int ID)
 	{
 		return 0.0f;
 	}

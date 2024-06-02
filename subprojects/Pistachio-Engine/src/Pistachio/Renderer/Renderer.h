@@ -31,8 +31,6 @@ namespace Pistachio {
 	struct FrameResource
 	{
 		ConstantBuffer transformBuffer;
-		ConstantBuffer passCB; //updates every frame contains
-		StructuredBuffer LightSB;
 		RHI::DynamicDescriptor* transformBufferDesc;
 		RHI::DynamicDescriptor* transformBufferDescPS;
 	};
@@ -192,6 +190,9 @@ namespace Pistachio {
 		static SetInfo eqShaderPS;
 		static SetInfo irradianceShaderPS;
 		static SetInfo prefilterShaderVS[5];
+
+		static SetInfo backgroundInfo;
+		static Mesh cube;
 
 		static SamplerHandle defaultSampler;
 		static SamplerHandle brdfSampler;

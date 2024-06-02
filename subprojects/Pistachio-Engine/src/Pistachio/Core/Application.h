@@ -10,6 +10,9 @@
 #include "Pistachio/Renderer/Buffer.h"
 #include "Pistachio/Renderer/Shader.h"
 #include "Pistachio/Renderer/Camera.h"
+#include "Pistachio/Core/Input.h"
+#include <complex.h>
+#include <memory>
 namespace Pistachio {
 
 	/*
@@ -22,11 +25,17 @@ namespace Pistachio {
 		bool headless = false;
 		RHI::LUID gpu_luid{};
 		bool exportTextures = false;
+		Internal_ID custom_device;
+		Internal_ID custom_instance;
+		Internal_ID custom_physical_device;
+		Internal_ID custom_direct_queue;//required
+		Internal_ID custom_compute_queue;//optional
+		RHI::QueueFamilyIndices indices;
 	};
 	class PISTACHIO_API Application
 	{
 	public:
-		Application(const char* name, ApplicationOptions options = ApplicationOptions());
+		Application(const char* name, const ApplicationOptions& options = ApplicationOptions());
 		virtual ~Application();
 		void Run();
 		void Step();
@@ -34,13 +43,18 @@ namespace Pistachio {
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* overlay);
 		bool OnWindowResize(WindowResizeEvent& e);
+		void SetInputHandler(std::unique_ptr<InputHandler> handler);
+		inline InputHandler& GetInputHandler() {return *handler;}
 		static Application& Get();
+		static bool Exists();
 		inline Window& GetWindow() { return *m_Window; }
 		void SetImGuiContext(void* ctx);
+		void Stop() {m_Running = false;}
 		bool IsHeadless() {
 			return m_headless;
 		};
 	private:
+		std::unique_ptr<InputHandler> handler;
 		bool m_headless = false;
 		LayerStack m_layerstack;
 		std::unique_ptr<Window> m_Window;

@@ -45,6 +45,12 @@ namespace Pistachio {
 			RHI::LUID luid;
 			bool useLuid = false;
 			bool exportTexture;
+			Internal_ID custom_device;
+			Internal_ID custom_instance;
+			Internal_ID custom_physical_device;
+			Internal_ID custom_direct_queue;//required
+			Internal_ID custom_compute_queue;//optional
+			RHI::QueueFamilyIndices indices;
 		};
 		static bool IsDeviceNull;
 		static void Shutdown();
@@ -77,6 +83,7 @@ namespace Pistachio {
 		static void BindMainTarget();
 		static bool Init(PlatformData* pd, InitOptions& options);
 		static RHI::Device* Getd3dDevice();
+		static RHI::Instance* GetInstance();
 		static RHI::GraphicsCommandList* GetMainCommandList();
 		static RHI::SwapChain* GetSwapChain();
 		static RHI::DescriptorHeap* GetRTVDescriptorHeap();

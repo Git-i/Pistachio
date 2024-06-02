@@ -17,6 +17,12 @@ VS_OUT main( float3 pos : POSITION )
 {
     VS_OUT vso;
     vso.pos = pos;
-    vso.position = mul(float4(pos, 1.0f), ViewProj).xyww;
+    matrix view = View;
+    view._14_24_34 = 0.xxx;
+    view._41_42_43 = 0.xxx;
+    view._44 = 1.f;
+    matrix vp = view * Proj;
+    vso.position = mul(float4(pos, 1.0f), vp);
+    vso.position = vso.position.xyww;
     return vso;
 }

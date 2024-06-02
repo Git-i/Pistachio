@@ -92,7 +92,6 @@ namespace Pistachio {
 		friend class Entity;
 		friend class SceneHierarchyPanel;
 		friend class SceneSerializer;
-		RenderGraph graph;
 		RGTextureHandle finalRenderTex;
 		uint32_t lightListSize;
 		uint32_t clustersDim[3];
@@ -118,6 +117,7 @@ namespace Pistachio {
 		DepthTexture zPrepass;
 		RenderTexture finalRender;
 		ConstantBuffer passCB[RendererBase::numFramesInFlight];
+		RenderGraph graph;
 	};
 
 }
