@@ -1,7 +1,10 @@
+#include "Barrier.h"
 #include "FormatsAndTypes.h"
 #include "PipelineStateObject.h"
+#include "Pistachio/Renderer/RenderGraph.h"
 #include "Pistachio/Renderer/RendererBase.h"
 #include "Pistachio/Renderer/Shader.h"
+#include "Texture.h"
 #include "ptpch.h"
 #include "Renderer.h"
 #include "Material.h"
@@ -65,6 +68,8 @@ static const uint32_t VB_INITIAL_SIZE = 1024;
 static const uint32_t IB_INITIAL_SIZE = 1024;
 static const uint32_t INITIAL_NUM_LIGHTS = 20;
 static const uint32_t INITIAL_NUM_OBJECTS = 20;
+
+static const uint32_t NUM_SKYBOX_MIPS = 5;
 
 namespace Pistachio {
 	void Renderer::Init(const char* skyboxFile)
@@ -178,7 +183,7 @@ namespace Pistachio {
 		eqShader->GetPSShaderBinding(eqShaderPS, 1);
 		for(uint32_t i = 0; i < 6; i++)
 			eqShader->GetVSShaderBinding(eqShaderVS[i], 0);
-		skybox.CreateStack(512, 512, 1,  RHI::Format::R16G16B16A16_FLOAT PT_DEBUG_REGION(,"Renderer -> Skybox Texture"));
+		skybox.CreateStack(512, 512, NUM_SKYBOX_MIPS,  RHI::Format::R16G16B16A16_FLOAT PT_DEBUG_REGION(,"Renderer -> Skybox Texture"), RHI::TextureUsage::CopySrc | RHI::TextureUsage::CopyDst);
 		ShaderDesc.PS = { (char*)"resources/shaders/pixel/Compiled/irradiance_fs",0 };
 		irradianceShader = Shader::Create(&ShaderDesc);
 		irradianceShader->GetPSShaderBinding(irradianceShaderPS,1);
@@ -356,6 +361,12 @@ namespace Pistachio {
 		ChangeSkybox(skyboxFile);
 		EndScene();
 	}
+	void Renderer::ChangeRGTexture(RGTextureHandle& texture, RHI::ResourceLayout newLayout, RHI::ResourceAcessFlags newAccess,RHI::QueueFamily newFamily)
+	{
+		texture.originVector->at(texture.offset).current_layout = newLayout;
+		texture.originVector->at(texture.offset).currentAccess = newAccess;
+		texture.originVector->at(texture.offset).currentFamily = newFamily;
+	}
 	void Renderer::ChangeSkybox(const char* filename)
 	{
 		//the skybox texture
@@ -378,7 +389,6 @@ namespace Pistachio {
 		PrefilterCB.CreateStack(nullptr, 256 * 5);
 		CameraCB.CreateStack(nullptr, 256*6);//add padding
 		
-		//fbo.CreateStack(512, 512, 6);
 		DirectX::XMMATRIX captureProjection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f), 1.0f, 0.1f, 10.0f);
 		DirectX::XMMATRIX captureViews[] =
 		{
@@ -418,17 +428,23 @@ namespace Pistachio {
 		irradianceShaderPS.UpdateTextureBinding(skybox.GetView(), 0);
 		irradianceShaderPS.UpdateSamplerBinding(defaultSampler, 1);
 
-		Pistachio::RGTextureHandle skyboxFaces[6];
+		Pistachio::RGTextureHandle skyboxFaces_pre[6];
+		Pistachio::RGTextureInstance skyboxFaces[6];
+		RGTextureHandle skybox_lv0[6];
 		Pistachio::RGTextureHandle irradianceSkyboxFaces[6];
 		for (int i = 0; i < 6; i++)
 		{
-			skyboxFaces[i] = skyboxRG.CreateTexture(&skybox, i);
+			skybox_lv0[i] = skyboxRG.CreateTexture(skybox.m_ID.Get(), 0, true, i);
+			skyboxFaces_pre[i] = skyboxRG.CreateTexture(&skybox, i);
 			irradianceSkyboxFaces[i] = skyboxRG.CreateTexture(&irradianceSkybox, i);
 			AttachmentInfo info;
 			info.loadOp = RHI::LoadOp::Load;
 			info.format = RHI::Format::R16G16B16A16_FLOAT;
-			info.texture = skyboxFaces[i];
+			info.texture = skyboxFaces_pre[i];
 			auto& eqpass = skyboxRG.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Equirectangular to cubemap");
+			eqpass.AddColorOutput(&info);
+			info.texture = skybox_lv0[i];
+			info.usage = AttachmentUsage::Unspec;
 			eqpass.AddColorOutput(&info);
 			eqpass.SetPassArea({{0,0},{512,512}});
 			eqpass.SetShader(eqShader);
@@ -447,9 +463,63 @@ namespace Pistachio {
 					eqShader->ApplyBinding(list, eqShaderVS[i]);
 					eqShader->ApplyBinding(list, eqShaderPS);
 					Submit(list, cube.GetVBHandle(), cube.GetIBHandle(), sizeof(Vertex));
-					
+					auto layout = skyboxFaces_pre[i].originVector->at(skyboxFaces_pre[i].offset).current_layout;
+					auto access = skyboxFaces_pre[i].originVector->at(skyboxFaces_pre[i].offset).currentAccess;
+					auto family = skyboxFaces_pre[i].originVector->at(skyboxFaces_pre[i].offset).currentFamily;
+					Renderer::ChangeRGTexture(skybox_lv0[i], layout, access, family);
 				};
 			
+		}
+		for(uint32_t i = 0; i < 6; i++)
+		{
+			
+			skyboxFaces[i] = skyboxRG.MakeUniqueInstance(skyboxFaces_pre[i]);
+			for(uint32_t j = 1; j < NUM_SKYBOX_MIPS; j++)
+			{
+				auto& pass = skyboxRG.AddPass(RHI::PipelineStage::TRANSFER_BIT, "Gen MipMaps");
+				RGTextureHandle dst = skyboxRG.CreateTexture(skybox.m_ID.Get(), j, true, i);
+				AttachmentInfo info;
+				info.format = RHI::Format::R16G16B16A16_FLOAT;
+				info.loadOp = RHI::LoadOp::Load;
+
+				info.texture = skybox_lv0[i];
+				info.usage = AttachmentUsage::Blit;
+				pass.AddColorInput(&info);
+
+				info.texture = dst;
+				pass.AddColorOutput(&info);
+
+				info.usage = AttachmentUsage::PassThrough;
+				info.texture = skyboxFaces[i];
+				pass.AddColorOutput(&info);
+				pass.pass_fn = [&,j,i](RHI::GraphicsCommandList* list)
+				{
+					uint32_t mipSize = std::pow(0.5,j) * 512;
+					RHI::SubResourceRange src;
+					src.FirstArraySlice = i;
+					src.NumArraySlices = 1;
+					src.imageAspect = RHI::Aspect::COLOR_BIT;
+					src.IndexOrFirstMipLevel = 0;
+					src.NumMipLevels = 1;
+					RHI::SubResourceRange dst = src;
+					dst.IndexOrFirstMipLevel = j;
+					list->BlitTexture(skybox.m_ID.Get(), skybox.m_ID.Get(), {512,512,1}, {0,0,0}, {mipSize, mipSize,1}, {0,0,0},src,dst);
+					RHI::TextureMemoryBarrier barr[2];
+					barr[0].texture = skybox.m_ID.Get();
+					barr[0].AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_READ;
+					barr[0].AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
+					barr[0].subresourceRange = src;
+					barr[0].newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
+					barr[0].oldLayout = RHI::ResourceLayout::GENERAL;
+					barr[0].nextQueue = barr[0].previousQueue = RHI::QueueFamily::Ignored;
+					barr[1] = barr[0];
+					barr[1].subresourceRange = dst;
+					barr[1].AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
+					barr[1].oldLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
+					list->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::ALL_GRAPHICS_BIT, 0, 0, 2, barr);
+					Renderer::ChangeRGTexture(skyboxFaces_pre[i], RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL, RHI::ResourceAcessFlags::SHADER_READ, RHI::QueueFamily::Graphics);
+				};
+			}
 		}
 		for (uint32_t i = 0; i < 6; i++)
 		{

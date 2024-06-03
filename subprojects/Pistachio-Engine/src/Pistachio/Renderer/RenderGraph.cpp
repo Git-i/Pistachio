@@ -309,6 +309,8 @@ namespace Pistachio
             break;
         case AttachmentUsage::Copy: return RHI::ResourceLayout::TRANSFER_SRC_OPTIMAL;
             break;
+        case AttachmentUsage::Blit: return RHI::ResourceLayout::GENERAL;
+            break;
         case AttachmentUsage::Compute: return RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
         default: return RHI::ResourceLayout::UNDEFINED;
             break;
@@ -322,6 +324,8 @@ namespace Pistachio
         case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceLayout::COLOR_ATTACHMENT_OPTIMAL;
             break;
         case Pistachio::AttachmentUsage::Copy: return RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
+        break;
+        case Pistachio::AttachmentUsage::Blit: return RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
             break;
         case Pistachio::AttachmentUsage::Compute: return RHI::ResourceLayout::GENERAL;
             break;
@@ -338,6 +342,8 @@ namespace Pistachio
             break;
         case Pistachio::AttachmentUsage::Copy: return RHI::ResourceAcessFlags::TRANSFER_READ;
             break;
+        case Pistachio::AttachmentUsage::Blit: return RHI::ResourceAcessFlags::TRANSFER_READ;
+            break;
         case Pistachio::AttachmentUsage::Compute: return RHI::ResourceAcessFlags::SHADER_READ | RHI::ResourceAcessFlags::SHADER_WRITE;
             break;
         default: return RHI::ResourceAcessFlags::NONE;
@@ -352,6 +358,8 @@ namespace Pistachio
         case Pistachio::AttachmentUsage::Graphics: return RHI::ResourceAcessFlags::COLOR_ATTACHMENT_WRITE;
             break;
         case Pistachio::AttachmentUsage::Copy: return RHI::ResourceAcessFlags::TRANSFER_WRITE;
+            break;
+        case Pistachio::AttachmentUsage::Blit: return RHI::ResourceAcessFlags::TRANSFER_WRITE;
             break;
         case Pistachio::AttachmentUsage::Compute: return RHI::ResourceAcessFlags::SHADER_WRITE | RHI::ResourceAcessFlags::SHADER_READ;
         default: return RHI::ResourceAcessFlags::NONE;
@@ -432,7 +440,7 @@ namespace Pistachio
 
             RHI::BufferMemoryBarrier* bufferBarriers = new RHI::BufferMemoryBarrier[pass->bufferInputs.size() + pass->bufferOutputs.size()];
             RHI::RenderingBeginDesc rbDesc{};
-            rbDesc.numColorAttachments = (uint32_t)pass->outputs.size();
+            
             rbDesc.renderingArea = pass->area;
             RHI::RenderingAttachmentDesc* attachments = new RHI::RenderingAttachmentDesc[pass->outputs.size() +
                 ((pass->dsOutput.texture != RGTextureInstance::Invalid) ? 1 : 0)];
@@ -444,6 +452,7 @@ namespace Pistachio
             for (auto& input : pass->inputs)
             {
                 RGTexture& tex = textures[input.texture.texOffset];
+                if(input.usage == AttachmentUsage::PassThrough) continue;
                 barriers[barrierCount].newLayout = InputLayout(input.usage);
                 barriers[barrierCount].AccessFlagsAfter = InputDstAccess(input.usage);
                 //temporary
@@ -485,7 +494,7 @@ namespace Pistachio
             for (auto& output : pass->outputs)
             {
                 RGTexture& tex = textures[output.texture.texOffset];
-
+                if(output.usage == AttachmentUsage::PassThrough) continue;
                 if (output.usage == AttachmentUsage::Graphics)
                 {
                     attachments[attachmentCount].clearColor = { 0,0,0,0 };
@@ -606,6 +615,7 @@ namespace Pistachio
             for (auto& input : pass->bufferInputs)
             {
                 RGBuffer& buff = buffers[input.buffer.buffOffset];
+                if(input.usage == AttachmentUsage::PassThrough) continue;
                 if (buff.currentFamily != srcQueue)
                 {
                     auto& barr = bufferRelease.emplace_back();
@@ -637,6 +647,7 @@ namespace Pistachio
             for (auto& output : pass->bufferOutputs)
             {
                 RGBuffer& buff = buffers[output.buffer.buffOffset];
+                if(output.usage == AttachmentUsage::PassThrough) continue;
                 bufferBarriers[bufferBarrierCount].AccessFlagsAfter = OutputDstAccess(output.usage);
                 if (buff.currentFamily != srcQueue)
                 {
@@ -664,7 +675,7 @@ namespace Pistachio
                     bufferBarrierCount++;
                 }
             }
-
+            rbDesc.numColorAttachments = attachmentCount - (rbDesc.pDepthStencilAttachment ? 1 : 0);
             currentList->PipelineBarrier(stage, pass->stage, bufferBarrierCount, bufferBarriers, barrierCount, barriers);
             currentList->MarkBuffer(dbgBufferGFX, levelInd * 2);
             if (pass->pso.Get()) currentList->SetPipelineState(pass->pso.Get());
@@ -699,6 +710,7 @@ namespace Pistachio
             for (auto& input : pass->inputs)
             {
                 RGTexture& tex = textures[input.texture.texOffset];
+                if(input.usage == AttachmentUsage::PassThrough) continue;
                 barriers[barrierCount].newLayout = InputLayout(input.usage);
                 barriers[barrierCount].AccessFlagsAfter = InputDstAccess(input.usage);
                 RHI::SubResourceRange range;
@@ -741,6 +753,7 @@ namespace Pistachio
             for (auto& output : pass->outputs)
             {
                 RGTexture& tex = textures[output.texture.texOffset];
+                if(output.usage == AttachmentUsage::PassThrough) continue;
                 barriers[barrierCount].newLayout = OutputLayout(output.usage);
                 barriers[barrierCount].AccessFlagsAfter = OutputDstAccess(output.usage);
                 RHI::SubResourceRange range;
@@ -784,6 +797,7 @@ namespace Pistachio
             for (auto& input : pass->bufferInputs)
             {
                 RGBuffer& buff = buffers[input.buffer.buffOffset];
+                if(input.usage == AttachmentUsage::PassThrough) continue;
                 bufferBarriers[bufferBarrierCount].AccessFlagsAfter = InputDstAccess(input.usage);
                 if (buff.currentFamily != srcQueue)
                 {
@@ -814,6 +828,7 @@ namespace Pistachio
             for (auto& output : pass->bufferOutputs)
             {
                 RGBuffer& buff = buffers[output.buffer.buffOffset];
+                if(output.usage == AttachmentUsage::PassThrough) continue;
                 bufferBarriers[bufferBarrierCount].AccessFlagsAfter = OutputDstAccess(output.usage);
                 if (buff.currentFamily != srcQueue)
                 {
