@@ -1,4 +1,7 @@
 #pragma once
+#include "Barrier.h"
+#include "FormatsAndTypes.h"
+#include "Pistachio/Renderer/RenderGraph.h"
 #include "RendererBase.h"
 #include "Camera.h"
 #include "Shader.h"
@@ -117,7 +120,7 @@ namespace Pistachio {
 		static void GrowMeshIndexBuffer(uint32_t minExtraSize);
 		static void GrowConstantBuffer(uint32_t minExtraSize);
 
-
+		static void ChangeRGTexture(RGTextureHandle& texture, RHI::ResourceLayout newLayout, RHI::ResourceAcessFlags newAccess,RHI::QueueFamily newFamily);
 		static void DefragmentMeshVertexBuffer();
 		static void DefragmentMeshIndexBuffer();
 		static void DefragmentConstantBuffer();

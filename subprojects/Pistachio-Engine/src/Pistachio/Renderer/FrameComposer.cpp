@@ -43,10 +43,17 @@ namespace Pistachio
 				{
 					uint32_t index = x + y * nx;
 					RHI::Extent3D srcSize = { scenes[index]->sceneResolution[0], scenes[index]->sceneResolution[1], 1 };
+					RHI::SubResourceRange range;
+					range.IndexOrFirstMipLevel = 0;
+					range.FirstArraySlice = 0;
+					range.NumArraySlices = 1;
+					range.NumMipLevels = 1;
+					range.imageAspect = RHI::Aspect::COLOR_BIT;
 					RendererBase::mainCommandList->BlitTexture(scenes[index]->finalRender.GetID(),
 						RendererBase::backBufferTextures[RendererBase::currentRTVindex],
 						srcSize, { 0,0,0 },
-						dstSize, { (int)(x * dstSize.width), (int)(y * dstSize.height),0 });
+						dstSize, { (int)(x * dstSize.width), (int)(y * dstSize.height),0 },
+						range, range);
 				}
 			}
 		}

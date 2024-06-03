@@ -145,6 +145,8 @@ namespace Pistachio
 		Graphics,//I: Shader Read, O: Color attachment
 		Copy, //I: Copy Src, O: Copy Dst
 		Compute, //I: Shader Read, O: Shader Write
+		Blit, //I: Blit Src, O: Blit Dst
+		PassThrough,//Doesn't transition, only there for dependencies
 		Unspec //Same as graphics but doesnt make attachments
 	};
 	struct AttachmentInfo
