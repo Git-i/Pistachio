@@ -85,12 +85,12 @@ namespace Pistachio {
 			out << YAML::Key << "Tag" << YAML::Value << tag;
 			out << YAML::EndMap;
 		}
-		if (entity.HasComponent<ParentComponent>())
+		if (entity.HasComponent<HierarchyComponent>())
 		{
 			out << YAML::Key << "ParentComponent";
 			out << YAML::BeginMap;
-			auto pid = entity.GetComponent<ParentComponent>().parentID;
-			auto parent = Entity((entt::entity)entity.GetComponent<ParentComponent>().parentID, scene.get());
+			auto pid = entity.GetComponent<HierarchyComponent>().parentID;
+			auto parent = Entity((entt::entity)entity.GetComponent<HierarchyComponent>().parentID, scene.get());
 			if(pid != entt::null)
 				out << YAML::Key << "ParentID" << YAML::Value << parent.GetComponent<IDComponent>().uuid;
 			else
@@ -311,13 +311,13 @@ namespace Pistachio {
 				auto pida = parentComponent["ParentID"];
 				auto pid = pida.as<std::uint64_t>();
 				auto view = m_Scene->m_Registry.view<IDComponent>();
-				entities[i].GetComponent<ParentComponent>().parentID = entt::null;
+				entities[i].GetComponent<HierarchyComponent>().parentID = entt::null;
 				for (auto entt : view)
 				{
 					auto id = view.get<IDComponent>(entt);
 					if (pid == id.uuid)
 					{
-						entities[i].GetComponent<ParentComponent>().parentID = entt;
+						entities[i].GetComponent<HierarchyComponent>().parentID = entt;
 					}
 				}
 				i++;

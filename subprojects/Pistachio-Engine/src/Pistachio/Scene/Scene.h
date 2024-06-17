@@ -1,4 +1,5 @@
 #pragma once
+#include "Pistachio/Core/Math.h"
 #include "entt.hpp"
 #include "Pistachio/Renderer/RenderTexture.h"
 #include "Pistachio/Renderer/EditorCamera.h"
@@ -58,6 +59,7 @@ namespace Pistachio {
 		void OnViewportResize(unsigned int width, unsigned int height);
 		void DestroyEntity(Entity entity);
 		void DefferedDelete(Entity entity);
+		void ReparentEntity(Entity entity, Entity new_parent);
 		template<typename _ComponentTy> auto GetAllComponents() { return m_Registry.view<_ComponentTy>(); }
 		Entity GetRootEntity();
 		Entity GetPrimaryCameraEntity();
@@ -71,23 +73,25 @@ namespace Pistachio {
 		//const RenderTexture& GetRenderedScene() { return m_finalRender; };
 		template<typename T> void OnComponentAdded(Entity entity, T& component);
 	private:
+		Entity CreateRootEntity(UUID ID);
 		void UpdateObjectCBs();
 		void SortMeshComponents();
 		void UpdateLightsBuffer();
 		void FrustumCull(const Matrix4& view, const Matrix4& proj, float fovRad, float nearClip,float farClip,float aspect);
 		DirectX::XMMATRIX GetTransfrom(Entity e);
+		void UpdateTransforms(entt::entity e, const Matrix4& mat);
 	private:
 		friend class FrameComposer;
 		std::vector<entt::entity> meshesToDraw;
 		std::vector<ShadowCastingLight> shadowLights;
 		std::vector<RegularLight> regularLights;
-		std::vector<bool> isShadowDirty;
 		std::vector<entt::entity> deletionQueue;
 		uint32_t numShadowDirLights = 0;
 		uint32_t numRegularDirLights = 0;
 		AtlasAllocator sm_allocator;
 		Pistachio::Mesh* ScreenSpaceQuad;//?
 		entt::registry m_Registry;
+		entt::entity root;
 		physx::PxScene* m_PhysicsScene = __null;
 		friend class Entity;
 		friend class SceneHierarchyPanel;

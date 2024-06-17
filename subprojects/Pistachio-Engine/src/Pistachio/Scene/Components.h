@@ -1,5 +1,7 @@
 #pragma once
 #include <DirectXMath.h>
+#include <vector>
+#include "Pistachio/Core/Math.h"
 #include "Pistachio/Renderer/Camera.h"
 #include "Pistachio/Renderer/Mesh.h"
 #include "Pistachio/Renderer/ShadowMap.h"
@@ -18,8 +20,9 @@ namespace Pistachio{
 		IDComponent(UUID uuid) : uuid(uuid)
 		{}
 	};
-	struct PISTACHIO_API ParentComponent {
+	struct PISTACHIO_API HierarchyComponent {
 		entt::entity parentID = entt::null;
+		std::vector<entt::entity> chilren;
 	};
 	struct PISTACHIO_API TagComponent {
 		std::string Tag;
@@ -33,12 +36,11 @@ namespace Pistachio{
 	struct PISTACHIO_API TransformComponent {
 	private:
 	public:
-		VEC3(TransformComponent, Translation, ) = Vector3{ 0,0,0 };
-		QUAT(TransformComponent, Rotation, ) =    Quaternion{ 0,0,0,0 };
-		VEC3(TransformComponent, Scale, ) =       Vector3{ 1,1,1 };
+		Vector3 Translation = Vector3{ 0,0,0 };
+		Quaternion Rotation = Quaternion{ 0,0,0,0 };
+		Vector3 Scale = Vector3{ 1,1,1 };
 		//Editor Only
-		VEC3(TransformComponent, RotationEulerHint, parent->RecalculateRotation()) = Vector3{ 0,0,0 };
-		bool bDirty = true;
+		Vector3 RotationEulerHint = Vector3{ 0,0,0 };
 		mutable int NumNegativeScaleComps = 0;
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
@@ -47,15 +49,6 @@ namespace Pistachio{
 		void RecalculateRotation()
 		{
 			Rotation = Quaternion::CreateFromYawPitchRoll(RotationEulerHint);
-		}
-		DirectX::XMMATRIX GetTransform(Entity parent) const
-		{
-			NumNegativeScaleComps = 0;
-			for (int i = 0; i < 3; i++)
-				if (((float*)&Scale)[i] < 0) NumNegativeScaleComps++;
-			entt::entity PID = parent.GetComponent<ParentComponent>().parentID;
-			DirectX::XMMATRIX parentTransform = PID != entt::null ? (parent.GetComponent<TransformComponent>().GetTransform({ PID, parent.m_Scene})) : parent.GetComponent<TransformComponent>().GetLocalTransform();
-			return (DirectX::XMMatrixScalingFromVector(Scale) * DirectX::XMMatrixRotationQuaternion(Rotation) * DirectX::XMMatrixTranslationFromVector(Translation)) * parentTransform;
 		}
 		DirectX::XMMATRIX GetLocalTransform() const
 		{
@@ -118,7 +111,6 @@ namespace Pistachio{
 		float Intensity = 1.f;
 		DirectX::XMFLOAT3 color = {1,1,1};
 		bool shadow = false;
-		bool shadow_dirty = true; // todo: mix it in with the other bool on top
 		//for spot lights this holds the outercone and innercone angles(x,y) and the distance for both point and spot light (z)
 		DirectX::XMFLOAT3 exData = { 0.01f,0.1f,1.0f };
 		DirectX::XMFLOAT3 rotation = {};
