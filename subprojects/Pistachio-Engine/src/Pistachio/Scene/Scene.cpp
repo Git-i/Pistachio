@@ -1,4 +1,5 @@
 #include "CommandList.h"
+#include "DirectXMath.h"
 #include "Pistachio/Renderer/BufferHandles.h"
 #include "Pistachio/Renderer/Mesh.h"
 #include "Pistachio/Renderer/RenderGraph.h"
@@ -6,6 +7,7 @@
 #include "Pistachio/Renderer/RendererBase.h"
 #include "ptpch.h"
 #include "Pistachio/Core/Math.h"
+#include <algorithm>
 #include <cstdint>
 #define NOMINMAX //temporary till i find the root file to include this
 #include "Scene.h"
@@ -101,37 +103,15 @@ static DirectX::XMMATRIX GetLightMatrixFromCamera(const DirectX::XMMATRIX& camVi
 }
 static const uint32_t clusterAABBsize = ((sizeof(float) * 4) * 2);
 namespace Pistachio {
-	static bool RenderSpotShadow(ShadowCastingLight& light, entt::registry& reg)
-	{
-		AssetManager* assetMan = GetAssetManager();
-		auto view = reg.view<MeshRendererComponent, TransformComponent>();
-		float x2 = light.light.exData.x * light.light.exData.x;
-		float h2 = light.light.exData.z * light.light.exData.z;
-		float r2 = (h2 * (1-x2)) / x2;
-		float R = light.light.exData.z - ((h2 - r2) / (light.light.exData.z * 2));
-		Vector3 center = light.light.position;
-		Vector3 dir = Vector3(light.light.rotation.x, light.light.rotation.y, light.light.rotation.z);
-		center += dir * (light.light.exData.z - R);
-		BoundingSphere bs(center, R);
-		for (auto entity : view)
-		{
-			auto [mc, tc] = view.get(entity);
-			BoundingBox bb = assetMan->GetModelResource(mc.Model)->aabbs[mc.modelIndex];
-			bb.Transform(bb, tc.worldSpaceTransform);
-			if(CullingManager::SphereCull(bb, bs) && tc.bDirty) return true;
-		}
-		return false;
-	}
+
 	//todo extremely temprary
 	static Shader* envshader;
 	Scene::Scene(SceneDesc desc) : sm_allocator({ 4096, 4096 }, { 256, 256 })
 	{
 		using namespace DirectX;
 		AssetManager* assetMan = GetAssetManager();
-		//envshader = new Shader(L"resources/shaders/vertex/background_vs.cso", L"resources/shaders/pixel/background.cso");
-		//envshader->CreateLayout(Pistachio::Mesh::GetLayout(), Pistachio::Mesh::GetLayoutSize());
 		PT_PROFILE_FUNCTION();
-		CreateEntity("Root").GetComponent<ParentComponent>().parentID = entt::null;
+		root = CreateRootEntity(UUID());
 		ScreenSpaceQuad = MeshFactory::CreatePlane();
 		RHI::UVector2D resolution = { (uint32_t)desc.Resolution.x, (uint32_t)desc.Resolution.y };
 		sceneResolution[0] = resolution.x;
@@ -319,7 +299,7 @@ namespace Pistachio {
 					Shader* shd = Renderer::GetBuiltinShader("Shadow Shader");
 					for (auto& light : shadowLights)
 					{
-						if ((light.light.type != LightType::Directional) || !isShadowDirty[index]) 
+						if ((light.light.type != LightType::Directional)) 
 						{ index++; continue; }
 
 						RHI::Viewport vp[4];
@@ -398,7 +378,7 @@ namespace Pistachio {
 					Shader* shd = Renderer::GetBuiltinShader("Shadow Shader");
 					for (auto& light : shadowLights)
 					{
-						if ((light.light.type != LightType::Spot) || !isShadowDirty[index] || !RenderSpotShadow(light, m_Registry)) 
+						if ((light.light.type != LightType::Spot)) 
 						{ index++; continue; }
 						RHI::Viewport vp;
 						vp.height = light.shadowMap.size.y; vp.width = light.shadowMap.size.x;
@@ -606,17 +586,28 @@ namespace Pistachio {
 		//finish all operations on the scene and it resources
 		delete ScreenSpaceQuad;
 	}
+	Entity Scene::CreateRootEntity(UUID ID)
+	{
+		Entity entity = { m_Registry.create(), this };
+		entity.AddComponent<IDComponent>(ID);
+		auto& hierarchy = entity.AddComponent<HierarchyComponent>();
+		hierarchy.parentID = entt::null;
+		entity.AddComponent<TransformComponent>();
+		auto& tag = entity.AddComponent<TagComponent>();
+		tag.Tag = "Root";
+		return entity;
+	}
 	Entity Scene::CreateEntity(const std::string& name)
 	{
 		return CreateEntityWithUUID(UUID(), name);
 	}
 	Entity Scene::DuplicateEntity(Entity entity)
 	{
-		if (entity.GetComponent<ParentComponent>().parentID == entt::null)
+		if (entity.GetComponent<HierarchyComponent>().parentID == entt::null)
 			return entity;
 		Entity newEntity = CreateEntity(entity.GetComponent<TagComponent>().Tag + "-Copy");
 		newEntity.GetComponent<TransformComponent>() = entity.GetComponent<TransformComponent>();
-		newEntity.GetComponent<ParentComponent>() = entity.GetComponent<ParentComponent>();
+		newEntity.GetComponent<HierarchyComponent>() = entity.GetComponent<HierarchyComponent>();
 		if (entity.HasComponent<LightComponent>()) newEntity.AddComponent<LightComponent>(entity.GetComponent<LightComponent>());
 		if (entity.HasComponent<SpriteRendererComponent>()) newEntity.AddComponent<SpriteRendererComponent>() = entity.GetComponent<SpriteRendererComponent>();
 		if (entity.HasComponent<MeshRendererComponent>()) newEntity.AddComponent<MeshRendererComponent>() = entity.GetComponent<MeshRendererComponent>();
@@ -625,16 +616,39 @@ namespace Pistachio {
 		if (entity.HasComponent<SphereColliderComponent>()) newEntity.AddComponent<SphereColliderComponent>() = entity.GetComponent<SphereColliderComponent>();
 		return newEntity;
 	}
+	void Scene::ReparentEntity(Entity e, Entity new_parent)
+	{
+		if(e == root) return;
+		auto view = m_Registry.view<HierarchyComponent>();
+		auto& child = view.get<HierarchyComponent>(e);
+		auto& old_tree = view.get<HierarchyComponent>(child.parentID);
+		auto& new_tree = view.get<HierarchyComponent>(new_parent);
+		//if new parent is a child of e return
+		entt::entity iter = new_tree.parentID;
+		while(iter != entt::null)
+		{
+			if(iter == e) return;
+			iter = view.get<HierarchyComponent>(iter).parentID;
+		}
+		auto it = std::find(old_tree.chilren.begin(), old_tree.chilren.end(), e);
+		old_tree.chilren.erase(it);
+
+		child.parentID = new_parent;
+		new_tree.chilren.push_back(e);
+	}
 	Entity Scene::CreateEntityWithUUID(UUID ID, const std::string& name)
 	{
 		Entity entity = { m_Registry.create(), this };
 		entity.AddComponent<IDComponent>(ID);
-		entity.AddComponent<ParentComponent>((entt::entity)0);
+		entity.AddComponent<HierarchyComponent>((entt::entity)0);
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		char id[100] = {'E','n','t','i','t', 'y', '0', '0', '0', '\0'};
 		sprintf(id+6,"%u",((uint32_t)entity));
 		tag.Tag = name.empty() ? id : name;
+
+		auto& root_children = m_Registry.get<HierarchyComponent>(root);
+		root_children.chilren.push_back(entity);
 		return entity;
 	}
 	void Scene::OnRuntimeStart()
@@ -718,34 +732,27 @@ namespace Pistachio {
 	}
 	void Scene::DestroyEntity(Entity entity)
 	{
-		auto view = m_Registry.view<ParentComponent>();
+		auto view = m_Registry.view<HierarchyComponent>();
 		for (auto child : view)
 		{
-			if (view.get<ParentComponent>(child).parentID == entity)
+			if (view.get<HierarchyComponent>(child).parentID == entity)
 				DestroyEntity(Entity(child, this));
 		}
 		m_Registry.destroy(entity);
 	}
 	void Scene::DefferedDelete(Entity entity)
 	{
-		auto view = m_Registry.view<ParentComponent>();
+		auto view = m_Registry.view<HierarchyComponent>();
 		for (auto child : view)
 		{
-			if (view.get<ParentComponent>(child).parentID == entity)
+			if (view.get<HierarchyComponent>(child).parentID == entity)
 				DefferedDelete(Entity(child, this));
 		}
 		deletionQueue.push_back(entity);
 	}
 	Entity Scene::GetRootEntity()
 	{
-		
-		auto view = m_Registry.view<ParentComponent>();
-		for (auto entity : view)
-		{
-			if (view.get<ParentComponent>(entity).parentID == entt::null)
-				return Entity(entity, this);
-		}
-		return Entity();
+		return Entity(root, this);
 	}
 	
 	Entity Scene::GetPrimaryCameraEntity()
@@ -880,7 +887,7 @@ namespace Pistachio {
 		{
 			
 			PT_PROFILE_SCOPE("Dirty Transform Components");
-			auto transformParent = m_Registry.view<ParentComponent, TransformComponent>();
+			auto transformParent = m_Registry.view<HierarchyComponent, TransformComponent>();
 			for (auto entity : transformParent)
 			{
 				auto [Parent, transform] = transformParent.get(entity);
@@ -904,7 +911,7 @@ namespace Pistachio {
 							transform.worldSpaceTransform = transform.GetLocalTransform();
 						break;
 					}
-					auto& parentComp = m_Registry.get<ParentComponent>((entt::entity)PID);
+					auto& parentComp = m_Registry.get<HierarchyComponent>((entt::entity)PID);
 					PID = parentComp.parentID;
 				}
 			}
@@ -1140,7 +1147,7 @@ namespace Pistachio {
 			for (auto& entity : transformSprite)
 			{
 				auto [transform, sprite] = transformSprite.get(entity);
-				const auto& transformMatrix = transform.GetTransform({ (entt::entity)m_Registry.get<ParentComponent>(entity).parentID, this });
+				const auto& transformMatrix = transform.GetTransform({ (entt::entity)m_Registry.get<HierarchyComponent>(entity).parentID, this });
 				if ((transform.NumNegativeScaleComps % 2))
 				{
 					RendererBase::SetCullMode(CullMode::Front);
@@ -1173,7 +1180,16 @@ namespace Pistachio {
 		//Pistachio::Renderer::Submit(cube,envshader, &Renderer::DefaultMaterial, -1);
 		Pistachio::RendererBase::SetCullMode(Pistachio::CullMode::Back);
 	}*/
-
+	void Scene::UpdateTransforms(entt::entity e, const Matrix4& mat)
+	{
+		auto& tc = m_Registry.get<TransformComponent>(e);
+		auto& hierc = m_Registry.get<HierarchyComponent>(e);
+		tc.worldSpaceTransform = tc.GetLocalTransform() * ((DirectX::XMMATRIX)mat);
+		for(auto child: hierc.chilren)
+		{
+			UpdateTransforms(child, tc.worldSpaceTransform);
+		}
+	}
 	void Scene::OnUpdateEditor(float delta, EditorCamera& camera)
 	{
 		/*
@@ -1184,16 +1200,10 @@ namespace Pistachio {
 		meshesToDraw.clear();
 		shadowLights.clear();
 		regularLights.clear();
-		isShadowDirty.clear();
 		numShadowDirLights = 0;
 		numRegularDirLights = 0;
-		auto transform_parent_view = m_Registry.view<TransformComponent, ParentComponent>();
-		for (auto entity : transform_parent_view)
-		{
-			auto [tc,pc] = transform_parent_view.get(entity);
-			if (pc.parentID == entt::null) tc.worldSpaceTransform = tc.GetLocalTransform();
-			else tc.worldSpaceTransform = tc.GetTransform(Entity((entt::entity)pc.parentID,this));
-		}
+		auto transform_parent_view = m_Registry.view<TransformComponent, HierarchyComponent>();
+		UpdateTransforms(root, Matrix4::Identity);
 		FrustumCull(camera.GetViewMatrix(), camera.GetProjection(),Math::ToRadians(camera.GetFOVdeg()),camera.GetNearClip(), camera.GetFarClip(), camera.GetAspectRatio());
 		UpdateObjectCBs();
 		UpdatePassConstants(camera, delta);
@@ -1222,16 +1232,6 @@ namespace Pistachio {
 
 		//notify render graph of layout change
 		finalRenderTex.originVector->at(finalRenderTex.offset).current_layout = RHI::ResourceLayout::GENERAL;
-		auto transform_view = m_Registry.view<TransformComponent>();
-
-		//RHI::MemHandleT hand;
-		//auto res = RendererBase::device->ExportTexture(finalRender.GetID(), RHI::ExportOptions::D3D11TextureNT, &hand);
-		
-		for (auto entity : transform_view)
-		{
-			auto [tc] = transform_view.get(entity);
-			tc.bDirty = false;
-		}
 		m_Registry.destroy(deletionQueue.begin(), deletionQueue.end());
 		deletionQueue.clear();
 	}
@@ -1295,7 +1295,7 @@ namespace Pistachio {
 				if (camera.Primary)
 				{
 					mainCamera = &camera.camera;
-					cameraTransform = transform.GetTransform({ (entt::entity)m_Registry.get<ParentComponent>(entity).parentID, this });
+					cameraTransform = transform.GetTransform({ (entt::entity)m_Registry.get<HierarchyComponent>(entity).parentID, this });
 					
 					break;
 				}
@@ -1412,7 +1412,7 @@ namespace Pistachio {
 				for (auto& entity : group)
 				{
 					auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-					const auto& transformMatrix = transform.GetTransform({ (entt::entity)m_Registry.get<ParentComponent>(entity).parentID, this });
+					const auto& transformMatrix = transform.GetTransform({ (entt::entity)m_Registry.get<HierarchyComponent>(entity).parentID, this });
 					if ((transform.NumNegativeScaleComps % 2))
 					{
 						RendererBase::SetCullMode(CullMode::Front);
@@ -1549,14 +1549,12 @@ namespace Pistachio {
 			if (lightcomponent.shadow)
 			{
 				iVector2 allocation_size;
-				bool dirty = lightcomponent.shadow_dirty;
 				ShadowCastingLight* sclight = 0;
 				if (lightcomponent.Type == LightType::Directional)
 				{
 					sclight = &*shadowLights.insert(shadowLights.begin(),ShadowCastingLight());
 					sclight->light = light;
 					numShadowDirLights++;
-					dirty = true;
 					allocation_size = { 256 * 4, 256 * 4 };
 					float pss_vals[3];
 					for(uint32_t i = 0; i < 3; i++) pss_vals[i] = pss(i+1,4,0.3,nearClip,farClip);
@@ -1584,7 +1582,6 @@ namespace Pistachio {
 					//todo : Handle point light matrices;
 				}
 				
-				if (tc.bDirty) dirty = true;
 				if (lightcomponent.shadowMap != 0) // if there was a shadow map dont allocate a new one unnecessarily
 				{
 					//todo camera cascades for varying shadow map sizes at different distance levels
@@ -1594,10 +1591,7 @@ namespace Pistachio {
 				{
 					lightcomponent.shadowMap = sm_allocator.Allocate(allocation_size, AllocatorFlags::None); // todo render settings to control allocation size
 					sclight->shadowMap = sm_allocator.GetRegion(lightcomponent.shadowMap);
-					dirty = true;
 				}
-				isShadowDirty.push_back(dirty);
-				lightcomponent.shadow_dirty = false;
 			}
 			else
 			{
@@ -1677,7 +1671,7 @@ namespace Pistachio {
 	{
 	}
 	template<>
-	void PISTACHIO_API Scene::OnComponentAdded<ParentComponent>(Entity entity, ParentComponent& component)
+	void PISTACHIO_API Scene::OnComponentAdded<HierarchyComponent>(Entity entity, HierarchyComponent& component)
 	{
 	}
 
