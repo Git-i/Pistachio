@@ -96,7 +96,7 @@ namespace Pistachio
                 return as_var_to_string(entry);
 
             }
-            void print(const std::string& msg)
+            std::string format(const std::string& msg)
             {
                 asIScriptContext* context = asGetActiveContext();
                 std::unordered_map<std::string, std::pair<int,void*>> type_names_to_id;
@@ -129,8 +129,11 @@ namespace Pistachio
                 }
                 if(!match.empty()) final_str += match.suffix();
                 else final_str = msg;
-
-                PT_CORE_INFO(final_str);
+                return final_str;
+            }
+            void print(const std::string& msg)
+            {
+                PT_INFO(format(msg));
             }
             void UUID_Construct(void* memory)
             {
@@ -169,6 +172,7 @@ namespace Pistachio
             r = engine->RegisterInterfaceMethod("IDebug", "string ToString()");PT_CORE_ASSERT(r >= 0);
 
             r = engine->RegisterGlobalFunction("void print(const string &in msg)", asFUNCTION(Base::print), asCALL_CDECL); PT_CORE_ASSERT(r >= 0);
+            r = engine->RegisterGlobalFunction("string format(const string &in msg)", asFUNCTION(Base::format), asCALL_CDECL); PT_CORE_ASSERT(r >= 0);
             debugInterface = engine->GetTypeInfoByName("IDebug");
 
             //Pistachio Specific Stuff

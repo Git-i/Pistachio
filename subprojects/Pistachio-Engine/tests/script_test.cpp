@@ -168,8 +168,7 @@ void LineCallback(asIScriptContext* ctx, void* data)
 {
     const char* sc;
     int ln = ctx->GetLineNumber(0, 0, &sc);
-    
-    if(ln == 26)
+    if(ln == 25)
     {
         ctx->Suspend();
         uint32_t var_count = ctx->GetVarCount();
@@ -196,6 +195,7 @@ int main()
     Pistachio::Scripting::Initialize();
     Pistachio::Scripting::ECS::Initialize();
     engine = Pistachio::Scripting::engine;
+    engine->RegisterObjectType("Lpo", 0, asOBJ_REF);
     Pistachio::Scene scene;
     Pistachio::Scripting::ECS::SetCurrentScene(&scene);
     debugInterface = Pistachio::Scripting::debugInterface;
@@ -223,15 +223,15 @@ int main()
         }
         void function()
         {
-            Pistachio::ECS::Entity e = Pistachio::ECS::current_scene.CreateEntity("Name");
-            array<Pistachio::ECS::Entity> es = Pistachio::ECS::current_scene.GetAllEntitiesWithName("Name");
-            int a = 9;
+            int a = 5;
+            string lol = format("This is lol {5}");
+            print(lol);
         }
     )";
     mod->AddScriptSection("script.as", code);
     mod->Build();
     asIScriptContext* ctx = engine->RequestContext();
-    ctx->SetLineCallback(asFUNCTION(LineCallback), 0, asCALL_CDECL);
+    //ctx->SetLineCallback(asFUNCTION(LineCallback), 0, asCALL_CDECL);
     ctx->Prepare(mod->GetFunctionByDecl("void function()"));
     ctx->Execute();
 }

@@ -1,4 +1,4 @@
-# # array
+# array
 
 The array is a template type that can store multiple objects of the same type.
 
