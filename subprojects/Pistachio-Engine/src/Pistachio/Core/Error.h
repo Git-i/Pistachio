@@ -1,16 +1,21 @@
 #pragma once
+#include "FormatsAndTypes.h"
 #include "ptpch.h"
 #include "Log.h"
 #include <filesystem>
 namespace Pistachio {
 	enum class ErrorType
 	{
-		Success,Unknown, NullError, NonExistentFile
+		Success,
+		Unknown, 
+		ParameterError,
+		NonExistentFile,
+		OutOfMemory,
 	};
 	class Error {
 	public:
-		Error(int a) {
-			type = (ErrorType)(a);
+		Error(ErrorType t) {
+			type = t;
 			severity = GetErrorSeverity(type);
 			ReporterString = "Unknown Internal Error";
 		}
@@ -18,6 +23,21 @@ namespace Pistachio {
 			if (std::filesystem::exists(filepath))
 				return true;
 			return false;
+		}
+		static Error FromRHIError(RHI::CreationError e, const std::string& str = "")
+		{
+			bool report = !str.empty();
+			ErrorType t = ErrorType::Unknown;
+			switch (e) 
+			{
+				case (RHI::CreationError::OutOfDeviceMemory): [[fallthrough]];
+				case (RHI::CreationError::OutOfHostMemory): t = ErrorType::OutOfMemory;
+					break;
+				case (RHI::CreationError::InvalidParameters): t = ErrorType::ParameterError;
+					break;
+				default: t = ErrorType::Unknown;
+			}
+			return report ? Error(t, str) : Error(t);
 		}
 		Error(ErrorType etype, const std::string& funcsig) :type(etype),ReporterString(funcsig), severity(GetErrorSeverity(etype)){ };
 		inline static std::string GetErrorString(const Error& e) {
@@ -29,8 +49,8 @@ namespace Pistachio {
 			case Pistachio::ErrorType::NonExistentFile:
 				return (std::string("The file passed into the function doesn't exist: ") + std::string(e.GetReporterString()));
 				break;
-			case Pistachio::ErrorType::NullError:
-				return (std::string("A NULL or nullptr parameter was passed into the function: ") + std::string(e.GetReporterString()));
+			case Pistachio::ErrorType::ParameterError:
+				return (std::string("A wrong parameter was passed into the function: ") + std::string(e.GetReporterString()));
 				break;
 			default: return "Unregistered Error Type";
 				break;
@@ -42,7 +62,7 @@ namespace Pistachio {
 			if (e.GetSeverity() == 2)
 				PT_CORE_ERROR(GetErrorString(e));
 		};
-		inline static void AssertOnError(const Error & e) {
+		inline static void Assert(const Error & e) {
 			if(e.GetSeverity() == 2)
 				PT_CORE_ASSERT(GetErrorString(e) == "0");
 		};
@@ -55,10 +75,11 @@ namespace Pistachio {
 				break;
 			case Pistachio::ErrorType::Success: return 0;
 				break;
-			case Pistachio::ErrorType::NullError: return 2;
+			case Pistachio::ErrorType::ParameterError: return 2;
 				break;
 			case Pistachio::ErrorType::NonExistentFile: return 2;
 				break;
+			case Pistachio::ErrorType::OutOfMemory: return 2;
 			default: return 0;
 				break;
 			}
@@ -69,6 +90,9 @@ namespace Pistachio {
 		std::string ReporterString;
 		int severity;
 	};
+	using init_result = ezr::result<void, Error>;
+	template <typename T>
+	using creation_result = ezr::result<T, Error>;
 }
 class Reporter {
 	Reporter(std::string& caller);

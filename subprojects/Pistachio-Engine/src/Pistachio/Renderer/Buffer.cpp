@@ -1,3 +1,5 @@
+#include "CommandList.h"
+#include "Pistachio/Core/Error.h"
 #include "ptpch.h"
 #include "Buffer.h"
 #include "RendererBase.h"
@@ -6,23 +8,21 @@ namespace Pistachio {
 	VertexBuffer::VertexBuffer()
 	{
 	}
-	void VertexBuffer::Bind() const
+	void VertexBuffer::Bind(RHI::GraphicsCommandList* list, uint32_t slot) const
 	{
 		PT_PROFILE_FUNCTION();
 		uint32_t offset = 0;
-		RendererBase::GetMainCommandList()->BindVertexBuffers(0, 1, &ID->ID);//id->id is a little confusing
+		list->BindVertexBuffers(slot, 1, &ID->ID);//id->id is a little confusing
 	}
-	void VertexBuffer::UnBind()
-	{
-	}
-	VertexBuffer* VertexBuffer::Create(unsigned int size, unsigned int stride)
+	creation_result<VertexBuffer*> VertexBuffer::Create(const void* verts, unsigned int size, unsigned int stride)
 	{
 		PT_PROFILE_FUNCTION();
 		VertexBuffer* result = new VertexBuffer();
-		result->CreateStack(size, stride);
-		return result;
+		auto res = result->CreateStack(verts, size, stride);
+		if(res.is_err()) delete result;
+		return res.transform([&]()->VertexBuffer*{return result;});
 	}
-	void VertexBuffer::CreateStack(unsigned int size, unsigned int Stride)
+	init_result VertexBuffer::CreateStack(const void* verts, unsigned int size, unsigned int Stride)
 	{
 		PT_PROFILE_FUNCTION();
 		stride = Stride;
@@ -31,39 +31,30 @@ namespace Pistachio {
 		vbDesc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst;
 		RHI::AutomaticAllocationInfo info;
 		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		RendererBase::Getd3dDevice()->CreateBuffer(&vbDesc, &ID, nullptr, nullptr,&info, 0, RHI::ResourceType::Automatic);
+		auto res = RendererBase::Getd3dDevice()->CreateBuffer(&vbDesc, nullptr, nullptr,&info, 0, RHI::ResourceType::Automatic);
+		if(res.is_err())
+		{
+			return init_result::err(Error::FromRHIError(res.err()));
+		}
+		ID = std::move(res).value();
+		if(verts) RendererBase::PushBufferUpdate(ID.Get(), 0, verts, size);
+		return init_result::ok();
 	}
 	void VertexBuffer::SetData(const void* data, unsigned int size)
 	{
 		PT_PROFILE_FUNCTION();
 		RendererBase::PushBufferUpdate(ID.Get(), 0, data, size);
 	}
-	VertexBuffer* VertexBuffer::Create(const void* vertices, unsigned int size, unsigned int Stride)
-	{
-		PT_PROFILE_FUNCTION()
-		VertexBuffer* result = new VertexBuffer;
-		result->CreateStack(vertices, size, Stride);
-		return result;
-	}
-	void VertexBuffer::CreateStack(const void* vertices, unsigned int size, unsigned int Stride)
-	{
-		PT_PROFILE_FUNCTION()
-		CreateStack(size, Stride);
-		RendererBase::PushBufferUpdate(ID.Get(), 0, vertices, size);
-	}
 
 	IndexBuffer::IndexBuffer()
 	{
 	}
-	void IndexBuffer::Bind() const
+	void IndexBuffer::Bind(RHI::GraphicsCommandList* list) const
 	{
 		PT_PROFILE_FUNCTION();
-		RendererBase::GetMainCommandList()->BindIndexBuffer(ID.Get(), 0);
+		list->BindIndexBuffer(ID.Get(), 0);
 	}
-	void IndexBuffer::UnBind()
-	{
-	}
-	void IndexBuffer::CreateStack(const void* indices, unsigned int size, unsigned int stride)
+	init_result IndexBuffer::CreateStack(const void* indices, unsigned int size, unsigned int stride)
 	{
 		PT_PROFILE_FUNCTION()
 		count = size / stride;
@@ -72,20 +63,24 @@ namespace Pistachio {
 		desc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst;
 		RHI::AutomaticAllocationInfo info;
 		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		RendererBase::Getd3dDevice()->CreateBuffer(&desc, &ID, nullptr, nullptr, &info,0, RHI::ResourceType::Automatic);
+		auto res = RendererBase::Getd3dDevice()->CreateBuffer(&desc, nullptr, nullptr, &info,0, RHI::ResourceType::Automatic);
+		if(res.is_err()) return init_result::err(Error::FromRHIError(res.err()));
 		if (indices)
 		{
 			RendererBase::PushBufferUpdate(ID.Get(), 0, indices, size);
 		}
+		ID = std::move(res).value();
+		return init_result::ok();
 	}
-	IndexBuffer* IndexBuffer::Create(const void* indices, std::uint32_t size, std::uint32_t stride)
+	creation_result<IndexBuffer*> IndexBuffer::Create(const void* indices, std::uint32_t size, std::uint32_t stride)
 	{
 		PT_PROFILE_FUNCTION();
 		IndexBuffer* result = new IndexBuffer;
-		result->CreateStack(indices, size,stride);
-		return result;
+		auto res = result->CreateStack(indices, size,stride);
+		if(res.is_err()) delete result;
+		return res.transform([&]{return result;});
 	}
-	void StructuredBuffer::CreateStack(const void* data, std::uint32_t size, SBCreateFlags flags)
+	init_result StructuredBuffer::CreateStack(const void* data, std::uint32_t size, SBCreateFlags flags)
 	{
 		PT_PROFILE_FUNCTION();
 		RHI::BufferDesc bufferDesc;
@@ -95,7 +90,9 @@ namespace Pistachio {
 		info.access_mode = ((flags & SBCreateFlags::AllowCPUAccess)==SBCreateFlags::None) ? 
 			RHI::AutomaticAllocationCPUAccessMode::None :
 			RHI::AutomaticAllocationCPUAccessMode::Sequential;
-		RendererBase::Getd3dDevice()->CreateBuffer(&bufferDesc, &ID, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
+		auto res = RendererBase::Getd3dDevice()->CreateBuffer(&bufferDesc, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
+		if(res.is_err()) return init_result::err(Error::FromRHIError(res.err()));
+		ID = std::move(res).value();
 		if (data)
 		{
 			void* writePointer;
@@ -103,6 +100,7 @@ namespace Pistachio {
 			memcpy(writePointer, data, size);
 			ID->UnMap();
 		}
+		return init_result::ok();
 		
 	}
 	void StructuredBuffer::Bind(std::uint32_t slot) const
@@ -116,12 +114,13 @@ namespace Pistachio {
 		memcpy((((char*)writePointer) + offset), data, size);
 		ID->UnMap();
 	}
-	StructuredBuffer* StructuredBuffer::Create(const void* data, std::uint32_t size, SBCreateFlags flags)
+	creation_result<StructuredBuffer*> StructuredBuffer::Create(const void* data, std::uint32_t size, SBCreateFlags flags)
 	{
 		PT_PROFILE_FUNCTION();
 		StructuredBuffer* result = new StructuredBuffer;
-		result->CreateStack(data, size);
-		return result;
+		auto res = result->CreateStack(data, size);
+		if(res.is_err()) delete result;
+		return res.transform([&]{return result;});
 	}
 	void ConstantBuffer::Update(void* data, std::uint32_t size, std::uint32_t offset)
 	{
@@ -131,7 +130,7 @@ namespace Pistachio {
 		memcpy((((char*)writePointer) + offset), data, size);
 		ID->UnMap();
 	}
-	void ConstantBuffer::CreateStack(void* data, std::uint32_t size)
+	init_result ConstantBuffer::CreateStack(void* data, std::uint32_t size)
 	{
 		PT_PROFILE_FUNCTION();
 		RHI::BufferDesc bufferDesc;
@@ -139,7 +138,9 @@ namespace Pistachio {
 		bufferDesc.usage = RHI::BufferUsage::ConstantBuffer;
 		RHI::AutomaticAllocationInfo info;
 		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential;
-		RendererBase::Getd3dDevice()->CreateBuffer(&bufferDesc, &ID, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
+		auto res = RendererBase::Getd3dDevice()->CreateBuffer(&bufferDesc, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
+		if(res.is_err()) return init_result::err(Error::FromRHIError(res.err()));
+		ID = std::move(res).value();
 		if (data)
 		{
 			void* writePointer;
@@ -147,13 +148,14 @@ namespace Pistachio {
 			memcpy(writePointer, data, size);
 			ID->UnMap();
 		}
-
+		return init_result::ok();
 	}
-	ConstantBuffer* ConstantBuffer::Create(void* data, std::uint32_t size)
+	creation_result<ConstantBuffer*> ConstantBuffer::Create(void* data, std::uint32_t size)
 	{
 		PT_PROFILE_FUNCTION();
 		ConstantBuffer* retVal = new ConstantBuffer();
-		retVal->CreateStack(data, size);
-		return retVal;
+		auto res  = retVal->CreateStack(data, size);
+		if(res.is_err()) delete retVal;
+		return res.transform([&]{return retVal;});
 	}
 }

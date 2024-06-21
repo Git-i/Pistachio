@@ -6,7 +6,7 @@
 #include "../Asset/RefCountedObject.h"
 #include "FormatsAndTypes.h"
 #include "../Core/TextureView.h"
-#include "RHIPtr.h"
+#include "RHI::Ptr.h"
 namespace Pistachio {
 	class PISTACHIO_API Texture : public RefCountedObject
 	{
@@ -14,7 +14,7 @@ namespace Pistachio {
 		Texture() = default;
 		friend class Renderer;
 		friend class RenderGraph;
-		RHIPtr<RHI::Texture> m_ID;
+		RHI::Ptr<RHI::Texture> m_ID;
 	public:
 		virtual RHI::Format GetFormat() const = 0;
 		virtual uint32_t GetHeight() const = 0;
@@ -50,7 +50,7 @@ namespace Pistachio {
 		
 		unsigned int m_Width, m_Height, m_MipLevels;
 		RHI::Format m_format;
-		RHIPtr<RHI::TextureView> m_view;
+		RHI::Ptr<RHI::TextureView> m_view;
 	private:
 		void CreateTexture(void* data, TextureFlags flags);
 	};

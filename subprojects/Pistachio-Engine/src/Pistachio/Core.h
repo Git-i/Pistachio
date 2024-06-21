@@ -1,4 +1,6 @@
 #pragma once
+#include "Pistachio/Core/Error.h"
+#include "result.hpp"
 #include <memory>
 #ifdef _MSC_VER
 #define PT_DEBUG_BREAK __debugbreak()
@@ -92,7 +94,7 @@ namespace Pistachio {
 	using Scope =  std::unique_ptr<T>;
 	template <typename T>
 	using Ref = std::shared_ptr<T>;
-
+	
 	
 }
 #ifdef _DEBUG

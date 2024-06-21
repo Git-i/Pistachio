@@ -2,33 +2,33 @@
 namespace Pistachio
 {
     template <typename T>
-    class RHIPtr
+    class RHI::Ptr
     {
     public:
-        RHIPtr()
+        RHI::Ptr()
         {
             ptr = nullptr;
         }
-        RHIPtr(const RHIPtr& other)
+        RHI::Ptr(const RHI::Ptr& other)
         {
             ptr = other.ptr;
             SafeHold();
         }
-        RHIPtr(T* other)
+        RHI::Ptr(T* other)
         {
             ptr = other;
         }
-        RHIPtr(RHIPtr&& other) noexcept
+        RHI::Ptr(RHI::Ptr&& other) noexcept
         {
             ptr = other.ptr;
             other.ptr = nullptr;
         }
-        ~RHIPtr()
+        ~RHI::Ptr()
         {
             SafeRelease();
             ptr = nullptr;
         }
-        void operator=(const RHIPtr<T>& other)
+        void operator=(const RHI::Ptr<T>& other)
         {
             ptr = other.ptr;
             SafeHold();
