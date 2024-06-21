@@ -1,39 +1,41 @@
 #pragma once
+#include "CommandList.h"
 #include "Core/Buffer.h"
+#include "Pistachio/Core/Error.h"
 #include "RendererID_t.h"
-#include "RHIPtr.h"
 namespace Pistachio {
 	class PISTACHIO_API VertexBuffer
 	{
 	public:
+		void Bind(RHI::GraphicsCommandList* list, uint32_t slot = 0) const;
+
 		VertexBuffer();
-		void Bind() const;
-		void UnBind();
-		static VertexBuffer* Create(unsigned int size, unsigned int stride);
-		void CreateStack(unsigned int size, unsigned int stride);
 		void SetData(const void* data, unsigned int size);
-		static VertexBuffer* Create(const void* vertices, unsigned int size, unsigned int stride);
-		void CreateStack(const void* vertices, unsigned int size, unsigned int stride);
+		static creation_result<VertexBuffer*> Create(const void* vertices, unsigned int size, unsigned int stride);
+		init_result CreateStack(const void* vertices, unsigned int size, unsigned int stride);
 		
+		uint32_t GetStride() const {return stride;}
+		RHI::Ptr<RHI::Buffer> GetID() const {return ID;}
 	private:
-		//we want fast direct acess in the renderer
 		friend class Renderer;
-		unsigned int stride = 0;
-		RHIPtr<RHI::Buffer> ID;
+		uint32_t stride = 0;
+		RHI::Ptr<RHI::Buffer> ID;
 	};
 	class PISTACHIO_API IndexBuffer
 	{
 	public:
+		void Bind(RHI::GraphicsCommandList* list) const;
+
 		IndexBuffer();
-		void Bind() const;
-		void UnBind();
-		static IndexBuffer* Create(const void* indices, unsigned int size, unsigned int stride);
-		void CreateStack(const void* indices, unsigned int size, unsigned int stride);
-		inline unsigned int GetCount() const{ return count; }
+		static creation_result<IndexBuffer*> Create(const void* indices, unsigned int size, unsigned int stride);
+		init_result CreateStack(const void* indices, unsigned int size, unsigned int stride);
+		
+		uint32_t GetCount() const{ return count; }
+		RHI::Ptr<RHI::Buffer> GetID() const {return ID;}
 	private:
 		friend class Renderer;
-		unsigned int count;
-		RHIPtr<RHI::Buffer> ID;
+		uint32_t count;
+		RHI::Ptr<RHI::Buffer> ID;
 	};
 	enum class SBCreateFlags
 	{
@@ -45,22 +47,24 @@ namespace Pistachio {
 	{
 		void Bind(std::uint32_t slot) const;
 		void Update(const void* data, std::uint32_t size, std::uint32_t offset);
-		static StructuredBuffer* Create(const void* data, std::uint32_t size, SBCreateFlags flags = SBCreateFlags::None);
-		void CreateStack(const void* data, std::uint32_t size, SBCreateFlags flags = SBCreateFlags::None);
-		RHI::Buffer* GetID() { return ID.Get(); }
+		static creation_result<StructuredBuffer*> Create(const void* data, std::uint32_t size, SBCreateFlags flags = SBCreateFlags::None);
+		
+		init_result CreateStack(const void* data, std::uint32_t size, SBCreateFlags flags = SBCreateFlags::None);
+		RHI::Ptr<RHI::Buffer> GetID() const { return ID; }
 	private:
 		friend class Renderer;
-		RHIPtr<RHI::Buffer> ID;
+		RHI::Ptr<RHI::Buffer> ID;
 	};
 	class PISTACHIO_API ConstantBuffer {
 	public:
 		void Bind(std::uint32_t slot) const;
 		void Update(void* data, std::uint32_t size, std::uint32_t offset);
-		void CreateStack(void* data, std::uint32_t size);
-		static ConstantBuffer* Create(void* data, std::uint32_t size);
-		RHI::Buffer* GetID() { return ID.Get(); }
+		init_result CreateStack(void* data, std::uint32_t size);
+		static creation_result<ConstantBuffer*> Create(void* data, std::uint32_t size);
+		
+		RHI::Ptr<RHI::Buffer> GetID() const { return ID; }
 	private:
 		friend class Renderer;
-		RHIPtr<RHI::Buffer> ID;
+		RHI::Ptr<RHI::Buffer> ID;
 	};
 }

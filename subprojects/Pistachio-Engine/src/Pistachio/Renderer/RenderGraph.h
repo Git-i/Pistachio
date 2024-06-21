@@ -179,8 +179,8 @@ namespace Pistachio
 		RHI::PipelineStage stage;
 		RHI::Area2D area;
 		const char* name;//temp
-		RHIPtr<RHI::PipelineStateObject> pso = nullptr;
-		RHIPtr<RHI::RootSignature> rsig = nullptr;
+		RHI::Ptr<RHI::PipelineStateObject> pso = nullptr;
+		RHI::Ptr<RHI::RootSignature> rsig = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
 		std::vector<BufferAttachmentInfo> bufferInputs;
@@ -202,8 +202,8 @@ namespace Pistachio
 		std::function<void(RHI::GraphicsCommandList* list)> pass_fn;
 	private:
 		friend class RenderGraph;
-		RHIPtr<RHI::ComputePipeline> computePipeline = nullptr;
-		RHIPtr<RHI::RootSignature> rsig = nullptr;
+		RHI::Ptr<RHI::ComputePipeline> computePipeline = nullptr;
+		RHI::Ptr<RHI::RootSignature> rsig = nullptr;
 		std::vector<AttachmentInfo> inputs;
 		std::vector<AttachmentInfo> outputs;
 		std::vector<BufferAttachmentInfo> bufferInputs;
