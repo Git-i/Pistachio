@@ -31,7 +31,7 @@ namespace Pistachio {
 	};
 	struct TrackedDescriptorHeap
 	{
-		RHI::DescriptorHeap* heap;
+		RHI::Ptr<RHI::DescriptorHeap> heap;
 		uint32_t sizeLeft = 0;
 		uint32_t freeOffset = 0;
 	};
@@ -108,35 +108,35 @@ namespace Pistachio {
 		friend class ComputeShader;
 		friend class FrameComposer;
 		friend class Scene;
-		static RHI::Device* device;
-		static RHI::GraphicsCommandList* mainCommandList;
-		static RHI::GraphicsCommandList* stagingCommandList;
+		static RHI::Ptr<RHI::Device> device;
+		static RHI::Ptr<RHI::GraphicsCommandList> mainCommandList;
+		static RHI::Ptr<RHI::GraphicsCommandList> stagingCommandList;
 		// using one of the frame's allocator would mean that we might reset the staging command list
 		// thereby limiting the ability to queue updates effectively
-		static RHI::CommandAllocator* stagingCommandAllocator; 
-		static RHI::CommandAllocator* commandAllocators[3];
-		static RHI::CommandAllocator* computeCommandAllocators[3];
+		static RHI::Ptr<RHI::CommandAllocator> stagingCommandAllocator; 
+		static RHI::Ptr<RHI::CommandAllocator> commandAllocators[3];
+		static RHI::Ptr<RHI::CommandAllocator> computeCommandAllocators[3];
 		static RHI::Instance* instance;
-		static RHI::SwapChain* swapChain;
+		static RHI::Ptr<RHI::SwapChain> swapChain;
 		static RHI::CommandQueue* directQueue;
 		static RHI::CommandQueue* computeQueue;
-		static std::vector<RHI::Texture*> backBufferTextures; //todo: tripebuffering support
+		static std::vector<RHI::Ptr<RHI::Texture>> backBufferTextures; //todo: tripebuffering support
 		static RHI::Texture* depthTexture;
-		static RHI::DescriptorHeap* MainRTVheap;
+		static RHI::Ptr<RHI::DescriptorHeap> MainRTVheap;
 		static std::vector<TrackedDescriptorHeap> rtvHeaps;
 		static std::vector<RTVHandle> freeRTVs;
 		static std::vector<TrackedDescriptorHeap> dsvHeaps;
 		static std::vector<DSVHandle> freeDSVs;
 		static std::vector<TrackedDescriptorHeap> samplerHeaps;
 		static std::vector<SamplerHandle> freeSamplers;
-		static RHI::DescriptorHeap* dsvHeap;
+		static RHI::Ptr<RHI::DescriptorHeap> dsvHeap;
 		static std::uint64_t fence_vals[3]; //managing sync across allocators
 		static std::uint64_t currentFenceVal; //managing sync across allocators
-		static RHI::Fence* mainFence;
-		static RHI::Fence* stagingFence;
-		static RHI::DescriptorHeap* heap;
+		static RHI::Ptr<RHI::Fence> mainFence;
+		static RHI::Ptr<RHI::Fence> stagingFence;
+		static RHI::Ptr<RHI::DescriptorHeap> heap;
 		//Staging buffer to manage GPU resource updates, default size probably 2mb
-		static RHI::Buffer* stagingBuffer;
+		static RHI::Ptr<RHI::Buffer> stagingBuffer;
 		static bool headless;
 		//because staging buffer updates wont happen immediately, we need the number of used bytes
 		//staging buffer size will probably never cross 4gb so no need for uint64

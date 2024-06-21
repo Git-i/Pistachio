@@ -35,7 +35,8 @@ xxhash_dep = xxhash.get_variable('xxhash_dep')
 physx = subproject('physx')
 px_deps = physx.get_variable('px_all_deps')
 
-
+ezr = subproject('ezr')
+ezr_dep = ezr.get_variable('ezr_dep')
 deps = [
     rhi_dep,
     yaml_dep,
@@ -45,7 +46,8 @@ deps = [
     xxhash_dep,
     px_deps,
     angelscript_dep,
-    as_addons_dep]
+    as_addons_dep,
+    ezr_dep]
 
 inc_dirs = ['src/',
     'vendor/entt/include/',
