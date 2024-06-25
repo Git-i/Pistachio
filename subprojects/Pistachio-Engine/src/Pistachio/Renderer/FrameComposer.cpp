@@ -50,7 +50,7 @@ namespace Pistachio
 					range.NumMipLevels = 1;
 					range.imageAspect = RHI::Aspect::COLOR_BIT;
 					RendererBase::mainCommandList->BlitTexture(scenes[index]->finalRender.GetID(),
-						RendererBase::backBufferTextures[RendererBase::currentRTVindex],
+						RendererBase::backBufferTextures[RendererBase::currentRTVindex].Get(),
 						srcSize, { 0,0,0 },
 						dstSize, { (int)(x * dstSize.width), (int)(y * dstSize.height),0 },
 						range, range);
