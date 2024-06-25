@@ -6,7 +6,6 @@
 #include "../Asset/RefCountedObject.h"
 #include "FormatsAndTypes.h"
 #include "../Core/TextureView.h"
-#include "RHI::Ptr.h"
 namespace Pistachio {
 	class PISTACHIO_API Texture : public RefCountedObject
 	{

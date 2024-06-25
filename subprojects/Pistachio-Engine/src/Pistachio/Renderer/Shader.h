@@ -126,26 +126,6 @@ namespace Pistachio {
 		{}
 		BufferLayout(){}
 	};
-	static unsigned int BufferLayoutFormatSize(BufferLayoutFormat format)
-	{
-		switch (format)
-		{
-		case BufferLayoutFormat::FLOAT4: return 4 * 4;
-		case BufferLayoutFormat::UINT4:  return 4 * 4;
-		case BufferLayoutFormat::INT4:   return 4 * 4;
-		case BufferLayoutFormat::FLOAT3: return 4 * 3;
-		case BufferLayoutFormat::UINT3:  return 4 * 3;
-		case BufferLayoutFormat::INT3:   return 4 * 3;
-		case BufferLayoutFormat::FLOAT2: return 4 * 2;
-		case BufferLayoutFormat::UINT2:  return 4 * 2;
-		case BufferLayoutFormat::INT2:   return 4 * 2;
-		case BufferLayoutFormat::FLOAT:  return 4;
-		case BufferLayoutFormat::UINT:   return 4;
-		case BufferLayoutFormat::INT:    return 4;
-		default: return 0;
-			break;
-		}
-	}
 	
 	
 	struct ShaderCreateDesc
