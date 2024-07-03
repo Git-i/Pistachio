@@ -2,6 +2,9 @@ project('Pistachio-Engine', 'cpp',
     default_options: ['cpp_std=c++17'])
 cmake = import('cmake')
 
+dxc = subproject('dxc')
+dxc_dep = dxc.get_variable('dxc_dep')
+
 yaml_cpp = cmake.subproject('yaml-cpp')
 yaml_dep = yaml_cpp.dependency('yaml-cpp')
 
@@ -47,6 +50,7 @@ deps = [
     px_deps,
     angelscript_dep,
     as_addons_dep,
+    dxc_dep,
     ezr_dep]
 
 inc_dirs = ['src/',
@@ -109,7 +113,6 @@ if(build_machine.system() == 'linux')
     args += '-DPT_PLATFORM_LINUX'
     sources += 'src/Pistachio/Platform/Linux/LinuxWindow.cpp'
     sources += 'src/Pistachio/Platform/Linux/LinuxInputPoll.cpp'
-    inc_dirs += '/usr/include/dxc'
 endif
 add_project_arguments(args,language: 'cpp',)
 inc = include_directories(inc_dirs)

@@ -1,11 +1,12 @@
 # Pistachio
-Pistachio Game Engine
-
-## Branch Details
-This is the branch for adding the [RHI](https://github.com/Git-i/RHI). also the engine is being replaced with a clustered forward renderer. For a branch the builds checkout [dev](https://github.com/Git-i/Pistachio/tree/dev) or [main](https://github.com/Git-i/Pistachio/tree/main).
+Pistachio Game Engine is a C++ 17 game engine utilizing vulkan and d3d12 (currently broken).
 
 ## Building
-Currently the only build system available is with Visual Studio. CMake support was dropped in a random commit, but will be added soon (the engine is to be ported to linux).
+### Requirements
+- Physx-5
+- Vulkan SDK
+- dxc (probably preinstalled with the windows sdk)
+### Steps ?
+The engine can be built with meson, some commits may not build, so just wait for a newer one or try an older one that builds. The build process involves manually building physx5 and placing the generated libraries under `subprojects/physx` or installing them system wide, and doing the same with dxc. Then proceeding with a normal meson build, note that first build will probably require an internet connection and some submodules require ssh to github (I'm working on it).
 
-## Notice
-The history is being re-written to remove some files and slim down the repo, some builds may break but it should be as easy as re-importing a texture
+
