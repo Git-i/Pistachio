@@ -462,7 +462,9 @@ Sandbox/stdout
 *.gfxr
 glb.py
 subprojects/packagecache/
-subprojects/physx/linux.gcc/checked/
+subprojects/physx/linux.gcc/
+subprojects/dxc/lib/
+subprojects/dxc/include/
 Sandbox/resources/textures/hdr/golden_bay_1k.hdr
 compile_commands.json
 *.spv

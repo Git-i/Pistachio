@@ -6,7 +6,7 @@ id = cmp.get_id()
 if(build_machine.system() == 'linux')
     root = 'linux.' + id
     root = meson.current_source_dir() / root
-    look_dirs += root / 'checked'
+    look_dirs += root
 endif
 px_cooking_dep = cmp.find_library('PhysXCooking_static_64',dirs:look_dirs)
 px_vehicle_dep = cmp.find_library('PhysXVehicle_static_64',dirs:look_dirs)
