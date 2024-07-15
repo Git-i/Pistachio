@@ -4,7 +4,7 @@
 #include "../Core/Error.h"
 #include "BufferHandles.h"
 namespace Pistachio {
-	//ptobably have different Vertex structs
+	//probably have different Vertex structs
 	struct PISTACHIO_API Vertex
 	{
 		

@@ -159,7 +159,7 @@ namespace Pistachio {
 	struct BufferBindingUpdateDesc
 	{
 		RHI::DescriptorType type;
-		RHI::Buffer* buffer;
+		RHI::Weak<RHI::Buffer> buffer;
 		uint32_t offset;
 		uint32_t size;
 	};

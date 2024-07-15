@@ -7,12 +7,12 @@
 #include "assimp/DefaultLogger.hpp"
 #include "../Core/Log.h"
 #include "Renderer.h"
+#include <thread>
 Pistachio::BufferLayout Pistachio::Mesh::layout[] = {
 			{"POSITION", Pistachio::BufferLayoutFormat::FLOAT3, 0},
 			{"NORMAL", Pistachio::BufferLayoutFormat::FLOAT3, 12},
 			{"UV", Pistachio::BufferLayoutFormat::FLOAT2, 24}
 };
-#include <thread>
 void ProcessIndices(const aiMesh* pMesh, std::vector<unsigned int>& indices)
 {
 	for (unsigned int i = 0; i < pMesh->mNumFaces; i++)

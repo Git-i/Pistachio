@@ -18,7 +18,7 @@ The Scene is not a constructable type, you retireve the current instance using t
 Entity CreateEntity(const string &in name)
 ```
 
-Creates an entity with a specific name. Entity names do not have to be unique
+Creates an entity with a specific name. Entity names do not have to be unique.
 
 ###### Parameters
 

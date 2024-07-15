@@ -1,4 +1,6 @@
 #include "CommandList.h"
+#include "Device.h"
+#include "Ptr.h"
 #include "ptpch.h"
 #include "RendererBase.h"
 #include "Pistachio/Core/Log.h"
@@ -14,7 +16,7 @@ RHI::Ptr<RHI::CommandAllocator>    Pistachio::RendererBase::commandAllocators[3]
 RHI::Ptr<RHI::CommandAllocator>    Pistachio::RendererBase::computeCommandAllocators[3];
 RHI::Instance*            Pistachio::RendererBase::instance;
 RHI::Ptr<RHI::SwapChain>           Pistachio::RendererBase::swapChain;
-RHI::CommandQueue*        Pistachio::RendererBase::directQueue;
+RHI::Ptr<RHI::CommandQueue>        Pistachio::RendererBase::directQueue;
 std::vector<RHI::Ptr<RHI::Texture>>Pistachio::RendererBase::backBufferTextures; //todo: tripebuffering support
 RHI::Ptr<RHI::DescriptorHeap>      Pistachio::RendererBase::MainRTVheap;
 RHI::Ptr<RHI::DescriptorHeap>      Pistachio::RendererBase::dsvHeap;
@@ -23,7 +25,7 @@ std::uint64_t             Pistachio::RendererBase::currentFenceVal=0; //managing
 RHI::Ptr<RHI::Fence>               Pistachio::RendererBase::mainFence;
 RHI::Ptr<RHI::Fence>               Pistachio::RendererBase::stagingFence;
 RHI::Ptr<RHI::DescriptorHeap>      Pistachio::RendererBase::heap;
-RHI::CommandQueue*		  Pistachio::RendererBase::computeQueue;
+RHI::Ptr<RHI::CommandQueue>		  Pistachio::RendererBase::computeQueue;
 RHI::Ptr<RHI::Buffer>              Pistachio::RendererBase::stagingBuffer;
 RHI::Texture*			  Pistachio::RendererBase::depthTexture;
 uint32_t                  Pistachio::RendererBase::staginBufferPortionUsed = 0;
@@ -61,7 +63,7 @@ namespace Pistachio {
 	}
 	void RendererBase::EndFrame()
 	{
-		
+
 		RHI::TextureMemoryBarrier barr{};
 		if (!headless)
 		{
@@ -74,7 +76,7 @@ namespace Pistachio {
 				barr.subresourceRange.NumMipLevels = 1,
 				barr.subresourceRange.FirstArraySlice = 0,
 				barr.subresourceRange.NumArraySlices = 1,
-				barr.texture = backBufferTextures[currentRTVindex].Get();
+				barr.texture = backBufferTextures[currentRTVindex];
 			barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
 			mainCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 0, 0, 1, &barr);
 		}
@@ -82,28 +84,28 @@ namespace Pistachio {
 		mainCommandList->End();
 		directQueue->ExecuteCommandLists(&mainCommandList->ID, 1);
 		fence_vals[currentFrameIndex] = ++currentFenceVal;
-		directQueue->SignalFence(mainFence.Get(), currentFenceVal); //todo add fence signaling together with queue
+		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
 		if(!headless)
 		{
 			swapChain->Present(currentRTVindex, swapCycleIndex);
 			swapCycleIndex = (swapCycleIndex +1)%numSwapImages;
 			 swapChain->AcquireImage(&currentRTVindex,swapCycleIndex);
 
-		} 
+		}
 		//cycle frame Index
 		currentFrameIndex = (currentFrameIndex + 1) % 3;
 		//prep for next frame
 		mainFence->Wait(fence_vals[currentFrameIndex]);
 		commandAllocators[currentFrameIndex]->Reset();
 		if(MQ) computeCommandAllocators[currentFrameIndex]->Reset();
-		mainCommandList->Begin(commandAllocators[currentFrameIndex].Get());
+		mainCommandList->Begin(commandAllocators[currentFrameIndex]);
 		if (!headless)
 		{
 			barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
 			barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
 			barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
 			barr.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
-			barr.texture = backBufferTextures[currentRTVindex].Get();
+			barr.texture = backBufferTextures[currentRTVindex];
 			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
 		}
 		//wait for the the cmd allocator to be done
@@ -125,7 +127,7 @@ namespace Pistachio {
 			RHI::CommandQueueDesc desc;
 			desc.commandListType = RHI::CommandListType::Direct;
 			desc.Priority = 1.f;
-			device = RHI::Device::FromNativeHandle(options.custom_device, options.custom_physical_device,options.custom_instance, options.indices);
+			device = RHI::make_ptr(RHI::Device::FromNativeHandle(options.custom_device, options.custom_physical_device,options.custom_instance, options.indices));
 			physicalDevice = RHI::PhysicalDevice::FromNativeHandle(options.custom_physical_device);
 			directQueue = RHI::CommandQueue::FromNativeHandle(options.custom_direct_queue);
 			if(options.custom_compute_queue)
@@ -153,18 +155,18 @@ namespace Pistachio {
 			commandQueueDesc[0].Priority = 1.f;//only really used in vulkan
 			commandQueueDesc[1].commandListType = RHI::CommandListType::Compute;
 			commandQueueDesc[1].Priority = 1.f;
-	
+
 			PT_CORE_INFO("Creating Device");
-			RHI::CommandQueue* queues[2];
 			auto flag = options.exportTexture ? RHI::DeviceCreateFlags::ShareAutomaticMemory: RHI::DeviceCreateFlags::None;
-			RHICreateDevice(physicalDevice, commandQueueDesc, 2, queues, instance->ID ,&device ,&MQ,flag);
-			directQueue = queues[0];
-			computeQueue = queues[1];
-			PT_CORE_INFO("Device Created ID:{0} Internal_ID:{1}, Physical Device used [{2}]", (void*)device.Get(), (void*)device->ID,pDevInd);
+			auto [dev, queue] = RHI::Device::Create(physicalDevice, commandQueueDesc, 2, instance->ID, &MQ, flag).value();
+			device = dev;
+			directQueue = queue[0];
+			if(MQ) computeQueue = queue[1];
+			PT_CORE_INFO("Device Created ID:{0}, Physical Device used [{1}]", device->ID, (void*)device->ID,pDevInd);
 		}
 
 
-		
+
 		RHI::Surface surface;
 		//todo handle multiplatform surface creation
 		unsigned int height = 1280;
@@ -194,7 +196,7 @@ namespace Pistachio {
 			sDesc.SwapChainFormat = RHI::Format::B8G8R8A8_UNORM;//todo add functionality to get supported formats in the RHI
 			sDesc.Windowed = true;
 			PT_CORE_INFO("Creating Swapchain");
-			swapChain = instance->CreateSwapChain(&sDesc, physicalDevice, device.Get(), directQueue).value();
+			swapChain = instance->CreateSwapChain(sDesc, physicalDevice, device, directQueue).value();
 			numSwapImages = sDesc.BufferCount;
 			backBufferTextures.resize(numSwapImages);
 			for(uint32_t i = 0; i < numSwapImages; i++)
@@ -202,7 +204,7 @@ namespace Pistachio {
 				backBufferTextures[i] = device->GetSwapChainImage(swapChain.Get(), i).value();
 				PT_DEBUG_REGION(
 					char name[20] = {"Back Buffer Image 1"};
-					name[18] += i;				
+					name[18] += i;
 					backBufferTextures[i]->SetName(name);
 				)
 			}
@@ -217,7 +219,7 @@ namespace Pistachio {
 		rtvHeapHesc.maxDescriptorSets = 1;
 		rtvHeapHesc.numPoolSizes = 1;
 		rtvHeapHesc.poolSizes = &pSize;
-	
+
 		if (!options.headless)
 		{
 			//create render target views
@@ -295,7 +297,7 @@ namespace Pistachio {
 
 
 		RHI::PoolSize HeapSizes[3];
-		
+
 		HeapSizes[0].numDescriptors = 40;
 		HeapSizes[0].type = RHI::DescriptorType::ConstantBuffer;
 
@@ -311,7 +313,7 @@ namespace Pistachio {
 		DHdesc.poolSizes = HeapSizes;
 		heap = device->CreateDescriptorHeap(&DHdesc).value();
 		PT_CORE_INFO("Created main descriptor heap");
-		
+
 
 		//initialize the staing buffer
 		stagingBufferSize = STAGING_BUFFER_INITIAL_SIZE;
@@ -344,7 +346,7 @@ namespace Pistachio {
 		// todo find a pso handling strategy, especially for custom shaders.
 		// since every pso can only hold a single shader set, probably have a bunch of
 		// must have pso's for every shader, where they all create it with thier own programs
-		// we can also implement custom pso's for certain shaders?? 
+		// we can also implement custom pso's for certain shaders??
 		// for some that have nice requirements like line rendering (and depth off??) and different comparison functions
 		// meaning we'll have to have a set of static samplers globally in the rendererbase??
 		MQ = false;
@@ -447,7 +449,7 @@ namespace Pistachio {
 		outstandingResourceUpdate = true;
 	}
 
-	void RendererBase::CreateDescriptorSet(RHI::DescriptorSet** set, RHI::DescriptorSetLayout* layout)
+	void RendererBase::CreateDescriptorSet(RHI::DescriptorSet** set, Weak<RHI::DescriptorSetLayout> layout)
 	{
 		device->CreateDescriptorSets(heap.Get(), 1, layout, set);
 	}
@@ -458,7 +460,7 @@ namespace Pistachio {
 		stagingFenceVal++;
 		stagingCommandList->End();
 		directQueue->ExecuteCommandLists(&stagingCommandList->ID, 1); //todo look into dedicated transfer queue ??
-		directQueue->SignalFence(stagingFence.Get(), stagingFenceVal); 
+		directQueue->SignalFence(stagingFence.Get(), stagingFenceVal);
 		stagingFence->Wait(stagingFenceVal); // consider doing this async perhaps;
 		stagingCommandAllocator->Reset();
 		stagingCommandList->Begin(stagingCommandAllocator.Get());
@@ -484,7 +486,7 @@ namespace Pistachio {
 		mainCommandList->DrawIndexed(indexCount, 1, 0, 0, 0);
 	}
 
-	
+
 
 	void RendererBase::SetCullMode(CullMode cullmode)
 	{
@@ -504,11 +506,11 @@ namespace Pistachio {
 	}
 	RHI::Device* RendererBase::Getd3dDevice()
 	{
-		return device.Get(); 
+		return device.Get();
 	}
 	RHI::GraphicsCommandList* Pistachio::RendererBase::GetMainCommandList()
 	{
-		return mainCommandList.Get(); 
+		return mainCommandList.Get();
 	}
 	RTVHandle RendererBase::CreateRenderTargetView(RHI::Texture* texture, RHI::RenderTargetViewDesc* desc)
 	{
@@ -549,7 +551,7 @@ namespace Pistachio {
 		heap.sizeLeft = 10;
 		heap.freeOffset = 0;
 		return CreateRenderTargetView(texture, desc);
-		
+
 	}
 	DSVHandle RendererBase::CreateDepthStencilView(RHI::Texture* texture, RHI::DepthStencilViewDesc* desc)
 	{

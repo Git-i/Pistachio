@@ -1,9 +1,10 @@
+#include "Pistachio/Core/Math.h"
 #include "ptpch.h"
 #include "Camera.h"
 #include "../Core/Application.h"
 namespace Pistachio {
 	OrthographicCamera::OrthographicCamera(float left, float right, float top, float bottom, float aspectratio)
-		:m_projectionMatrix(DirectX::XMMatrixOrthographicLH(right-left * aspectratio, top-bottom, 0.1f, 100.0f)), m_ViewMatrix(DirectX::XMMatrixIdentity())
+		:m_projectionMatrix(Matrix4::CreateOrthographic(right-left * aspectratio, top-bottom, 0.1f, 100.0f)), m_ViewMatrix(Matrix4::Identity)
 	{
 		width = right - left;
 		height = top - bottom;
@@ -18,7 +19,7 @@ namespace Pistachio {
 		width += amount;
 		height += amount;
 		if(!DirectX::XMScalarNearEqual(width, 0.f, 0.00001f))
-			m_projectionMatrix = DirectX::XMMatrixOrthographicLH((width) * aspect, (height), 0.1f, 100.f);
+			m_projectionMatrix = Matrix4::CreateOrthographic((width) * aspect, (height), 0.1f, 100.f);
 		RecalculateViewMatrix();
 	}
 	void OrthographicCamera::RecalculateViewMatrix()
@@ -29,8 +30,8 @@ namespace Pistachio {
 	PerspectiveCamera::PerspectiveCamera(float fov, float nearPlane, float farPLane)
 		:m_projectionMatrix(DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(fov), (float)(Application::Get().GetWindow().GetWidth()) / (float)(Application::Get().GetWindow().GetHeight()), nearPlane, farPLane)), m_ViewMatrix(DirectX::XMMatrixIdentity()), fov(DirectX::XMConvertToRadians(fov))
 	{
-		m_eye = { 0.0f, 0.0f, -5.0f };
-		m_direction = { 0.0f, 0.0f, 0.0f };
+		m_eye = Vector3{ 0.0f, 0.0f, -5.0f };
+		m_direction = Vector3{ 0.0f, 0.0f, 0.0f };
 		m_up.z = 0.0f;
 		SetRotation(0.0f);
 		m_ViewProjMatrix = m_ViewMatrix * m_projectionMatrix;
