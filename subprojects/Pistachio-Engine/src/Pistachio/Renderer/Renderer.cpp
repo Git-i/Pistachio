@@ -39,8 +39,8 @@ Pistachio::Shader* Pistachio::Renderer::prefilterShader;
 Pistachio::SamplerHandle Pistachio::Renderer::defaultSampler;
 Pistachio::SamplerHandle Pistachio::Renderer::brdfSampler;
 Pistachio::SamplerHandle Pistachio::Renderer::shadowSampler;
-RHI::Buffer*             Pistachio::Renderer::meshVertices; // all meshes in the scene?
-RHI::Buffer*             Pistachio::Renderer::meshIndices;
+RHI::Ptr<RHI::Buffer>             Pistachio::Renderer::meshVertices; // all meshes in the scene?
+RHI::Ptr<RHI::Buffer>             Pistachio::Renderer::meshIndices;
 uint32_t                 Pistachio::Renderer::vbFreeFastSpace;//free space for an immerdiate allocation
 uint32_t                 Pistachio::Renderer::vbFreeSpace;   //total free space to consider reordering
 uint32_t                 Pistachio::Renderer::vbCapacity;
@@ -86,12 +86,12 @@ namespace Pistachio {
 			bufferDesc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
 			RHI::AutomaticAllocationInfo bufferAllocInfo;
 			bufferAllocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-			RendererBase::device->CreateBuffer(&bufferDesc, &meshVertices, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic);
+			meshVertices = RendererBase::device->CreateBuffer(&bufferDesc, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic).value();
 			//index buffer
 			PT_CORE_INFO("Creating Index Buffer");
 			bufferDesc.size = IB_INITIAL_SIZE;
 			bufferDesc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
-			RendererBase::device->CreateBuffer(&bufferDesc, &meshIndices, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic);
+			meshIndices = RendererBase::device->CreateBuffer(&bufferDesc, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic).value();
 			//set constants for vb and ib
 			vbCapacity = VB_INITIAL_SIZE;
 			vbFreeFastSpace = VB_INITIAL_SIZE;
@@ -114,22 +114,20 @@ namespace Pistachio {
 				PT_CORE_INFO("Creating Constant Buffer(s)");
 				resources[i].transformBuffer.CreateStack(nullptr, cbCapacity);//better utilise the free 256 bytes
 				PT_CORE_INFO("Creating Structured Buffer(s)");
-				RendererBase::device->CreateDynamicDescriptor(
-					RendererBase::heap,
-					&resources[i].transformBufferDesc,
+				resources[i].transformBufferDesc = RendererBase::device->CreateDynamicDescriptor(
+					RendererBase::heap.Get(),
 					RHI::DescriptorType::ConstantBufferDynamic,
 					RHI::ShaderStage::Vertex,
 					resources[i].transformBuffer.ID.Get(),
 					0,
-					256);
-				RendererBase::device->CreateDynamicDescriptor(
-					RendererBase::heap,
-					&resources[i].transformBufferDescPS,
+					256).value();
+				resources[i].transformBufferDescPS = RendererBase::device->CreateDynamicDescriptor(
+					RendererBase::heap.Get(),
 					RHI::DescriptorType::ConstantBufferDynamic,
 					RHI::ShaderStage::Pixel,
 					resources[i].transformBuffer.ID.Get(),
 					0,
-					256);
+					256).value();
 			}
 		}
 		
@@ -240,9 +238,9 @@ namespace Pistachio {
 		rsDesc.numRootParameters = 5;
 		rsDesc.rootParameters = rpDesc;
 
-		RHI::RootSignature* rs;
-		RHI::DescriptorSetLayout* layouts[5]{};
-		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
+		RHI::Ptr<RHI::RootSignature> rs;
+		RHI::Ptr<RHI::DescriptorSetLayout> layouts[5]{};
+		rs = RendererBase::device->CreateRootSignature(&rsDesc, layouts).value();
 
 		Pistachio::Helpers::FillDepthStencilMode(&dsMode, true, RHI::DepthWriteMask::None);
 		Pistachio::Helpers::BlendModeDisabledBlend(&blendMode);
@@ -256,7 +254,7 @@ namespace Pistachio {
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
 
 		ShaderAsset* fwdShader = new ShaderAsset();
-		fwdShader->shader.CreateStackRs(&ShaderDesc, rs, layouts, 5);
+		fwdShader->shader.CreateStackRs(&ShaderDesc, rs.Get(), layouts, 5);
 		fwdShader->paramBufferSize = 12;
 		fwdShader->parametersMap["Diffuse"] = ParamInfo{ 0,ParamType::Float };
 		fwdShader->parametersMap["Metallic"] = ParamInfo{ 4,ParamType::Float };
@@ -267,17 +265,13 @@ namespace Pistachio {
 		fwdShader->bindingsMap["Normal Texture"] = 3;
 		fwdShader->hold();//keep alive
 		GetAssetManager()->FromResource(fwdShader, "Default Shader", Pistachio::ResourceType::Shader);
-		rs->Release();
-		for (int i = 0; i < 5; i++)
-		{
-			if (layouts[i]) layouts[i]->Release();
-		}
+
 		Pistachio::Helpers::FillDescriptorRange(&FrameCBRange, 1, 0, RHI::ShaderStage::Vertex, RHI::DescriptorType::ConstantBuffer);
 		Pistachio::Helpers::FillDynamicDescriptorRootParam(rpDesc + 0, 0, RHI::DescriptorType::ConstantBufferDynamic, RHI::ShaderStage::Vertex);
 		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 1, 1, 1, &FrameCBRange);
 		rsDesc.numRootParameters = 2;
 
-		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
+		rs = RendererBase::device->CreateRootSignature(&rsDesc, layouts).value();
 
 		//Z-Prepass
 		Pistachio::Helpers::FillDepthStencilMode(&dsMode);
@@ -289,12 +283,8 @@ namespace Pistachio {
 		ShaderDesc.DSVFormat = RHI::Format::D32_FLOAT;
 		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
-		shaders["Z-Prepass"] = Shader::CreateWithRs(&ShaderDesc, rs, layouts, 2);
-		rs->Release();
-		for (int i = 0; i < 2; i++)
-		{
-			if (layouts[i]) layouts[i]->Release();
-		}
+		shaders["Z-Prepass"] = Shader::CreateWithRs(&ShaderDesc, rs.Get(), layouts, 2);
+
 		RHI::DescriptorRange shadowRanges[1];
 		Pistachio::Helpers::FillDescriptorRange(shadowRanges + 0, 1, 0, RHI::ShaderStage::Vertex, RHI::DescriptorType::StructuredBuffer);
 		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 1, 1, 1, shadowRanges);
@@ -304,16 +294,12 @@ namespace Pistachio {
 		rpDesc[2].pushConstant.offset = 0;
 		rpDesc[2].pushConstant.stage = RHI::ShaderStage::Vertex;
 		rsDesc.numRootParameters = 3;
-		RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
+		rs = RendererBase::device->CreateRootSignature(&rsDesc, layouts).value();
 		//shadow shaders
 		ShaderDesc.VS = RHI::ShaderCode{ (char*)"resources/shaders/vertex/Compiled/Shadow_vs",0 };
 		ShaderDesc.RasterizerModes->cullMode = RHI::CullMode::Front;
-		shaders["Shadow Shader"] = Shader::CreateWithRs(&ShaderDesc, rs, layouts, 2);
-		rs->Release();
-		for (int i = 0; i < 2; i++)
-		{
-			if (layouts[i]) layouts[i]->Release();
-		}
+		shaders["Shadow Shader"] = Shader::CreateWithRs(&ShaderDesc, rs.Get(), layouts, 2);
+
 
 		BrdfTex.CreateStack(512, 512, RHI::Format::R16G16_FLOAT, nullptr PT_DEBUG_REGION(,"Renderer -> White Texture"),TextureFlags::Compute);
 		ComputeShader* brdfShader = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/BRDF_LUT_cs",0 },RHI::ShaderMode::File);
@@ -348,8 +334,8 @@ namespace Pistachio {
 		range.imageAspect = RHI::Aspect::COLOR_BIT;
 		barr.subresourceRange = range;
 		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::COMPUTE_SHADER_BIT, 0, 0, 1, &barr);
-		brdfShader->Bind(RendererBase::mainCommandList);
-		brdfShader->ApplyShaderBinding(RendererBase::mainCommandList, brdfTexInfo);
+		brdfShader->Bind(RendererBase::mainCommandList.Get());
+		brdfShader->ApplyShaderBinding(RendererBase::mainCommandList.Get(), brdfTexInfo);
 		RendererBase::mainCommandList->Dispatch(512,512,1);
 		barr.oldLayout = RHI::ResourceLayout::GENERAL;
 		barr.newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
@@ -459,7 +445,7 @@ namespace Pistachio {
 					RHI::Area2D rect = { {0,0},{512,512} };
 					list->SetScissorRects(1, &rect);
 					list->BindVertexBuffers(0, 1, &meshVertices->ID);
-					list->BindIndexBuffer(meshIndices, 0);
+					list->BindIndexBuffer(meshIndices.Get(), 0);
 					eqShader->ApplyBinding(list, eqShaderVS[i]);
 					eqShader->ApplyBinding(list, eqShaderPS);
 					Submit(list, cube.GetVBHandle(), cube.GetIBHandle(), sizeof(Vertex));
@@ -550,7 +536,7 @@ namespace Pistachio {
 					RHI::Area2D rect = { {0,0},{32,32} };
 					list->SetScissorRects(1, &rect);
 					list->BindVertexBuffers(0, 1, &meshVertices->ID);
-					list->BindIndexBuffer(meshIndices, 0);
+					list->BindIndexBuffer(meshIndices.Get(), 0);
 					irradianceShader->ApplyBinding(list, eqShaderVS[i]);
 					irradianceShader->ApplyBinding(list, irradianceShaderPS);
 					Submit(list, cube.GetVBHandle(), cube.GetIBHandle(), sizeof(Vertex));
@@ -599,7 +585,7 @@ namespace Pistachio {
 						RHI::Area2D rect = { {0,0},{mipWidth,mipHeight} };
 						list->SetScissorRects(1, &rect);
 						list->BindVertexBuffers(0, 1, &meshVertices->ID);
-						list->BindIndexBuffer(meshIndices, 0);
+						list->BindIndexBuffer(meshIndices.Get(), 0);
 						prefilterShader->ApplyBinding(list, eqShaderVS[i]);
 						prefilterShader->ApplyBinding(list, prefilterShaderVS[mip]);
 						prefilterShader->ApplyBinding(list, irradianceShaderPS);
@@ -806,10 +792,9 @@ namespace Pistachio {
 		RHI::BufferDesc desc;
 		desc.size = new_size;
 		desc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
-		RHI::Buffer* newVB;
 		RHI::AutomaticAllocationInfo allocInfo;
 		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		RendererBase::device->CreateBuffer(&desc, &newVB, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic);
+		RHI::Ptr<RHI::Buffer> newVB = RendererBase::device->CreateBuffer(&desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
 		RHI::BufferMemoryBarrier barr;
 		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
 		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_READ;
@@ -841,10 +826,10 @@ namespace Pistachio {
 		RHI::BufferDesc desc;
 		desc.size = new_size;
 		desc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
-		RHI::Buffer* newIB;
+		
 		RHI::AutomaticAllocationInfo allocInfo;
 		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		RendererBase::device->CreateBuffer(&desc, &newIB, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic);
+		RHI::Ptr<RHI::Buffer> newIB = RendererBase::device->CreateBuffer(&desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
 		//Queue it with staging stuff
 		RHI::BufferMemoryBarrier barr;
 		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
@@ -879,10 +864,10 @@ namespace Pistachio {
 		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
 		for (uint32_t i = 0; i < 3; i++)
 		{
-			RHI::Buffer* newCB;
+			
 			RHI::AutomaticAllocationInfo allocInfo;
 			allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential;
-			RendererBase::device->CreateBuffer(&desc, &newCB, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic);
+			RHI::Ptr<RHI::Buffer> newCB = RendererBase::device->CreateBuffer(&desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
 			void* writePtr;
 			void* readPtr;
 			newCB->Map(&writePtr);

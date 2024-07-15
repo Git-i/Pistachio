@@ -35,7 +35,7 @@ namespace Pistachio {
 		uint32_t sizeLeft = 0;
 		uint32_t freeOffset = 0;
 	};
-	
+
 	class PISTACHIO_API RendererBase
 	{
 	public:
@@ -113,13 +113,13 @@ namespace Pistachio {
 		static RHI::Ptr<RHI::GraphicsCommandList> stagingCommandList;
 		// using one of the frame's allocator would mean that we might reset the staging command list
 		// thereby limiting the ability to queue updates effectively
-		static RHI::Ptr<RHI::CommandAllocator> stagingCommandAllocator; 
+		static RHI::Ptr<RHI::CommandAllocator> stagingCommandAllocator;
 		static RHI::Ptr<RHI::CommandAllocator> commandAllocators[3];
 		static RHI::Ptr<RHI::CommandAllocator> computeCommandAllocators[3];
 		static RHI::Instance* instance;
 		static RHI::Ptr<RHI::SwapChain> swapChain;
-		static RHI::CommandQueue* directQueue;
-		static RHI::CommandQueue* computeQueue;
+		static RHI::Ptr<RHI::CommandQueue> directQueue;
+		static RHI::Ptr<RHI::CommandQueue> computeQueue;
 		static std::vector<RHI::Ptr<RHI::Texture>> backBufferTextures; //todo: tripebuffering support
 		static RHI::Texture* depthTexture;
 		static RHI::Ptr<RHI::DescriptorHeap> MainRTVheap;
@@ -151,5 +151,3 @@ namespace Pistachio {
 		static float m_ClearColor[4];
 	};
 }
-
-

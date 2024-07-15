@@ -34,8 +34,8 @@ namespace Pistachio {
 	struct FrameResource
 	{
 		ConstantBuffer transformBuffer;
-		RHI::DynamicDescriptor* transformBufferDesc;
-		RHI::DynamicDescriptor* transformBufferDescPS;
+		RHI::Ptr<RHI::DynamicDescriptor> transformBufferDesc;
+		RHI::Ptr<RHI::DynamicDescriptor> transformBufferDescPS;
 	};
 	struct PISTACHIO_API Light {
 		DirectX::XMFLOAT3 position;
@@ -139,8 +139,8 @@ namespace Pistachio {
 	private:
 		static void (*CBInvalidated)();
 		//New Renderer
-		static RHI::Buffer* meshVertices; // all meshes in the scene?
-		static RHI::Buffer*  meshIndices;
+		static RHI::Ptr<RHI::Buffer> meshVertices; // all meshes in the scene?
+		static RHI::Ptr<RHI::Buffer>  meshIndices;
 		static uint32_t     vbFreeFastSpace;//free space for an immerdiate allocation
 		static uint32_t     vbFreeSpace;   //total free space to consider reordering
 		static uint32_t     vbCapacity;
