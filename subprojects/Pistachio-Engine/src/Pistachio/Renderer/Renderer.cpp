@@ -1,6 +1,3 @@
-#include "Barrier.h"
-#include "FormatsAndTypes.h"
-#include "PipelineStateObject.h"
 #include "Pistachio/Renderer/RenderGraph.h"
 #include "Pistachio/Renderer/RendererBase.h"
 #include "Pistachio/Renderer/Shader.h"
@@ -86,12 +83,12 @@ namespace Pistachio {
 			bufferDesc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
 			RHI::AutomaticAllocationInfo bufferAllocInfo;
 			bufferAllocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-			meshVertices = RendererBase::device->CreateBuffer(&bufferDesc, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic).value();
+			meshVertices = RendererBase::device->CreateBuffer(bufferDesc, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic).value();
 			//index buffer
 			PT_CORE_INFO("Creating Index Buffer");
 			bufferDesc.size = IB_INITIAL_SIZE;
 			bufferDesc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
-			meshIndices = RendererBase::device->CreateBuffer(&bufferDesc, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic).value();
+			meshIndices = RendererBase::device->CreateBuffer(bufferDesc, 0, 0, &bufferAllocInfo, 0, RHI::ResourceType::Automatic).value();
 			//set constants for vb and ib
 			vbCapacity = VB_INITIAL_SIZE;
 			vbFreeFastSpace = VB_INITIAL_SIZE;
@@ -115,17 +112,17 @@ namespace Pistachio {
 				resources[i].transformBuffer.CreateStack(nullptr, cbCapacity);//better utilise the free 256 bytes
 				PT_CORE_INFO("Creating Structured Buffer(s)");
 				resources[i].transformBufferDesc = RendererBase::device->CreateDynamicDescriptor(
-					RendererBase::heap.Get(),
+					RendererBase::heap,
 					RHI::DescriptorType::ConstantBufferDynamic,
 					RHI::ShaderStage::Vertex,
-					resources[i].transformBuffer.ID.Get(),
+					resources[i].transformBuffer.ID,
 					0,
 					256).value();
 				resources[i].transformBufferDescPS = RendererBase::device->CreateDynamicDescriptor(
-					RendererBase::heap.Get(),
+					RendererBase::heap,
 					RHI::DescriptorType::ConstantBufferDynamic,
 					RHI::ShaderStage::Pixel,
-					resources[i].transformBuffer.ID.Get(),
+					resources[i].transformBuffer.ID,
 					0,
 					256).value();
 			}
@@ -145,11 +142,11 @@ namespace Pistachio {
 			sampler.maxLOD = std::numeric_limits<float>::max();
 			sampler.minLOD = 0;
 			sampler.mipLODBias = 0;
-			defaultSampler = RendererBase::CreateSampler(&sampler);
-			brdfSampler = RendererBase::CreateSampler(&sampler);
+			defaultSampler = RendererBase::CreateSampler(sampler);
+			brdfSampler = RendererBase::CreateSampler(sampler);
 			sampler.compareEnable = true;
 			sampler.compareFunc = RHI::ComparisonFunc::LessEqual;
-			shadowSampler = RendererBase::CreateSampler(&sampler);
+			shadowSampler = RendererBase::CreateSampler(sampler);
 		}
 
 		computeShaderMiscBuffer.CreateStack(nullptr, sizeof(uint32_t) * 2, SBCreateFlags::None);
@@ -177,19 +174,19 @@ namespace Pistachio {
 		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
 		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
-		eqShader = Shader::Create(&ShaderDesc);
+		eqShader = Shader::Create(ShaderDesc);
 		eqShader->GetPSShaderBinding(eqShaderPS, 1);
 		for(uint32_t i = 0; i < 6; i++)
 			eqShader->GetVSShaderBinding(eqShaderVS[i], 0);
 		skybox.CreateStack(512, 512, NUM_SKYBOX_MIPS,  RHI::Format::R16G16B16A16_FLOAT PT_DEBUG_REGION(,"Renderer -> Skybox Texture"), RHI::TextureUsage::CopySrc | RHI::TextureUsage::CopyDst);
 		ShaderDesc.PS = { (char*)"resources/shaders/pixel/Compiled/irradiance_fs",0 };
-		irradianceShader = Shader::Create(&ShaderDesc);
+		irradianceShader = Shader::Create(ShaderDesc);
 		irradianceShader->GetPSShaderBinding(irradianceShaderPS,1);
 		irradianceSkybox.CreateStack(32, 32, 1, RHI::Format::R16G16B16A16_FLOAT, "Renderer -> Irradiance Texture");
 
 		ShaderDesc.VS = {(char*)"resources/shaders/vertex/Compiled/prefilter_vs",0};
 		ShaderDesc.PS = {(char*)"resources/shaders/pixel/Compiled/prefilter_fs" ,0};
-		prefilterShader = Shader::Create(&ShaderDesc);
+		prefilterShader = Shader::Create(ShaderDesc);
 		for(uint32_t i = 0; i < 5; i++)
 			prefilterShader->GetVSShaderBinding(prefilterShaderVS[i], 2);
 		prefilterSkybox.CreateStack(128, 128, 5, RHI::Format::R16G16B16A16_FLOAT PT_DEBUG_REGION(,"Renderer -> Prefilter Texture"),RHI::TextureUsage::CopyDst);
@@ -254,7 +251,7 @@ namespace Pistachio {
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
 
 		ShaderAsset* fwdShader = new ShaderAsset();
-		fwdShader->shader.CreateStackRs(&ShaderDesc, rs.Get(), layouts, 5);
+		fwdShader->shader.CreateStackRs(ShaderDesc, rs, layouts, 5);
 		fwdShader->paramBufferSize = 12;
 		fwdShader->parametersMap["Diffuse"] = ParamInfo{ 0,ParamType::Float };
 		fwdShader->parametersMap["Metallic"] = ParamInfo{ 4,ParamType::Float };
@@ -283,7 +280,7 @@ namespace Pistachio {
 		ShaderDesc.DSVFormat = RHI::Format::D32_FLOAT;
 		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
-		shaders["Z-Prepass"] = Shader::CreateWithRs(&ShaderDesc, rs.Get(), layouts, 2);
+		shaders["Z-Prepass"] = Shader::CreateWithRs(ShaderDesc, rs, layouts, 2);
 
 		RHI::DescriptorRange shadowRanges[1];
 		Pistachio::Helpers::FillDescriptorRange(shadowRanges + 0, 1, 0, RHI::ShaderStage::Vertex, RHI::DescriptorType::StructuredBuffer);
@@ -298,7 +295,7 @@ namespace Pistachio {
 		//shadow shaders
 		ShaderDesc.VS = RHI::ShaderCode{ (char*)"resources/shaders/vertex/Compiled/Shadow_vs",0 };
 		ShaderDesc.RasterizerModes->cullMode = RHI::CullMode::Front;
-		shaders["Shadow Shader"] = Shader::CreateWithRs(&ShaderDesc, rs.Get(), layouts, 2);
+		shaders["Shadow Shader"] = Shader::CreateWithRs(ShaderDesc, rs, layouts, 2);
 
 
 		BrdfTex.CreateStack(512, 512, RHI::Format::R16G16_FLOAT, nullptr PT_DEBUG_REGION(,"Renderer -> White Texture"),TextureFlags::Compute);
@@ -310,7 +307,7 @@ namespace Pistachio {
 		ShaderDesc.PS = {(char*)"resources/shaders/pixel/Compiled/background_ps", 0};
 		ShaderDesc.NumRenderTargets = 1;
 		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
-		auto background_shader = Shader::Create(&ShaderDesc);
+		auto background_shader = Shader::Create(ShaderDesc);
 		shaders["Background Shader"] = background_shader;
 		
 		background_shader->GetPSShaderBinding(backgroundInfo, 1);
@@ -325,7 +322,7 @@ namespace Pistachio {
 		barr.newLayout = RHI::ResourceLayout::GENERAL;
 		barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
 		barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
-		barr.texture = BrdfTex.m_ID.Get();
+		barr.texture = BrdfTex.m_ID;
 		RHI::SubResourceRange range;
 		range.FirstArraySlice = 0;
 		range.NumArraySlices = 1;
@@ -334,8 +331,8 @@ namespace Pistachio {
 		range.imageAspect = RHI::Aspect::COLOR_BIT;
 		barr.subresourceRange = range;
 		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::COMPUTE_SHADER_BIT, 0, 0, 1, &barr);
-		brdfShader->Bind(RendererBase::mainCommandList.Get());
-		brdfShader->ApplyShaderBinding(RendererBase::mainCommandList.Get(), brdfTexInfo);
+		brdfShader->Bind(RendererBase::mainCommandList);
+		brdfShader->ApplyShaderBinding(RendererBase::mainCommandList, brdfTexInfo);
 		RendererBase::mainCommandList->Dispatch(512,512,1);
 		barr.oldLayout = RHI::ResourceLayout::GENERAL;
 		barr.newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
@@ -394,7 +391,7 @@ namespace Pistachio {
 			bufferDesc.offset = 256 * i;
 			bufferDesc.size = sizeof(Matrix4) * 2;
 			bufferDesc.type = RHI::DescriptorType::ConstantBuffer;
-			eqShaderVS[i].UpdateBufferBinding(&bufferDesc, 0);
+			eqShaderVS[i].UpdateBufferBinding(bufferDesc, 0);
 		}
 		for (uint32_t i = 0; i < 5; i++)
 		{
@@ -405,7 +402,7 @@ namespace Pistachio {
 			bufferDesc.offset = 256 * i;
 			bufferDesc.size = sizeof(float);
 			bufferDesc.type = RHI::DescriptorType::ConstantBuffer;
-			prefilterShaderVS[i].UpdateBufferBinding(&bufferDesc,0);
+			prefilterShaderVS[i].UpdateBufferBinding(bufferDesc,0);
 		}
 		RendererBase::ChangeViewport(512, 512);
 		//eqShader->Bind();
@@ -420,7 +417,7 @@ namespace Pistachio {
 		Pistachio::RGTextureHandle irradianceSkyboxFaces[6];
 		for (int i = 0; i < 6; i++)
 		{
-			skybox_lv0[i] = skyboxRG.CreateTexture(skybox.m_ID.Get(), 0, true, i);
+			skybox_lv0[i] = skyboxRG.CreateTexture(skybox.m_ID, 0, true, i);
 			skyboxFaces_pre[i] = skyboxRG.CreateTexture(&skybox, i);
 			irradianceSkyboxFaces[i] = skyboxRG.CreateTexture(&irradianceSkybox, i);
 			AttachmentInfo info;
@@ -445,7 +442,7 @@ namespace Pistachio {
 					RHI::Area2D rect = { {0,0},{512,512} };
 					list->SetScissorRects(1, &rect);
 					list->BindVertexBuffers(0, 1, &meshVertices->ID);
-					list->BindIndexBuffer(meshIndices.Get(), 0);
+					list->BindIndexBuffer(meshIndices, 0);
 					eqShader->ApplyBinding(list, eqShaderVS[i]);
 					eqShader->ApplyBinding(list, eqShaderPS);
 					Submit(list, cube.GetVBHandle(), cube.GetIBHandle(), sizeof(Vertex));
@@ -463,7 +460,7 @@ namespace Pistachio {
 			for(uint32_t j = 1; j < NUM_SKYBOX_MIPS; j++)
 			{
 				auto& pass = skyboxRG.AddPass(RHI::PipelineStage::TRANSFER_BIT, "Gen MipMaps");
-				RGTextureHandle dst = skyboxRG.CreateTexture(skybox.m_ID.Get(), j, true, i);
+				RGTextureHandle dst = skyboxRG.CreateTexture(skybox.m_ID, j, true, i);
 				AttachmentInfo info;
 				info.format = RHI::Format::R16G16B16A16_FLOAT;
 				info.loadOp = RHI::LoadOp::Load;

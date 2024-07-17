@@ -3,6 +3,7 @@
 #include "Buffer.h"
 #include "../Core/Instance.h"
 #include "Pistachio/Core/Window.h"
+#include "Ptr.h"
 namespace Pistachio {
 	enum class CullMode {
 		None, Front, Back
@@ -58,9 +59,9 @@ namespace Pistachio {
 		static void ClearTarget();
 		static void CreateTarget();
 		static RHI::API GetAPI();
-		static RTVHandle CreateRenderTargetView(RHI::Texture* texture, RHI::RenderTargetViewDesc* viewDesc);
-		static DSVHandle CreateDepthStencilView(RHI::Texture* texture, RHI::DepthStencilViewDesc* viewDesc);
-		static SamplerHandle CreateSampler(RHI::SamplerDesc* viewDesc);
+		static RTVHandle CreateRenderTargetView(RHI::Weak<RHI::Texture> texture, const RHI::RenderTargetViewDesc& viewDesc);
+		static DSVHandle CreateDepthStencilView(RHI::Weak<RHI::Texture> texture, const RHI::DepthStencilViewDesc& viewDesc);
+		static SamplerHandle CreateSampler(const RHI::SamplerDesc& viewDesc);
 		static void DestroyRenderTargetView(RTVHandle handle);
 		static void DestroyDepthStencilView(DSVHandle handle);
 		static void DestroySampler(SamplerHandle handle);
@@ -70,9 +71,9 @@ namespace Pistachio {
 		static void ChangeViewport(int width, int height, int x=0, int y=0);
 		static void ClearView();
 		static void Resize(int width, int height);
-		static void PushBufferUpdate(RHI::Buffer* buffer, uint32_t offsetFromBufferStart,const void* data, uint32_t size);
-		static void PushTextureUpdate(RHI::Texture* texture, uint32_t imgByteSize,const void* data,RHI::SubResourceRange* range, RHI::Extent3D imageExtent, RHI::Offset3D imageOffset,RHI::Format format);
-		static void CreateDescriptorSet(RHI::DescriptorSet**, RHI::DescriptorSetLayout* layout);
+		static void PushBufferUpdate(RHI::Weak<RHI::Buffer> buffer, uint32_t offsetFromBufferStart,const void* data, uint32_t size);
+		static void PushTextureUpdate(RHI::Weak<RHI::Texture> texture, uint32_t imgByteSize,const void* data,RHI::SubResourceRange* range, RHI::Extent3D imageExtent, RHI::Offset3D imageOffset,RHI::Format format);
+		static RHI::Ptr<RHI::DescriptorSet> CreateDescriptorSet(RHI::Ptr<RHI::DescriptorSetLayout> layout);
 		static void FlushStagingBuffer();
 		static void SetPrimitiveTopology(PrimitiveTopology Topology);
 		static void SetClearColor(float r, float g, float b, float a);
@@ -82,15 +83,15 @@ namespace Pistachio {
 		static void SetDepthStencilOp(DepthStencilOp op);
 		static void BindMainTarget();
 		static bool Init(PlatformData* pd, InitOptions& options);
-		static RHI::Device* Getd3dDevice();
+		static RHI::Ptr<RHI::Device> Getd3dDevice();
 		static RHI::Instance* GetInstance();
-		static RHI::GraphicsCommandList* GetMainCommandList();
-		static RHI::SwapChain* GetSwapChain();
-		static RHI::DescriptorHeap* GetRTVDescriptorHeap();
-		static RHI::DescriptorHeap* GetDSVDescriptorHeap();
-		static RHI::DescriptorHeap* GetMainDescriptorHeap();
-		static RHI::Texture* GetBackBufferTexture(uint32_t index);
-		static RHI::Texture* GetDefaultDepthTexture();
+		static RHI::Ptr<RHI::GraphicsCommandList> GetMainCommandList();
+		static RHI::Ptr<RHI::SwapChain> GetSwapChain();
+		static RHI::Ptr<RHI::DescriptorHeap> GetRTVDescriptorHeap();
+		static RHI::Ptr<RHI::DescriptorHeap> GetDSVDescriptorHeap();
+		static RHI::Ptr<RHI::DescriptorHeap> GetMainDescriptorHeap();
+		static RHI::Ptr<RHI::Texture> GetBackBufferTexture(uint32_t index);
+		static RHI::Ptr<RHI::Texture> GetDefaultDepthTexture();
 		static uint32_t GetCurrentRTVIndex();
 		static uint32_t GetCurrentFrameIndex();
 		static const constexpr uint32_t numFramesInFlight = 3;
@@ -121,7 +122,7 @@ namespace Pistachio {
 		static RHI::Ptr<RHI::CommandQueue> directQueue;
 		static RHI::Ptr<RHI::CommandQueue> computeQueue;
 		static std::vector<RHI::Ptr<RHI::Texture>> backBufferTextures; //todo: tripebuffering support
-		static RHI::Texture* depthTexture;
+		static RHI::Ptr<RHI::Texture> depthTexture;
 		static RHI::Ptr<RHI::DescriptorHeap> MainRTVheap;
 		static std::vector<TrackedDescriptorHeap> rtvHeaps;
 		static std::vector<RTVHandle> freeRTVs;

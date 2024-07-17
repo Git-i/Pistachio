@@ -24,6 +24,10 @@ namespace Pistachio {
 				return true;
 			return false;
 		}
+		static inline Error None()
+		{
+			return Error(ErrorType::Success, "");
+		}
 		static Error FromRHIError(RHI::CreationError e, const std::string& str = "")
 		{
 			bool report = !str.empty();
@@ -90,9 +94,8 @@ namespace Pistachio {
 		std::string ReporterString;
 		int severity;
 	};
-	using init_result = ezr::result<void, Error>;
 	template <typename T>
-	using creation_result = ezr::result<T, Error>;
+	using Result = ezr::result<T, Error>;
 }
 class Reporter {
 	Reporter(std::string& caller);

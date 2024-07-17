@@ -59,8 +59,8 @@ namespace Pistachio {
 			offset += 4;
 		}
 		s_Data.QuadVerticesBase = new QuadVertex[s_Data.MaxVertices];
-		s_Data.quadVB.reset(Pistachio::VertexBuffer::Create(sizeof(QuadVertex) * s_Data.MaxVertices, sizeof(QuadVertex)));
-		s_Data.quadIB.reset(Pistachio::IndexBuffer::Create(quadIndices, s_Data.MaxIndices * sizeof(unsigned int), sizeof(unsigned int)));
+		s_Data.quadVB.reset(Pistachio::VertexBuffer::Create(nullptr, sizeof(QuadVertex) * s_Data.MaxVertices, sizeof(QuadVertex)).value());
+		s_Data.quadIB.reset(Pistachio::IndexBuffer::Create(quadIndices, s_Data.MaxIndices * sizeof(unsigned int), sizeof(unsigned int)).value());
 		delete[] quadIndices;
 		unsigned char white[4] = { 255, 255, 255, 255 };
 		//s_Data.whiteTexture.reset(Pistachio::Texture2D::Create(1, 1, TextureFormat::RGBA8U,white));
