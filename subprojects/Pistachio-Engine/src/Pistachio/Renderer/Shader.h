@@ -1,6 +1,7 @@
 #pragma once
 #include "../Core.h"
 #include "Core/Device.h"
+#include "PipelineStateObject.h"
 #include "RendererID_t.h"
 #include "RendererBase.h"
 #include "Core/ShaderReflect.h"
@@ -8,6 +9,7 @@
 #include "Core/Device.h"
 #include "Pistachio/Core/Math.h"
 #include "xxhash.h"
+#include <type_traits>
 namespace Pistachio
 {
 	struct PSOHash;
@@ -64,7 +66,10 @@ namespace Pistachio
 		};
 		RTBlend rtblends[6];
 		bool operator==(const PSOHash& hash) const;
+		template<typename T>
+		T Into();
 	};
+	template<> RHI::DepthStencilMode PSOHash::Into<RHI::DepthStencilMode>();
 }
 namespace std {
 	template<>
@@ -172,10 +177,10 @@ namespace Pistachio {
 		std::vector<RHI::ShaderStage> stage;
 
 		std::uint32_t setIndex;
-		RHI::DescriptorSet* set;
-		void UpdateBufferBinding(RHI::Buffer* buff, uint32_t offset, uint32_t size, RHI::DescriptorType type, uint32_t slot);
-		void UpdateBufferBinding(BufferBindingUpdateDesc* desc, uint32_t slot);
-		void UpdateTextureBinding(RHI::TextureView* view, uint32_t slot, RHI::DescriptorType type = RHI::DescriptorType::SampledTexture);
+		RHI::Ptr<RHI::DescriptorSet> set;
+		void UpdateBufferBinding(RHI::Weak<RHI::Buffer> buff, uint32_t offset, uint32_t size, RHI::DescriptorType type, uint32_t slot);
+		void UpdateBufferBinding(const BufferBindingUpdateDesc& desc, uint32_t slot);
+		void UpdateTextureBinding(RHI::Weak<RHI::TextureView> view, uint32_t slot, RHI::DescriptorType type = RHI::DescriptorType::SampledTexture);
 		void UpdateSamplerBinding(SamplerHandle handle, uint32_t slot);
 	};
 	//Every Shader has one of these
@@ -190,56 +195,63 @@ namespace Pistachio {
 	{
 	public:
 		ComputeShader() {};
-		~ComputeShader();
-		void Bind(RHI::GraphicsCommandList* list);
+		void Bind(RHI::Weak<RHI::GraphicsCommandList> list);
 		static ComputeShader* Create(const RHI::ShaderCode& code, RHI::ShaderMode mode);
 		void GetShaderBinding(SetInfo& info, uint32_t setIndex);
-		void ApplyShaderBinding(RHI::GraphicsCommandList* list, const SetInfo& info);
-		static ComputeShader* CreateWithRs(const RHI::ShaderCode& code, RHI::ShaderMode mode, RHI::RootSignature* rSig);
+		void ApplyShaderBinding(RHI::Weak<RHI::GraphicsCommandList> list, const SetInfo& info);
+		static ComputeShader* CreateWithRs(const RHI::ShaderCode& code, RHI::ShaderMode mode, RHI::Ptr<RHI::RootSignature> rSig);
 	private:
 		friend class ComputePass;
 		void CreateRootSignature(const RHI::ShaderCode& code, RHI::ShaderMode mode);
-		void CreateSetInfos(RHI::ShaderReflection* reflection);
-		RHI::RootSignature* rSig;
-		RHI::DescriptorSetLayout** layouts;
-		RHI::ComputePipeline* pipeline;
+		void CreateSetInfos(RHI::Weak<RHI::ShaderReflection> reflection);
+		RHI::Ptr<RHI::RootSignature> rSig;
+		std::vector<RHI::Ptr<RHI::DescriptorSetLayout>> layouts;
+		RHI::Ptr<RHI::ComputePipeline> pipeline;
 		uint32_t numLayouts;
 		ShaderSetInfos m_info;
 	};
+
 	class PISTACHIO_API Shader
 	{
 	public:
 		Shader();
 		~Shader();
-		static Shader* Create(ShaderCreateDesc* desc);
-		static Shader* CreateWithRs(ShaderCreateDesc* desc, RHI::RootSignature* rs,RHI::DescriptorSetLayout** layouts,uint32_t numLayouts);
-		void Bind(RHI::GraphicsCommandList* list);
-		void GetDepthStencilMode(RHI::DepthStencilMode* mode);
-		uint32_t SetDepthStencilMode(RHI::DepthStencilMode* mode, ShaderModeSetFlags flags);
-		void GetRasterizerMode(RHI::RasterizerMode* mode);
-		uint32_t SetRasterizerMode(RHI::RasterizerMode* mode, ShaderModeSetFlags flags);
-		void GetBlendMode(RHI::BlendMode* mode);
+		static Shader* Create(const ShaderCreateDesc& desc);
+		static Shader* CreateWithRs(const ShaderCreateDesc& desc, RHI::Ptr<RHI::RootSignature> rs,RHI::Ptr<RHI::DescriptorSetLayout>* layouts,uint32_t numLayouts);
+		void Bind(RHI::Weak<RHI::GraphicsCommandList> list);
+		void GetDepthStencilMode(RHI::DepthStencilMode& mode);
+		uint32_t SetDepthStencilMode(const RHI::DepthStencilMode& mode, ShaderModeSetFlags flags);
+		void GetRasterizerMode(const RHI::RasterizerMode& mode);
+		uint32_t SetRasterizerMode(const RHI::RasterizerMode& mode, ShaderModeSetFlags flags);
+		void GetBlendMode(const RHI::BlendMode& mode);
 		void GetVSShaderBinding(SetInfo& info, uint32_t setIndex);
 		void GetPSShaderBinding(SetInfo& info, uint32_t setIndex);
-		void ApplyBinding(RHI::GraphicsCommandList* list, const SetInfo& info);
-		RHI::RootSignature* GetRootSignature() { return rootSig; };
-		uint32_t SetBlendMode(RHI::BlendMode* mode, ShaderModeSetFlags flags);
-		RHI::PipelineStateObject* GetCurrentPipeline() { return PSOs[currentPSO]; }
+		void ApplyBinding(RHI::Weak<RHI::GraphicsCommandList> list, const SetInfo& info);
+		RHI::Ptr<RHI::RootSignature> GetRootSignature() { return rootSig; };
+		uint32_t SetBlendMode(const RHI::BlendMode& mode, ShaderModeSetFlags flags);
+		RHI::Ptr<RHI::PipelineStateObject> GetCurrentPipeline() { return PSOs[currentPSO]; }
+		template<typename Fn>
+		auto UseDSMode(Fn&& fn)
+		{
+			const auto ds = currentPSO.Into<RHI::DepthStencilMode>();
+			static_assert(std::is_invocable_v<Fn, const RHI::DepthStencilMode&>, "Invalid Function Passed");
+			return fn(ds);
+		}
 	private:
-		void Initialize(ShaderCreateDesc* desc,RHI::RootSignature* rs);
-		void CreateStack(ShaderCreateDesc* desc);
-		void CreateStackRs(ShaderCreateDesc* desc, RHI::RootSignature* rs, RHI::DescriptorSetLayout** layouts, uint32_t numLayouts);
-		void CreateSetInfos(RHI::ShaderReflection* VSreflection, RHI::ShaderReflection* PSreflection);
-		void FillSetInfo(RHI::ShaderReflection* reflection,ShaderSetInfos& info);
+		void Initialize(const ShaderCreateDesc& desc,RHI::Ptr<RHI::RootSignature> rs);
+		void CreateStack(const ShaderCreateDesc& desc);
+		void CreateStackRs(const ShaderCreateDesc& desc, RHI::Ptr<RHI::RootSignature> rs, RHI::Ptr<RHI::DescriptorSetLayout>* layouts, uint32_t numLayouts);
+		void CreateSetInfos(RHI::Weak<RHI::ShaderReflection> VSreflection, RHI::Weak<RHI::ShaderReflection> PSreflection);
+		void FillSetInfo(RHI::Weak<RHI::ShaderReflection> reflection,ShaderSetInfos& info);
 		void CreateRootSignature();
 	private:
 		friend class ShaderAsset;
 		friend class Renderer;
-		std::unordered_map<PSOHash, RHI::PipelineStateObject*> PSOs;
+		std::unordered_map<PSOHash, RHI::Ptr<RHI::PipelineStateObject>> PSOs;
 		ShaderSetInfos m_VSinfo;
 		ShaderSetInfos m_PSinfo;
-		RHI::RootSignature* rootSig;
-		RHI::DescriptorSetLayout** layouts;
+		RHI::Ptr<RHI::RootSignature> rootSig;
+		std::vector<RHI::Ptr<RHI::DescriptorSetLayout>> layouts;
 		uint32_t numLayouts;
 		RHI::Format rtvFormats[6];
 		RHI::Format dsvFormat;

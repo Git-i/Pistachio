@@ -14,15 +14,19 @@ namespace Pistachio {
 		uint32_t offset = 0;
 		list->BindVertexBuffers(slot, 1, &ID->ID);//id->id is a little confusing
 	}
-	creation_result<VertexBuffer*> VertexBuffer::Create(const void* verts, unsigned int size, unsigned int stride)
+	Result<VertexBuffer*> VertexBuffer::Create(const void* verts, unsigned int size, unsigned int stride)
 	{
 		PT_PROFILE_FUNCTION();
 		VertexBuffer* result = new VertexBuffer();
 		auto res = result->CreateStack(verts, size, stride);
-		if(res.is_err()) delete result;
-		return res.transform([&]()->VertexBuffer*{return result;});
+		if(res.GetErrorType() != ErrorType::Success) 
+		{
+			delete result;
+			return ezr::err(std::move(res));
+		}
+		return ezr::ok(std::move(result));
 	}
-	init_result VertexBuffer::CreateStack(const void* verts, unsigned int size, unsigned int Stride)
+	Error VertexBuffer::CreateStack(const void* verts, unsigned int size, unsigned int Stride)
 	{
 		PT_PROFILE_FUNCTION();
 		stride = Stride;
@@ -31,19 +35,19 @@ namespace Pistachio {
 		vbDesc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst;
 		RHI::AutomaticAllocationInfo info;
 		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		auto res = RendererBase::Getd3dDevice()->CreateBuffer(&vbDesc, nullptr, nullptr,&info, 0, RHI::ResourceType::Automatic);
+		auto res = RendererBase::Getd3dDevice()->CreateBuffer(vbDesc, nullptr, nullptr,&info, 0, RHI::ResourceType::Automatic);
 		if(res.is_err())
 		{
-			return init_result::err(Error::FromRHIError(res.err()));
+			return Error::FromRHIError(res.err());
 		}
 		ID = std::move(res).value();
-		if(verts) RendererBase::PushBufferUpdate(ID.Get(), 0, verts, size);
-		return init_result::ok();
+		if(verts) RendererBase::PushBufferUpdate(ID, 0, verts, size);
+		return Error::None();
 	}
 	void VertexBuffer::SetData(const void* data, unsigned int size)
 	{
 		PT_PROFILE_FUNCTION();
-		RendererBase::PushBufferUpdate(ID.Get(), 0, data, size);
+		RendererBase::PushBufferUpdate(ID, 0, data, size);
 	}
 
 	IndexBuffer::IndexBuffer()
@@ -52,9 +56,9 @@ namespace Pistachio {
 	void IndexBuffer::Bind(RHI::GraphicsCommandList* list) const
 	{
 		PT_PROFILE_FUNCTION();
-		list->BindIndexBuffer(ID.Get(), 0);
+		list->BindIndexBuffer(ID, 0);
 	}
-	init_result IndexBuffer::CreateStack(const void* indices, unsigned int size, unsigned int stride)
+	Error IndexBuffer::CreateStack(const void* indices, unsigned int size, unsigned int stride)
 	{
 		PT_PROFILE_FUNCTION()
 		count = size / stride;
@@ -63,24 +67,28 @@ namespace Pistachio {
 		desc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst;
 		RHI::AutomaticAllocationInfo info;
 		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		auto res = RendererBase::Getd3dDevice()->CreateBuffer(&desc, nullptr, nullptr, &info,0, RHI::ResourceType::Automatic);
-		if(res.is_err()) return init_result::err(Error::FromRHIError(res.err()));
+		auto res = RendererBase::Getd3dDevice()->CreateBuffer(desc, nullptr, nullptr, &info,0, RHI::ResourceType::Automatic);
+		if(res.is_err()) return Error::FromRHIError(res.err());
 		if (indices)
 		{
-			RendererBase::PushBufferUpdate(ID.Get(), 0, indices, size);
+			RendererBase::PushBufferUpdate(ID, 0, indices, size);
 		}
 		ID = std::move(res).value();
-		return init_result::ok();
+		return Error::None();
 	}
-	creation_result<IndexBuffer*> IndexBuffer::Create(const void* indices, std::uint32_t size, std::uint32_t stride)
+	Result<IndexBuffer*> IndexBuffer::Create(const void* indices, std::uint32_t size, std::uint32_t stride)
 	{
 		PT_PROFILE_FUNCTION();
 		IndexBuffer* result = new IndexBuffer;
 		auto res = result->CreateStack(indices, size,stride);
-		if(res.is_err()) delete result;
-		return res.transform([&]{return result;});
+		if(res.GetErrorType() != ErrorType::Success)
+		{
+			delete result;
+			return ezr::err(std::move(res));
+		}
+		return ezr::ok(std::move(result));
 	}
-	init_result StructuredBuffer::CreateStack(const void* data, std::uint32_t size, SBCreateFlags flags)
+	Error StructuredBuffer::CreateStack(const void* data, std::uint32_t size, SBCreateFlags flags)
 	{
 		PT_PROFILE_FUNCTION();
 		RHI::BufferDesc bufferDesc;
@@ -90,8 +98,8 @@ namespace Pistachio {
 		info.access_mode = ((flags & SBCreateFlags::AllowCPUAccess)==SBCreateFlags::None) ? 
 			RHI::AutomaticAllocationCPUAccessMode::None :
 			RHI::AutomaticAllocationCPUAccessMode::Sequential;
-		auto res = RendererBase::Getd3dDevice()->CreateBuffer(&bufferDesc, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
-		if(res.is_err()) return init_result::err(Error::FromRHIError(res.err()));
+		auto res = RendererBase::Getd3dDevice()->CreateBuffer(bufferDesc, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
+		if(res.is_err()) return Error::FromRHIError(res.err());
 		ID = std::move(res).value();
 		if (data)
 		{
@@ -100,7 +108,7 @@ namespace Pistachio {
 			memcpy(writePointer, data, size);
 			ID->UnMap();
 		}
-		return init_result::ok();
+		return Error::None();
 		
 	}
 	void StructuredBuffer::Bind(std::uint32_t slot) const
@@ -114,13 +122,17 @@ namespace Pistachio {
 		memcpy((((char*)writePointer) + offset), data, size);
 		ID->UnMap();
 	}
-	creation_result<StructuredBuffer*> StructuredBuffer::Create(const void* data, std::uint32_t size, SBCreateFlags flags)
+	Result<StructuredBuffer*> StructuredBuffer::Create(const void* data, std::uint32_t size, SBCreateFlags flags)
 	{
 		PT_PROFILE_FUNCTION();
 		StructuredBuffer* result = new StructuredBuffer;
 		auto res = result->CreateStack(data, size);
-		if(res.is_err()) delete result;
-		return res.transform([&]{return result;});
+		if(res.GetErrorType() != ErrorType::Success)
+		{
+			delete result;
+			return ezr::err(std::move(res));
+		} 
+		return ezr::ok(std::move(result));
 	}
 	void ConstantBuffer::Update(void* data, std::uint32_t size, std::uint32_t offset)
 	{
@@ -130,7 +142,7 @@ namespace Pistachio {
 		memcpy((((char*)writePointer) + offset), data, size);
 		ID->UnMap();
 	}
-	init_result ConstantBuffer::CreateStack(void* data, std::uint32_t size)
+	Error ConstantBuffer::CreateStack(void* data, std::uint32_t size)
 	{
 		PT_PROFILE_FUNCTION();
 		RHI::BufferDesc bufferDesc;
@@ -138,8 +150,8 @@ namespace Pistachio {
 		bufferDesc.usage = RHI::BufferUsage::ConstantBuffer;
 		RHI::AutomaticAllocationInfo info;
 		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential;
-		auto res = RendererBase::Getd3dDevice()->CreateBuffer(&bufferDesc, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
-		if(res.is_err()) return init_result::err(Error::FromRHIError(res.err()));
+		auto res = RendererBase::Getd3dDevice()->CreateBuffer(bufferDesc, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
+		if(res.is_err()) return Error::FromRHIError(res.err());
 		ID = std::move(res).value();
 		if (data)
 		{
@@ -148,14 +160,18 @@ namespace Pistachio {
 			memcpy(writePointer, data, size);
 			ID->UnMap();
 		}
-		return init_result::ok();
+		return Error::None();
 	}
-	creation_result<ConstantBuffer*> ConstantBuffer::Create(void* data, std::uint32_t size)
+	Result<ConstantBuffer*> ConstantBuffer::Create(void* data, std::uint32_t size)
 	{
 		PT_PROFILE_FUNCTION();
 		ConstantBuffer* retVal = new ConstantBuffer();
 		auto res  = retVal->CreateStack(data, size);
-		if(res.is_err()) delete retVal;
-		return res.transform([&]{return retVal;});
+		if(res.GetErrorType() != ErrorType::Success)
+		{ 
+			delete retVal;
+			return ezr::err(std::move(res));
+		}	
+		return ezr::ok(std::move(retVal));
 	}
 }

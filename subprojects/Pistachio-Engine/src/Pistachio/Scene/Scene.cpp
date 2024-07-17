@@ -154,9 +154,9 @@ namespace Pistachio {
 			bbud.size = sizeof(PassConstants);
 			bbud.type = RHI::DescriptorType::ConstantBuffer;
 			bbud.offset = 0;
-			passCBinfoCMP[i].UpdateBufferBinding(&bbud, 0);
-			passCBinfoGFX[i].UpdateBufferBinding(&bbud, 0);
-			passCBinfoVS_PS[i].UpdateBufferBinding(&bbud, 0);
+			passCBinfoCMP[i].UpdateBufferBinding(bbud, 0);
+			passCBinfoGFX[i].UpdateBufferBinding(bbud, 0);
+			passCBinfoVS_PS[i].UpdateBufferBinding(bbud, 0);
 			
 		}
 

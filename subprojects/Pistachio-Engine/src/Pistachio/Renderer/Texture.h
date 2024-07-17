@@ -40,7 +40,7 @@ namespace Pistachio {
 		void CopyIntoRegion(Texture2D& source, unsigned int location_x, unsigned int location_y, unsigned int src_left, unsigned int src_right, unsigned int src_up, unsigned int src_down, unsigned int mipSlice = 0, unsigned int arraySlice = 0);
 		void CopyInto(Texture2D& source);
 		void CopyToCPUBuffer(void* buffer);
-		RHI::TextureView* GetView()const { return m_view.Get(); }
+		RHI::Ptr<RHI::TextureView> GetView()const { return m_view; }
 		//TODO: Asset Management
 		bool operator==(const Texture2D& texture) const;
 		friend class RenderTexture;

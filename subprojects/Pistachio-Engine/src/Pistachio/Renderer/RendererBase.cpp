@@ -27,7 +27,7 @@ RHI::Ptr<RHI::Fence>               Pistachio::RendererBase::stagingFence;
 RHI::Ptr<RHI::DescriptorHeap>      Pistachio::RendererBase::heap;
 RHI::Ptr<RHI::CommandQueue>		  Pistachio::RendererBase::computeQueue;
 RHI::Ptr<RHI::Buffer>              Pistachio::RendererBase::stagingBuffer;
-RHI::Texture*			  Pistachio::RendererBase::depthTexture;
+RHI::Ptr<RHI::Texture>			  Pistachio::RendererBase::depthTexture;
 uint32_t                  Pistachio::RendererBase::staginBufferPortionUsed = 0;
 uint32_t                  Pistachio::RendererBase::stagingBufferSize;
 bool                      Pistachio::RendererBase::outstandingResourceUpdate = 0;
@@ -127,7 +127,7 @@ namespace Pistachio {
 			RHI::CommandQueueDesc desc;
 			desc.commandListType = RHI::CommandListType::Direct;
 			desc.Priority = 1.f;
-			device = RHI::make_ptr(RHI::Device::FromNativeHandle(options.custom_device, options.custom_physical_device,options.custom_instance, options.indices));
+			device = RHI::Device::FromNativeHandle(options.custom_device, options.custom_physical_device,options.custom_instance, options.indices).value();
 			physicalDevice = RHI::PhysicalDevice::FromNativeHandle(options.custom_physical_device);
 			directQueue = RHI::CommandQueue::FromNativeHandle(options.custom_direct_queue);
 			if(options.custom_compute_queue)
@@ -201,14 +201,14 @@ namespace Pistachio {
 			backBufferTextures.resize(numSwapImages);
 			for(uint32_t i = 0; i < numSwapImages; i++)
 			{
-				backBufferTextures[i] = device->GetSwapChainImage(swapChain.Get(), i).value();
+				backBufferTextures[i] = device->GetSwapChainImage(swapChain, i).value();
 				PT_DEBUG_REGION(
 					char name[20] = {"Back Buffer Image 1"};
 					name[18] += i;
 					backBufferTextures[i]->SetName(name);
 				)
 			}
-			PT_CORE_INFO("Swapchain Created ID:{0} Internal_ID:{1}", (void*)swapChain.Get(), (void*)swapChain->ID);
+			PT_CORE_INFO("Swapchain Created Internal_ID:{0}", swapChain->ID);
 			swapChain->AcquireImage(&currentRTVindex,swapCycleIndex);
 		}
 
@@ -223,7 +223,7 @@ namespace Pistachio {
 		if (!options.headless)
 		{
 			//create render target views
-			MainRTVheap = device->CreateDescriptorHeap(&rtvHeapHesc).value();
+			MainRTVheap = device->CreateDescriptorHeap(rtvHeapHesc).value();
 			PT_CORE_INFO("Created RTV descriptor heaps");
 			for (int i = 0; i < 2; i++)
 			{
@@ -232,7 +232,7 @@ namespace Pistachio {
 				RHI::RenderTargetViewDesc rtvDesc;
 				rtvDesc.arraySlice = rtvDesc.TextureArray = rtvDesc.textureMipSlice = 0;
 				rtvDesc.format = RHI::Format::B8G8R8A8_UNORM;
-				device->CreateRenderTargetView(backBufferTextures[i].Get(), &rtvDesc, handle);
+				device->CreateRenderTargetView(backBufferTextures[i], rtvDesc, handle);
 			}
 			PT_CORE_INFO("Created Tender Target Views");
 		}
@@ -255,19 +255,19 @@ namespace Pistachio {
 		PT_CORE_INFO("Creating DSV Heap");
 		pSize.type = RHI::DescriptorType::DSV;
 		pSize.numDescriptors = 1;
-		dsvHeap = device->CreateDescriptorHeap(&rtvHeapHesc).value();
+		dsvHeap = device->CreateDescriptorHeap(rtvHeapHesc).value();
 		PT_CORE_INFO("Created DSV Heap");
 
 		PT_CORE_INFO("Creating Default depth texture");
 		RHI::AutomaticAllocationInfo DAinfo;
 		DAinfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		device->CreateTexture(&depthTextureDsc, &depthTexture,0,0,&DAinfo, 0, RHI::ResourceType::Automatic);
+		depthTexture = device->CreateTexture(depthTextureDsc,0,0,&DAinfo, 0, RHI::ResourceType::Automatic).value();
 		PT_DEBUG_REGION(depthTexture->SetName("Default Depth Texture"));
 		PT_CORE_INFO("Created Default depth texture");
 		RHI::DepthStencilViewDesc dsvDesc;
 		dsvDesc.arraySlice = dsvDesc.TextureArray = dsvDesc.textureMipSlice = 0;
 		dsvDesc.format = RHI::Format::D32_FLOAT;
-		device->CreateDepthStencilView(depthTexture, &dsvDesc, dsvHeap->GetCpuHandle());
+		device->CreateDepthStencilView(depthTexture, dsvDesc, dsvHeap->GetCpuHandle());
 		// allocators are handled with a "frames in flight approach"
 		commandAllocators[0] = device->CreateCommandAllocator(RHI::CommandListType::Direct).value();
 		commandAllocators[1] = device->CreateCommandAllocator(RHI::CommandListType::Direct).value();
@@ -282,17 +282,17 @@ namespace Pistachio {
 		}
 		stagingCommandAllocator = device->CreateCommandAllocator(RHI::CommandListType::Direct).value();
 		PT_CORE_INFO("Created staging command allocator(s)");
-		stagingCommandList = device->CreateCommandList(RHI::CommandListType::Direct, stagingCommandAllocator.Get()).value();
+		stagingCommandList = device->CreateCommandList(RHI::CommandListType::Direct, stagingCommandAllocator).value();
 		PT_DEBUG_REGION(stagingCommandList->SetName("Staging List"));
 		PT_CORE_INFO("Created staging command list");
-		stagingCommandList->Begin(stagingCommandAllocator.Get());
+		stagingCommandList->Begin(stagingCommandAllocator);
 		PT_CORE_INFO("Began staging command list");
 		//create a main command list for now, multithreading will come later
-		mainCommandList = device->CreateCommandList(RHI::CommandListType::Direct, commandAllocators[0].Get()).value();
+		mainCommandList = device->CreateCommandList(RHI::CommandListType::Direct, commandAllocators[0]).value();
 		PT_DEBUG_REGION(mainCommandList->SetName("Main Command List"));
 		PT_CORE_INFO("Created main command list");
-		device->CreateFence(&mainFence, 0);
-		device->CreateFence(&stagingFence, 0);
+		mainFence = device->CreateFence(0).value();
+		stagingFence = device->CreateFence(0).value();
 		PT_CORE_INFO("Created fence(s)");
 
 
@@ -311,7 +311,7 @@ namespace Pistachio {
 		DHdesc.maxDescriptorSets = 120;
 		DHdesc.numPoolSizes = 3;
 		DHdesc.poolSizes = HeapSizes;
-		heap = device->CreateDescriptorHeap(&DHdesc).value();
+		heap = device->CreateDescriptorHeap(DHdesc).value();
 		PT_CORE_INFO("Created main descriptor heap");
 
 
@@ -322,10 +322,10 @@ namespace Pistachio {
 		stagingBufferDesc.usage = RHI::BufferUsage::CopySrc;
 		RHI::AutomaticAllocationInfo allocInfo;
 		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential;
-		stagingBuffer = device->CreateBuffer(&stagingBufferDesc, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic).value();
+		stagingBuffer = device->CreateBuffer(stagingBufferDesc, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic).value();
 
 		//prep for rendering
-		mainCommandList->Begin(commandAllocators[0].Get());
+		mainCommandList->Begin(commandAllocators[0]);
 		if (!options.headless)
 		{
 			RHI::TextureMemoryBarrier barr;
@@ -338,7 +338,7 @@ namespace Pistachio {
 			barr.subresourceRange.NumMipLevels = 1;
 			barr.subresourceRange.FirstArraySlice = 0;
 			barr.subresourceRange.NumArraySlices = 1;
-			barr.texture = backBufferTextures[0].Get();
+			barr.texture = backBufferTextures[0];
 			barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
 			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
 		}
@@ -388,7 +388,7 @@ namespace Pistachio {
 	{
 		return instance;
 	}
-	void RendererBase::PushBufferUpdate(RHI::Buffer* buffer, uint32_t offsetFromBufferStart, const void* data, uint32_t size)
+	void RendererBase::PushBufferUpdate(RHI::Weak<RHI::Buffer> buffer, uint32_t offsetFromBufferStart, const void* data, uint32_t size)
 	{
 		//check if we have enough space to queue the write
 		if ((stagingBufferSize - staginBufferPortionUsed) < size)
@@ -407,12 +407,12 @@ namespace Pistachio {
 		stagingBufferPointer = ((std::uint8_t*)stagingBufferPointer) + staginBufferPortionUsed; //offset by the amount of bytes already used
 		memcpy(stagingBufferPointer, data, size);
 		stagingBuffer->UnMap();
-		stagingCommandList->CopyBufferRegion(staginBufferPortionUsed, offsetFromBufferStart, size, stagingBuffer.Get(), buffer);
+		stagingCommandList->CopyBufferRegion(staginBufferPortionUsed, offsetFromBufferStart, size, stagingBuffer, buffer);
 		staginBufferPortionUsed += size;
 		outstandingResourceUpdate = true;
 	}
 
-	void RendererBase::PushTextureUpdate(RHI::Texture* texture, uint32_t size ,const void* data,RHI::SubResourceRange* range, RHI::Extent3D imageExtent, RHI::Offset3D imageOffset,RHI::Format format)
+	void RendererBase::PushTextureUpdate(RHI::Weak<RHI::Texture> texture, uint32_t size ,const void* data,RHI::SubResourceRange* range, RHI::Extent3D imageExtent, RHI::Offset3D imageOffset,RHI::Format format)
 	{
 		PT_CORE_ASSERT((size % (imageExtent.width * imageExtent.height)) == 0);
 		//check required offset
@@ -444,14 +444,14 @@ namespace Pistachio {
 		stagingBufferPointer = ((std::uint8_t*)stagingBufferPointer) + requiredOffset; //offset by the amount of bytes already used
 		memcpy(stagingBufferPointer, data, size);
 		stagingBuffer->UnMap();
-		stagingCommandList->CopyBufferToImage(requiredOffset, *range, imageOffset, imageExtent, stagingBuffer.Get(), texture);
+		stagingCommandList->CopyBufferToImage(requiredOffset, *range, imageOffset, imageExtent, stagingBuffer, texture);
 		staginBufferPortionUsed = size + requiredOffset;
 		outstandingResourceUpdate = true;
 	}
 
-	void RendererBase::CreateDescriptorSet(RHI::DescriptorSet** set, Weak<RHI::DescriptorSetLayout> layout)
+	RHI::Ptr<RHI::DescriptorSet> RendererBase::CreateDescriptorSet(RHI::Ptr<RHI::DescriptorSetLayout> layout)
 	{
-		device->CreateDescriptorSets(heap.Get(), 1, layout, set);
+		return device->CreateDescriptorSets(heap, 1, &layout).value()[0];
 	}
 
 	void RendererBase::FlushStagingBuffer()
@@ -460,10 +460,10 @@ namespace Pistachio {
 		stagingFenceVal++;
 		stagingCommandList->End();
 		directQueue->ExecuteCommandLists(&stagingCommandList->ID, 1); //todo look into dedicated transfer queue ??
-		directQueue->SignalFence(stagingFence.Get(), stagingFenceVal);
+		directQueue->SignalFence(stagingFence, stagingFenceVal);
 		stagingFence->Wait(stagingFenceVal); // consider doing this async perhaps;
 		stagingCommandAllocator->Reset();
-		stagingCommandList->Begin(stagingCommandAllocator.Get());
+		stagingCommandList->Begin(stagingCommandAllocator);
 		staginBufferPortionUsed = 0;
 		outstandingResourceUpdate = false;
 	}
@@ -504,15 +504,15 @@ namespace Pistachio {
 	{
 		//todo replace with begine/end calls??
 	}
-	RHI::Device* RendererBase::Getd3dDevice()
+	RHI::Ptr<RHI::Device> RendererBase::Getd3dDevice()
 	{
-		return device.Get();
+		return device;
 	}
-	RHI::GraphicsCommandList* Pistachio::RendererBase::GetMainCommandList()
+	RHI::Ptr<RHI::GraphicsCommandList> Pistachio::RendererBase::GetMainCommandList()
 	{
-		return mainCommandList.Get();
+		return mainCommandList;
 	}
-	RTVHandle RendererBase::CreateRenderTargetView(RHI::Texture* texture, RHI::RenderTargetViewDesc* desc)
+	RTVHandle RendererBase::CreateRenderTargetView(RHI::Weak<RHI::Texture> texture, const RHI::RenderTargetViewDesc& desc)
 	{
 		if (freeRTVs.size())
 		{
@@ -547,13 +547,13 @@ namespace Pistachio {
 		hDesc.maxDescriptorSets = 10;//?
 		hDesc.numPoolSizes = 1;
 		hDesc.poolSizes = &pSize;
-		heap.heap = device->CreateDescriptorHeap(&hDesc).value();
+		heap.heap = device->CreateDescriptorHeap(hDesc).value();
 		heap.sizeLeft = 10;
 		heap.freeOffset = 0;
 		return CreateRenderTargetView(texture, desc);
 
 	}
-	DSVHandle RendererBase::CreateDepthStencilView(RHI::Texture* texture, RHI::DepthStencilViewDesc* desc)
+	DSVHandle RendererBase::CreateDepthStencilView(RHI::Weak<RHI::Texture> texture, const RHI::DepthStencilViewDesc& desc)
 	{
 		if (freeDSVs.size())
 		{
@@ -588,12 +588,12 @@ namespace Pistachio {
 		hDesc.maxDescriptorSets = 10;//?
 		hDesc.numPoolSizes = 1;
 		hDesc.poolSizes = &pSize;
-		heap.heap = device->CreateDescriptorHeap(&hDesc).value();
+		heap.heap = device->CreateDescriptorHeap(hDesc).value();
 		heap.sizeLeft = 10;
 		heap.freeOffset = 0;
 		return CreateDepthStencilView(texture, desc);
 	}
-	SamplerHandle Pistachio::RendererBase::CreateSampler(RHI::SamplerDesc* viewDesc)
+	SamplerHandle Pistachio::RendererBase::CreateSampler(const RHI::SamplerDesc& viewDesc)
 	{
 		if (freeSamplers.size())
 		{
@@ -628,7 +628,7 @@ namespace Pistachio {
 		hDesc.maxDescriptorSets = 10;//?
 		hDesc.numPoolSizes = 1;
 		hDesc.poolSizes = &pSize;
-		heap.heap = device->CreateDescriptorHeap(&hDesc).value();
+		heap.heap = device->CreateDescriptorHeap(hDesc).value();
 		heap.sizeLeft = 10;
 		heap.freeOffset = 0;
 		return CreateSampler(viewDesc);
@@ -666,12 +666,12 @@ namespace Pistachio {
 			device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::Sampler) * handle.heapOffset;
 		return retVal;
 	}
-	RHI::SwapChain*      RendererBase::GetSwapChain() { return swapChain.Get(); }
-	RHI::DescriptorHeap* RendererBase::GetRTVDescriptorHeap() { return MainRTVheap.Get(); }
+	RHI::Ptr<RHI::SwapChain>      RendererBase::GetSwapChain() { return swapChain; }
+	RHI::Ptr<RHI::DescriptorHeap> RendererBase::GetRTVDescriptorHeap() { return MainRTVheap; }
+	RHI::Ptr<RHI::DescriptorHeap> RendererBase::GetDSVDescriptorHeap(){return dsvHeap;}
+	RHI::Ptr<RHI::DescriptorHeap> RendererBase::GetMainDescriptorHeap() { return heap; }
+	RHI::Ptr<RHI::Texture>        RendererBase::GetBackBufferTexture(uint32_t index) { return backBufferTextures[index]; }
+	RHI::Ptr<RHI::Texture>        RendererBase::GetDefaultDepthTexture() { return depthTexture; }
 	uint32_t             RendererBase::GetCurrentRTVIndex() { return currentRTVindex; }
 	uint32_t             RendererBase::GetCurrentFrameIndex() { return currentFrameIndex;}
-	RHI::DescriptorHeap* RendererBase::GetDSVDescriptorHeap(){return dsvHeap.Get();}
-	RHI::DescriptorHeap* RendererBase::GetMainDescriptorHeap() { return heap.Get(); }
-	RHI::Texture*        RendererBase::GetBackBufferTexture(uint32_t index) { return backBufferTextures[index].Get(); }
-	RHI::Texture*        RendererBase::GetDefaultDepthTexture() { return depthTexture; }
 }

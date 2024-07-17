@@ -1,4 +1,5 @@
 #pragma once
+#include "Barrier.h"
 #include "Texture.h"
 #include "Shader.h"
 #include "RenderTexture.h"
@@ -6,6 +7,15 @@
 
 namespace Pistachio
 {
+	enum class AttachmentUsage
+	{
+		Graphics,//I: Shader Read, O: Color attachment
+		Copy, //I: Copy Src, O: Copy Dst
+		Compute, //I: Shader Read, O: Shader Write
+		Blit, //I: Blit Src, O: Blit Dst
+		PassThrough,//Doesn't transition, only there for dependencies
+		Unspec //Same as graphics but doesnt make attachments
+	};
 	class RenderPass;
 	enum class PassType
 	{
@@ -16,6 +26,7 @@ namespace Pistachio
 		Signal = 1, Wait = 1 << 1
 	};
 	ENUM_FLAGS(PassAction);
+	struct BufferAttachmentInfo;
 	class PISTACHIO_API RGBuffer
 	{
 	public:
@@ -25,7 +36,11 @@ namespace Pistachio
 		RGBuffer& operator=(const RGBuffer&) = default;
 	private:
 		friend class RenderGraph;
-		RGBuffer(RHI::Buffer* _buffer, uint32_t _offset, uint32_t _size, RHI::QueueFamily family, RHI::ResourceAcessFlags access) :
+		friend void FillBufferBarrier(RGBuffer&, BufferAttachmentInfo&,
+			std::vector<RHI::BufferMemoryBarrier>&, std::vector<RHI::BufferMemoryBarrier>&,
+        	RHI::ResourceAcessFlags (*)(AttachmentUsage),
+			RHI::QueueFamily);
+		RGBuffer(RHI::Ptr<RHI::Buffer> _buffer, uint32_t _offset, uint32_t _size, RHI::QueueFamily family, RHI::ResourceAcessFlags access) :
 			buffer(_buffer),
 			currentAccess(access),
 			currentFamily(family),
@@ -33,7 +48,7 @@ namespace Pistachio
 			size  (_size),
 			numInstances(1)
 		{}
-		RHI::Buffer* buffer;
+		RHI::Ptr<RHI::Buffer> buffer;
 		RHI::ResourceAcessFlags currentAccess;
 		RHI::QueueFamily currentFamily;
 		uint32_t offset;
@@ -41,6 +56,7 @@ namespace Pistachio
 		uint32_t numInstances;
 		RHI::GraphicsCommandList* producer = nullptr;
 	};
+	struct AttachmentInfo;
 	class PISTACHIO_API RGTexture
 	{
 	public:
@@ -64,7 +80,12 @@ namespace Pistachio
 		friend class RenderGraph;
 		friend class Renderer;
 		friend class Scene;
-		RGTexture(RHI::Texture* _texture, RHI::ResourceLayout layout, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice, uint32_t numSlices,uint32_t numMips, RHI::ResourceAcessFlags access) :
+		friend void FillTextureBarrier(RGTexture&, AttachmentInfo&,
+			std::vector<RHI::TextureMemoryBarrier>&, std::vector<RHI::TextureMemoryBarrier>&,
+			RHI::ResourceLayout (*)(AttachmentUsage),
+        	RHI::ResourceAcessFlags (*)(AttachmentUsage),
+			RHI::QueueFamily);
+		RGTexture(RHI::Ptr<RHI::Texture> _texture, RHI::ResourceLayout layout, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice, uint32_t numSlices,uint32_t numMips, RHI::ResourceAcessFlags access) :
 			texture(_texture),
 			current_layout(layout),
 			currentAccess(access),
@@ -77,7 +98,7 @@ namespace Pistachio
 			numInstances(1)
 		{}
 		
-		RHI::Texture* texture;
+		RHI::Ptr<RHI::Texture> texture;
 		RHI::ResourceLayout current_layout;
 		RHI::ResourceAcessFlags currentAccess;
 		uint32_t mipSlice;
@@ -140,15 +161,7 @@ namespace Pistachio
 			return RGBufferInstance{ offset, 0 };
 		}
 	};
-	enum class AttachmentUsage
-	{
-		Graphics,//I: Shader Read, O: Color attachment
-		Copy, //I: Copy Src, O: Copy Dst
-		Compute, //I: Shader Read, O: Shader Write
-		Blit, //I: Blit Src, O: Blit Dst
-		PassThrough,//Doesn't transition, only there for dependencies
-		Unspec //Same as graphics but doesnt make attachments
-	};
+	
 	struct AttachmentInfo
 	{
 		RHI::Format format;
@@ -173,7 +186,7 @@ namespace Pistachio
 		void AddBufferOutput(BufferAttachmentInfo* buffer);
 		void SetShader(Shader* shader);//Make sure the shader is already preconfigured to desired state
 		void SetDepthStencilOutput(AttachmentInfo* info);
-		std::function<void(RHI::GraphicsCommandList* list)> pass_fn;
+		std::function<void(RHI::Weak<RHI::GraphicsCommandList> list)> pass_fn;
 	private:
 		friend class RenderGraph;
 		RHI::PipelineStage stage;
@@ -192,14 +205,13 @@ namespace Pistachio
 	class PISTACHIO_API ComputePass
 	{
 	public:
-		~ComputePass();
 		void AddColorInput(AttachmentInfo* info);
 		void AddColorOutput(AttachmentInfo* info);
 		void AddBufferInput(BufferAttachmentInfo* buffer);
 		void AddBufferOutput(BufferAttachmentInfo* buffer);
 		void SetShader(ComputeShader* shader);
-		void SetShader(RHI::ComputePipeline* pipeline);
-		std::function<void(RHI::GraphicsCommandList* list)> pass_fn;
+		void SetShader(RHI::Ptr<RHI::ComputePipeline> pipeline);
+		std::function<void(RHI::Weak<RHI::GraphicsCommandList> list)> pass_fn;
 	private:
 		friend class RenderGraph;
 		RHI::Ptr<RHI::ComputePipeline> computePipeline = nullptr;
@@ -213,7 +225,7 @@ namespace Pistachio
 	};
 	struct RGCommandList
 	{
-		RHI::GraphicsCommandList* list;
+		RHI::Ptr<RHI::GraphicsCommandList> list;
 		std::mutex listMutex; //so multiple threads cant record to the list at once and change the pipline state
 	};
 	//we can possibly have 3 cmd lists and for every independent pass use those three
@@ -235,25 +247,36 @@ namespace Pistachio
 		void RemovePass(const char* passName);
 		void GetPass(const char* passName);
 		RGTextureHandle CreateTexture(Pistachio::Texture* texture, uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0,uint32_t numSlices = 1, uint32_t numMips = 1, RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::QueueFamily family = RHI::QueueFamily::Graphics);
-		RGTextureHandle CreateTexture(RHI::Texture* texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0, uint32_t numSlices = 1,uint32_t numMips = 1, RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::QueueFamily family= RHI::QueueFamily::Graphics);
+		RGTextureHandle CreateTexture(RHI::Ptr<RHI::Texture> texture , uint32_t mipSlice = 0, bool isArray = false, uint32_t arraySlice = 0, uint32_t numSlices = 1,uint32_t numMips = 1, RHI::ResourceLayout = RHI::ResourceLayout::UNDEFINED, RHI::QueueFamily family= RHI::QueueFamily::Graphics);
 		RGTextureHandle CreateTexture(RenderTexture* texture);
 		RGTextureHandle CreateTexture(DepthTexture* texture);
 		RGTextureHandle CreateTexture(RenderCubeMap* texture, uint32_t cubeIndex, uint32_t numSlices = 1);
 		RGTextureInstance MakeUniqueInstance(RGTextureHandle texture);
 		RGBufferInstance MakeUniqueInstance(RGBufferHandle buffer);
-		RGBufferHandle CreateBuffer(RHI::Buffer* buffer, uint32_t offset, uint32_t size, RHI::QueueFamily family = RHI::QueueFamily::Graphics);
+		RGBufferHandle CreateBuffer(RHI::Ptr<RHI::Buffer> buffer, uint32_t offset, uint32_t size, RHI::QueueFamily family = RHI::QueueFamily::Graphics);
 		void Execute();
 	private:
-		inline void ExecuteGFXLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList,RHI::QueueFamily srcQueue);
-		inline void ExecuteCMPLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::GraphicsCommandList* prevList,RHI::QueueFamily srcQueue);
+		template<typename PassTy>
+    	inline static void ExecLevel(std::vector<std::pair<uint32_t, PassAction>>& levelTransitionIndices, uint32_t levelInd,
+        RHI::Weak<RHI::GraphicsCommandList> currentList,
+        RHI::Weak<RHI::GraphicsCommandList> prevList,
+        std::vector<std::pair<PassTy*, uint32_t>>& passes,
+        std::vector<RGTexture>& textures,
+        std::vector<RGBuffer>& buffers,
+        RHI::QueueFamily srcQueue,
+        RHI::PipelineStage& stage);
+		template<int type>
+    	inline static void FillAttachment(AttachmentInfo& info, std::vector<RHI::RenderingAttachmentDesc>& desc, RGTexture& tex);
+		inline void ExecuteGFXLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::Weak<RHI::GraphicsCommandList> prevList,RHI::QueueFamily srcQueue);
+		inline void ExecuteCMPLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::Weak<RHI::GraphicsCommandList> prevList,RHI::QueueFamily srcQueue);
 		void SortPasses();
 	private:
 		friend class Renderer;
 		friend class Scene;
 		bool dirty = true;
-		RHI::DebugBuffer* dbgBufferGFX;
-		RHI::DebugBuffer* dbgBufferCMP;
-		RHI::Fence* fence;
+		RHI::Ptr<RHI::DebugBuffer> dbgBufferGFX;
+		RHI::Ptr<RHI::DebugBuffer> dbgBufferCMP;
+		RHI::Ptr<RHI::Fence> fence;
 		std::vector<RGTexture> textures;
 		std::vector<RGBuffer> buffers;
 		std::vector<RenderPass> passes;
@@ -263,9 +286,7 @@ namespace Pistachio
 		std::vector<std::pair<uint32_t, PassAction>> levelTransitionIndices;
 		std::vector<std::pair<uint32_t, PassAction>> computeLevelTransitionIndices;
 		uint64_t maxFence = 0;
-		RGCommandList* cmdLists = 0;
-		uint32_t numGFXCmdLists;
-		RGCommandList* computeCmdLists = 0;
-		uint32_t numComputeCmdLists;
+		std::vector<RGCommandList> cmdLists;
+		std::vector<RGCommandList> computeCmdLists;
 	};
 }
