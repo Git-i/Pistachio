@@ -431,7 +431,7 @@ namespace Pistachio {
 			eqpass.AddColorOutput(&info);
 			eqpass.SetPassArea({{0,0},{512,512}});
 			eqpass.SetShader(eqShader);
-			eqpass.pass_fn = [&,i](RHI::GraphicsCommandList* list)
+			eqpass.pass_fn = [&,i](RHI::Weak<RHI::GraphicsCommandList> list)
 				{
 					RHI::Viewport vp;
 					vp.height = vp.width = 512;
@@ -475,7 +475,7 @@ namespace Pistachio {
 				info.usage = AttachmentUsage::PassThrough;
 				info.texture = skyboxFaces[i];
 				pass.AddColorOutput(&info);
-				pass.pass_fn = [&,j,i](RHI::GraphicsCommandList* list)
+				pass.pass_fn = [&,j,i](RHI::Weak<RHI::GraphicsCommandList> list)
 				{
 					uint32_t mipSize = std::pow(0.5,j) * 512;
 					RHI::SubResourceRange src;
@@ -486,9 +486,9 @@ namespace Pistachio {
 					src.NumMipLevels = 1;
 					RHI::SubResourceRange dst = src;
 					dst.IndexOrFirstMipLevel = j;
-					list->BlitTexture(skybox.m_ID.Get(), skybox.m_ID.Get(), {512,512,1}, {0,0,0}, {mipSize, mipSize,1}, {0,0,0},src,dst);
+					list->BlitTexture(skybox.m_ID, skybox.m_ID, {512,512,1}, {0,0,0}, {mipSize, mipSize,1}, {0,0,0},src,dst);
 					RHI::TextureMemoryBarrier barr[2];
-					barr[0].texture = skybox.m_ID.Get();
+					barr[0].texture = skybox.m_ID;
 					barr[0].AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_READ;
 					barr[0].AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
 					barr[0].subresourceRange = src;
@@ -522,7 +522,7 @@ namespace Pistachio {
 			irrInfo.format = RHI::Format::R16G16B16A16_FLOAT;
 			irrInfo.texture = irradianceSkyboxFaces[i];
 			irradiancePass.AddColorOutput(&irrInfo);
-			irradiancePass.pass_fn = [&, i](RHI::GraphicsCommandList* list)
+			irradiancePass.pass_fn = [&, i](RHI::Weak<RHI::GraphicsCommandList> list)
 				{
 					RHI::Viewport vp;
 					vp.height = vp.width = 32;
@@ -533,7 +533,7 @@ namespace Pistachio {
 					RHI::Area2D rect = { {0,0},{32,32} };
 					list->SetScissorRects(1, &rect);
 					list->BindVertexBuffers(0, 1, &meshVertices->ID);
-					list->BindIndexBuffer(meshIndices.Get(), 0);
+					list->BindIndexBuffer(meshIndices, 0);
 					irradianceShader->ApplyBinding(list, eqShaderVS[i]);
 					irradianceShader->ApplyBinding(list, irradianceShaderPS);
 					Submit(list, cube.GetVBHandle(), cube.GetIBHandle(), sizeof(Vertex));
@@ -571,7 +571,7 @@ namespace Pistachio {
 				prefilterPass.SetPassArea({ {0,0},{mipWidth,mipHeight} });
 				prefilterPass.SetShader(prefilterShader);
 				mipFaceIndex++;
-				prefilterPass.pass_fn = [&, i, mip,mipWidth,mipHeight](RHI::GraphicsCommandList* list)
+				prefilterPass.pass_fn = [&, i, mip,mipWidth,mipHeight](RHI::Weak<RHI::GraphicsCommandList> list)
 					{
 						RHI::Viewport vp;
 						vp.height = vp.width = (float)mipWidth;
@@ -582,7 +582,7 @@ namespace Pistachio {
 						RHI::Area2D rect = { {0,0},{mipWidth,mipHeight} };
 						list->SetScissorRects(1, &rect);
 						list->BindVertexBuffers(0, 1, &meshVertices->ID);
-						list->BindIndexBuffer(meshIndices.Get(), 0);
+						list->BindIndexBuffer(meshIndices, 0);
 						prefilterShader->ApplyBinding(list, eqShaderVS[i]);
 						prefilterShader->ApplyBinding(list, prefilterShaderVS[mip]);
 						prefilterShader->ApplyBinding(list, irradianceShaderPS);
@@ -610,7 +610,7 @@ namespace Pistachio {
 			output.texture = prefilterDstTexture;
 			output.usage = AttachmentUsage::Copy;
 			copyPass.AddColorOutput(&output);
-			copyPass.pass_fn = [&,mip](RHI::GraphicsCommandList* list)
+			copyPass.pass_fn = [&,mip](RHI::Weak<RHI::GraphicsCommandList> list)
 				{
 					uint32_t mipSize = (int)(128 * std::pow(0.5, mip));
 					RHI::SubResourceRange srcRange;
@@ -626,7 +626,7 @@ namespace Pistachio {
 					dstRange.NumArraySlices = 6;
 					dstRange.NumMipLevels = 1;
 					
-					list->CopyTextureRegion(srcRange, dstRange, { 0,0,0 }, { 0,0,0 }, { mipSize,mipSize,1 }, prefilterMipLevels[mip].m_ID.Get(), prefilterSkybox.m_ID.Get());
+					list->CopyTextureRegion(srcRange, dstRange, { 0,0,0 }, { 0,0,0 }, { mipSize,mipSize,1 }, prefilterMipLevels[mip].m_ID, prefilterSkybox.m_ID);
 				};
 		}
 		RHI::SubResourceRange Range;
@@ -640,13 +640,13 @@ namespace Pistachio {
 		barr[0].AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
 		barr[0].newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
 		barr[0].oldLayout = RHI::ResourceLayout::UNDEFINED;
-		barr[0].texture = irradianceSkybox.m_ID.Get();
+		barr[0].texture = irradianceSkybox.m_ID;
 		barr[0].subresourceRange = barr[1].subresourceRange = Range;
 		barr[1].AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
 		barr[1].AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
 		barr[1].newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
 		barr[1].oldLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
-		barr[1].texture = prefilterSkybox.m_ID.Get();
+		barr[1].texture = prefilterSkybox.m_ID;
 		barr[1].subresourceRange.NumMipLevels = 5;
 		
 
@@ -706,7 +706,7 @@ namespace Pistachio {
 		decltype(&Renderer::DefragmentMeshVertexBuffer) defrag_fn,
 		std::vector<uint32_t>& offsetsVector,
 		std::vector<uint32_t>& freeHandlesVector,
-		RHI::Buffer** buffer, 
+		RHI::Ptr<RHI::Buffer>* buffer, 
 		uint32_t size,
 		const void* initialData)
 	{
@@ -791,7 +791,7 @@ namespace Pistachio {
 		desc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
 		RHI::AutomaticAllocationInfo allocInfo;
 		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		RHI::Ptr<RHI::Buffer> newVB = RendererBase::device->CreateBuffer(&desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
+		RHI::Ptr<RHI::Buffer> newVB = RendererBase::device->CreateBuffer(desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
 		RHI::BufferMemoryBarrier barr;
 		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
 		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_READ;
@@ -826,7 +826,7 @@ namespace Pistachio {
 		
 		RHI::AutomaticAllocationInfo allocInfo;
 		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		RHI::Ptr<RHI::Buffer> newIB = RendererBase::device->CreateBuffer(&desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
+		RHI::Ptr<RHI::Buffer> newIB = RendererBase::device->CreateBuffer(desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
 		//Queue it with staging stuff
 		RHI::BufferMemoryBarrier barr;
 		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
@@ -864,7 +864,7 @@ namespace Pistachio {
 			
 			RHI::AutomaticAllocationInfo allocInfo;
 			allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential;
-			RHI::Ptr<RHI::Buffer> newCB = RendererBase::device->CreateBuffer(&desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
+			RHI::Ptr<RHI::Buffer> newCB = RendererBase::device->CreateBuffer(desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
 			void* writePtr;
 			void* readPtr;
 			newCB->Map(&writePtr);
@@ -887,11 +887,11 @@ namespace Pistachio {
 		ibFreeList.DeAllocate(ibHandleOffsets[handle.handle], handle.size);
 		ibUnusedHandles.push_back(handle.handle);
 	}
-	RHI::Buffer* Renderer::GetVertexBuffer()
+	RHI::Ptr<RHI::Buffer> Renderer::GetVertexBuffer()
 	{
 		return meshVertices;
 	}
-	RHI::Buffer* Renderer::GetIndexBuffer()
+	RHI::Ptr<RHI::Buffer> Renderer::GetIndexBuffer()
 	{
 		return meshIndices;
 	}
@@ -988,15 +988,15 @@ namespace Pistachio {
 	{
 		resources[RendererBase::currentFrameIndex].transformBuffer.Update(data, handle.size, cbHandleOffsets[handle.handle]);
 	}
-	RHI::Buffer* Pistachio::Renderer::GetConstantBuffer()
+	RHI::Ptr<RHI::Buffer> Pistachio::Renderer::GetConstantBuffer()
 	{
-		return resources[RendererBase::currentFrameIndex].transformBuffer.ID.Get();
+		return resources[RendererBase::currentFrameIndex].transformBuffer.ID;
 	}
-	const RHI::DynamicDescriptor* Pistachio::Renderer::GetCBDesc()
+	const RHI::Ptr<RHI::DynamicDescriptor> Pistachio::Renderer::GetCBDesc()
 	{
 		return resources[RendererBase::currentFrameIndex].transformBufferDesc;
 	}
-	const RHI::DynamicDescriptor* Renderer::GetCBDescPS()
+	const RHI::Ptr<RHI::DynamicDescriptor> Renderer::GetCBDescPS()
 	{
 		return resources[RendererBase::currentFrameIndex].transformBufferDescPS;
 	}
@@ -1004,7 +1004,7 @@ namespace Pistachio {
 	{
 		return cbHandleOffsets[handle.handle];
 	}
-	void Pistachio::Renderer::Submit(RHI::GraphicsCommandList* list,const RendererVBHandle vb, const RendererIBHandle ib, uint32_t vertexStride)
+	void Pistachio::Renderer::Submit(RHI::Weak<RHI::GraphicsCommandList> list,const RendererVBHandle vb, const RendererIBHandle ib, uint32_t vertexStride)
 	{
 		list->DrawIndexed(ib.size / sizeof(uint32_t),
 			1,

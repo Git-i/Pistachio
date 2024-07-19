@@ -25,7 +25,7 @@ namespace Pistachio {
 		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name));
 		void SwitchToRenderTargetMode(RHI::GraphicsCommandList* list);
 		void SwitchToShaderUsageMode( RHI::GraphicsCommandList* list);
-		RHI::TextureView* GetView()  const{ return m_view; }
+		RHI::Ptr<RHI::TextureView> GetView()  const{ return m_view; }
 		RHI::Format GetFormat() const override;
 		RHI::Ptr<RHI::Texture> GetID() const { return m_ID; }
 		uint32_t GetWidth() const override;
@@ -34,7 +34,7 @@ namespace Pistachio {
 	private:
 		friend class RenderGraph;
 		RTVHandle RTView;
-		RHI::TextureView* m_view;
+		RHI::Ptr<RHI::TextureView> m_view;
 		RHI::Format m_format;
 		uint32_t m_width, m_height, m_mipLevels;
 	};
@@ -43,7 +43,7 @@ namespace Pistachio {
 	public:
 		static DepthTexture* Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name));
 		void CreateStack(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name));
-		RHI::TextureView* GetView() { return m_view; }
+		RHI::Ptr<RHI::TextureView> GetView() { return m_view; }
 		RHI::Format GetFormat() const override;
 		uint32_t GetWidth() const override;
 		uint32_t GetHeight() const override;
@@ -51,7 +51,7 @@ namespace Pistachio {
 		friend class RenderGraph;
 		friend class Scene;
 		DSVHandle DSView;
-		RHI::TextureView* m_view;
+		RHI::Ptr<RHI::TextureView> m_view;
 		RHI::Format m_format;
 		uint32_t m_width, m_height, m_mipLevels;
 	};

@@ -1,10 +1,11 @@
+#include "RootSignature.h"
 #include "ptpch.h"
 #include "ShaderAsset.h"
 #include "Pistachio/Utils/PlatformUtils.h"
 namespace Pistachio
 {
     std::vector<char>      ShaderAsset::vs;
-    RHI::ShaderReflection* ShaderAsset::VSReflection;
+    RHI::Ptr<RHI::ShaderReflection> ShaderAsset::VSReflection;
     ShaderAsset::~ShaderAsset()
     {
         shader.VS.data = nullptr; //avoid the shader destructor deletin this
@@ -70,7 +71,7 @@ namespace Pistachio
         infile.read((char*)&spvSize, sizeof(uint32_t));
         spvSize = Edian::ConvertToSystemEndian(spvSize, Pistachio::Big);
         std::vector<char> code;
-        RHI::ShaderReflection* PSReflection = nullptr;
+        RHI::Ptr<RHI::ShaderReflection> PSReflection;
         if (api == RHI::API::Vulkan)
         {
             code.resize(spvSize);
@@ -93,9 +94,9 @@ namespace Pistachio
             vs.resize(vsSize);
             vertexShaderFile.seekg(0, std::ios::beg);
             vertexShaderFile.read(vs.data(), vsSize);
-            RHI::ShaderReflection::CreateFromMemory(vs.data(), (uint32_t)vs.size(), &VSReflection);
+            VSReflection = RHI::ShaderReflection::CreateFromMemory(vs.data(), (uint32_t)vs.size()).value();
         }
-        RHI::ShaderReflection::CreateFromMemory(code.data(), (uint32_t)code.size(), &PSReflection);
+        PSReflection = RHI::ShaderReflection::CreateFromMemory(code.data(), (uint32_t)code.size()).value();
         RHI::BlendMode blendMode{};
         blendMode.BlendAlphaToCoverage = false;
         blendMode.IndependentBlend = true;
@@ -119,9 +120,9 @@ namespace Pistachio
         desc.NumRenderTargets = 1;
         desc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
         desc.shaderMode = RHI::ShaderMode::Memory;
-        returnVal->shader.VS = { vs.data(),(uint32_t)vs.size()};
-        returnVal->shader.PS = { (char*)malloc(code.size()), (uint32_t)code.size()};
-        memcpy(returnVal->shader.PS.data, code.data(), code.size());
+        returnVal->shader.VS = { {vs.data()},(uint32_t)vs.size()};
+        returnVal->shader.PS = { {(char*)malloc(code.size())}, (uint32_t)code.size()};
+        memcpy(returnVal->shader.PS.mut_data, code.data(), code.size());
         returnVal->shader.CreateSetInfos(VSReflection, PSReflection);
         PSReflection->Release();
 
@@ -177,17 +178,15 @@ namespace Pistachio
         rsDesc.numRootParameters = 5;
         rsDesc.rootParameters = rpDesc;
         
-        RHI::RootSignature* rs;
-        RHI::DescriptorSetLayout* layouts[5];
-        RendererBase::device->CreateRootSignature(&rsDesc, &rs, layouts);
+        RHI::Ptr<RHI::RootSignature> rs;
+        RHI::Ptr<RHI::DescriptorSetLayout> layouts[5];
+        rs = RendererBase::device->CreateRootSignature(&rsDesc,  layouts).value();
 
-        returnVal->shader.Initialize(&desc, rs);
-        returnVal->shader.layouts = new RHI::DescriptorSetLayout * [4];
+        returnVal->shader.Initialize(desc, rs);
         for (uint32_t i = 0; i < 4; i++)
         {
-            returnVal->shader.layouts[i] = layouts[i];
+            returnVal->shader.layouts.push_back(layouts[i]);
         }
-        rs->Release();
         
         return returnVal;
     }
