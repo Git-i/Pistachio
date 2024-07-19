@@ -44,7 +44,7 @@ namespace Pistachio
 		std::unordered_map<std::string, ParamInfo> parametersMap;
 		std::unordered_map<std::string, uint32_t> bindingsMap;
 		static std::vector<char> vs;
-		static RHI::ShaderReflection* VSReflection;
+		static RHI::Ptr<RHI::ShaderReflection> VSReflection;
 		Shader shader;
 	};
 	

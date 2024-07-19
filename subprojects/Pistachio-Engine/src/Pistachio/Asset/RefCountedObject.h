@@ -1,4 +1,5 @@
 #pragma once
+#include "Pistachio/Core.h"
 namespace Pistachio {
 	class PISTACHIO_API RefCountedObject
 	{

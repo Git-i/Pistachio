@@ -24,7 +24,7 @@ namespace Pistachio
 		const Asset& GetShader() { return shader; }
 		//Unsafe: use only if you wrote this engine or know what you're doing
 		template<typename ParamTy> void ChangeParam(uint32_t size,const ParamTy* value, uint32_t offset);
-		void Bind(RHI::GraphicsCommandList* list);
+		void Bind(RHI::Weak<RHI::GraphicsCommandList> list);
 		RendererCBHandle parametersBuffer;
 		void* parametersBufferCPU;
 	public:

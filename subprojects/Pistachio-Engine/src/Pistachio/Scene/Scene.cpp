@@ -243,7 +243,7 @@ namespace Pistachio {
 			zprepass.SetDepthStencilOutput(&a_info);
 			zprepass.SetPassArea({ {0,0}, resolution });
 			zprepass.SetShader(shd_prepass);
-			zprepass.pass_fn = [this](RHI::GraphicsCommandList* list) 
+			zprepass.pass_fn = [this](RHI::Weak<RHI::GraphicsCommandList> list) 
 				{
 					RHI::Viewport vp;
 					vp.height = sceneResolution[1];
@@ -282,7 +282,7 @@ namespace Pistachio {
 			dirShadow.AddBufferOutput(&b_info);
 			dirShadow.SetPassArea({ {0,0}, {shadowMapAtlas.GetWidth(), shadowMapAtlas.GetHeight()} });
 			dirShadow.SetShader(shd_Shadow);
-			dirShadow.pass_fn = [this](RHI::GraphicsCommandList* list) 
+			dirShadow.pass_fn = [this](RHI::Weak<RHI::GraphicsCommandList> list) 
 				{
 					RHI::RenderingAttachmentDesc attachDesc{};
 					attachDesc.clearColor = { 1,1,1,1 };
@@ -317,7 +317,7 @@ namespace Pistachio {
 						auto meshes = m_Registry.view<MeshRendererComponent>();
 						rbDesc.renderingArea = { {(int)light.shadowMap.offset.x,(int)light.shadowMap.offset.y},
 							{light.shadowMap.size.x, light.shadowMap.size.y} };
-						list->BeginRendering(&rbDesc);
+						list->BeginRendering(rbDesc);
 						uint32_t offset_cascade[2] = {baseOffset + (index * offsetMul),0};
 						for (auto entity : meshes)
 						{
@@ -347,7 +347,7 @@ namespace Pistachio {
 			pntShadow.SetDepthStencilOutput(&a_info);
 			pntShadow.SetPassArea({ {0,0}, {shadowMapAtlas.GetWidth(), shadowMapAtlas.GetHeight()} });;
 			//sptShadow.SetShader(nullptr);
-			pntShadow.pass_fn = [this](RHI::GraphicsCommandList* list) {
+			pntShadow.pass_fn = [this](RHI::Weak<RHI::GraphicsCommandList> list) {
 				};
 		}
 		RenderPass& sptShadow = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Spot Shadow");
@@ -361,7 +361,7 @@ namespace Pistachio {
 			sptShadow.SetDepthStencilOutput(&a_info);
 			sptShadow.AddBufferOutput(&b_info);
 			sptShadow.SetShader(shd_Shadow);
-			sptShadow.pass_fn = [this](RHI::GraphicsCommandList* list)
+			sptShadow.pass_fn = [this](RHI::Weak<RHI::GraphicsCommandList> list)
 				{
 					RHI::RenderingAttachmentDesc attachDesc{};
 					attachDesc.clearColor = { 1,1,1,1 };
@@ -393,7 +393,7 @@ namespace Pistachio {
 						auto meshes = m_Registry.view<MeshRendererComponent>();
 						rbDesc.renderingArea = { {(int)light.shadowMap.offset.x,(int)light.shadowMap.offset.y},
 							{light.shadowMap.size.x, light.shadowMap.size.y} };
-						list->BeginRendering(&rbDesc);
+						list->BeginRendering(rbDesc);
 						for (auto entity : meshes)
 						{
 							auto& meshc = meshes.get<MeshRendererComponent>(entity);
@@ -413,7 +413,7 @@ namespace Pistachio {
 			b_info.buffer = clustersBuffer;
 			buildClusters.AddBufferOutput(&b_info);
 			buildClusters.SetShader(Renderer::GetBuiltinComputeShader("Build Clusters"));
-			buildClusters.pass_fn = [this](RHI::GraphicsCommandList* list) 
+			buildClusters.pass_fn = [this](RHI::Weak<RHI::GraphicsCommandList> list) 
 				{
 					ComputeShader* shd = Renderer::GetBuiltinComputeShader("Build Clusters");
 					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
@@ -433,7 +433,7 @@ namespace Pistachio {
 			b_info.buffer = sparseActiveClusterBuffer;
 			filterClusters.AddBufferOutput(&b_info);
 			filterClusters.SetShader(Renderer::GetBuiltinComputeShader("Filter Clusters"));
-			filterClusters.pass_fn = [this](RHI::GraphicsCommandList* list)
+			filterClusters.pass_fn = [this](RHI::Weak<RHI::GraphicsCommandList> list)
 				{
 					ComputeShader* shd = Renderer::GetBuiltinComputeShader("Filter Clusters");
 					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
@@ -452,7 +452,7 @@ namespace Pistachio {
 			tightenCluster.AddBufferInput(&b_info);
 			tightenCluster.AddBufferOutput(&b_info2);
 			tightenCluster.SetShader(Renderer::GetBuiltinComputeShader("Tighten Clusters"));
-			tightenCluster.pass_fn = [this](RHI::GraphicsCommandList* list)
+			tightenCluster.pass_fn = [this](RHI::Weak<RHI::GraphicsCommandList> list)
 				{
 					ComputeShader* shd = Renderer::GetBuiltinComputeShader("Tighten Clusters");
 					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
@@ -473,7 +473,7 @@ namespace Pistachio {
 			cullLights.AddBufferInput(&b_info2);
 			cullLights.AddBufferOutput(&b_info3);
 			cullLights.SetShader(Renderer::GetBuiltinComputeShader("Cull Lights"));
-			cullLights.pass_fn = [this](RHI::GraphicsCommandList* list)
+			cullLights.pass_fn = [this](RHI::Weak<RHI::GraphicsCommandList> list)
 				{
 					ComputeShader* shd = Renderer::GetBuiltinComputeShader("Cull Lights");
 					shd->ApplyShaderBinding(list, passCBinfoCMP[RendererBase::GetCurrentFrameIndex()]);
@@ -509,7 +509,7 @@ namespace Pistachio {
 			fwdShading.SetDepthStencilOutput(&a_info);
 			//fwdShading.SetShader(); we dont set shader because of custom shader support
 			fwdShading.SetPassArea({ { 0,0},resolution });
-			fwdShading.pass_fn = [this](RHI::GraphicsCommandList* list)
+			fwdShading.pass_fn = [this](RHI::Weak<RHI::GraphicsCommandList> list)
 				{
 					RHI::Viewport vp;
 					vp.height = sceneResolution[1];
@@ -556,7 +556,7 @@ namespace Pistachio {
 			backgroundPass.SetDepthStencilOutput(&a_info);
 			backgroundPass.SetShader(shd_background);
 			backgroundPass.SetPassArea({ { 0,0},resolution });
-			backgroundPass.pass_fn = [this](RHI::GraphicsCommandList* list)
+			backgroundPass.pass_fn = [this](RHI::Weak<RHI::GraphicsCommandList> list)
 			{
 				RHI::Viewport vp;
 				vp.height = sceneResolution[1];

@@ -1,5 +1,6 @@
 #include "Ptr.h"
 #include "ShaderReflect.h"
+#include "Util/FormatUtils.h"
 #include "ptpch.h"
 #include "Shader.h"
 #include "RendererBase.h"
@@ -21,61 +22,8 @@
 #define BUFFER(ID) ((ID3D11Buffer*)ID.Get())
 #define BUFFER_PP(ID) ((ID3D11Buffer**)ID.GetAddressOf())
 
-static RHI::Format RHIFormat(Pistachio::BufferLayoutFormat format)
-{
-	switch (format)
-	{
-	case Pistachio::BufferLayoutFormat::FLOAT4: return RHI::Format::R32G32B32A32_FLOAT;
-	case Pistachio::BufferLayoutFormat::UINT4: return  RHI::Format::R32G32B32A32_UINT;
-	case Pistachio::BufferLayoutFormat::INT4: return   RHI::Format::R32G32B32A32_SINT;
-	case Pistachio::BufferLayoutFormat::FLOAT3: return RHI::Format::R32G32B32_FLOAT;
-	case Pistachio::BufferLayoutFormat::UINT3: return  RHI::Format::R32G32B32_UINT;
-	case Pistachio::BufferLayoutFormat::INT3: return   RHI::Format::R32G32B32_SINT;
-	case Pistachio::BufferLayoutFormat::FLOAT2: return RHI::Format::R32G32_FLOAT;
-	case Pistachio::BufferLayoutFormat::UINT2: return  RHI::Format::R32G32_UINT;
-	case Pistachio::BufferLayoutFormat::INT2: return   RHI::Format::R32G32_SINT;
-	case Pistachio::BufferLayoutFormat::FLOAT: return  RHI::Format::R32_FLOAT;
-	case Pistachio::BufferLayoutFormat::UINT: return   RHI::Format::R32_UINT;
-	case Pistachio::BufferLayoutFormat::INT: return    RHI::Format::R32_SINT;
-	default:
-		break;
-	}
-	return RHI::Format::UNKNOWN;
-}
-
 namespace Pistachio {
-	static RHI::Format ToRHIFormat(BufferLayoutFormat format)
-	{
-		switch (format)
-		{
-		case Pistachio::BufferLayoutFormat::FLOAT4: return RHI::Format::R32G32B32A32_FLOAT;
-			break;
-		case Pistachio::BufferLayoutFormat::UINT4:return RHI::Format::R32G32B32A32_UINT;
-			break;
-		case Pistachio::BufferLayoutFormat::INT4:return RHI::Format::R32G32B32A32_SINT;
-			break;
-		case Pistachio::BufferLayoutFormat::FLOAT3:return RHI::Format::R32G32B32_FLOAT;
-			break;
-		case Pistachio::BufferLayoutFormat::UINT3:return RHI::Format::R32G32B32_UINT;
-			break;
-		case Pistachio::BufferLayoutFormat::INT3:return RHI::Format::R32G32B32_SINT;
-			break;
-		case Pistachio::BufferLayoutFormat::FLOAT2:return RHI::Format::R32G32_FLOAT;
-			break;
-		case Pistachio::BufferLayoutFormat::UINT2:return RHI::Format::R32G32_UINT;
-			break;
-		case Pistachio::BufferLayoutFormat::INT2:return RHI::Format::R32G32_SINT;
-			break;
-		case Pistachio::BufferLayoutFormat::FLOAT:return RHI::Format::R32_FLOAT;
-			break;
-		case Pistachio::BufferLayoutFormat::UINT:return RHI::Format::R32_UINT;
-			break;
-		case Pistachio::BufferLayoutFormat::INT:return RHI::Format::R32_SINT;
-			break;
-		default: return RHI::Format::UNKNOWN;
-			break;
-		}
-	}
+
 	template<> RHI::DepthStencilMode PSOHash::Into<RHI::DepthStencilMode>()
 	{
 		RHI::DepthStencilMode mode;
@@ -468,14 +416,14 @@ namespace Pistachio {
 		//make this dynamic enough to accommodate instancing
 		InputBindingDescription = new RHI::InputBindingDesc;
 		InputBindingDescription->inputRate = RHI::InputRate::Vertex;
-		InputBindingDescription->stride = desc.InputDescription[desc.numInputs - 1].Offset + BufferLayoutFormatSize(desc.InputDescription[desc.numInputs - 1].Format);
+		InputBindingDescription->stride = desc.InputDescription[desc.numInputs - 1].Offset + RHI::Util::GetFormatBPP(desc.InputDescription[desc.numInputs - 1].Format);
 		InputElementDescription = new RHI::InputElementDesc[desc.numInputs];
 		numInputBindings = 1;
 		numInputElements = desc.numInputs;
 		for (uint32_t i = 0; i < desc.numInputs; i++)
 		{
 			InputElementDescription[i].alignedByteOffset = desc.InputDescription[i].Offset;
-			InputElementDescription[i].format = ToRHIFormat(desc.InputDescription[i].Format);
+			InputElementDescription[i].format = desc.InputDescription[i].Format;
 			InputElementDescription[i].inputSlot = 0;
 			InputElementDescription[i].location = i;
 		}

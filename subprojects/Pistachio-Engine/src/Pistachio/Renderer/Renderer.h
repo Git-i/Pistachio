@@ -2,6 +2,7 @@
 #include "Barrier.h"
 #include "FormatsAndTypes.h"
 #include "Pistachio/Renderer/RenderGraph.h"
+#include "Ptr.h"
 #include "RendererBase.h"
 #include "Camera.h"
 #include "Shader.h"
@@ -91,17 +92,17 @@ namespace Pistachio {
 		static const uint32_t GetIBOffset(const RendererIBHandle handle);
 		static const uint32_t GetVBOffset(const RendererVBHandle handle);
 		static const uint32_t GetCBOffset(const RendererCBHandle handle);
-		static void  Submit(RHI::GraphicsCommandList* lsit, const RendererVBHandle vb, const RendererIBHandle ib, uint32_t vertexStride);
+		static void  Submit(RHI::Weak<RHI::GraphicsCommandList> list, const RendererVBHandle vb, const RendererIBHandle ib, uint32_t vertexStride);
 		static const Texture2D& GetWhiteTexture();
 		static RenderCubeMap& GetSkybox();
 		static SamplerHandle GetDefaultSampler();
-		static const RHI::DynamicDescriptor* GetCBDesc();
-		static const RHI::DynamicDescriptor* GetCBDescPS();
+		static const RHI::Ptr<RHI::DynamicDescriptor> GetCBDesc();
+		static const RHI::Ptr<RHI::DynamicDescriptor> GetCBDescPS();
 		static uint32_t GetCounterValue();
 		static void ResetCounter();
-		static RHI::Buffer* GetVertexBuffer();
-		static RHI::Buffer* GetIndexBuffer();
-		static RHI::Buffer* GetConstantBuffer();
+		static RHI::Ptr<RHI::Buffer> GetVertexBuffer();
+		static RHI::Ptr<RHI::Buffer> GetIndexBuffer();
+		static RHI::Ptr<RHI::Buffer> GetConstantBuffer();
 		static void OnEvent(Event& e) {
 			if (e.GetEventType() == EventType::WindowResize)
 				OnWindowResize((WindowResizeEvent&)e);
@@ -133,7 +134,7 @@ namespace Pistachio {
 			decltype(&Renderer::DefragmentMeshVertexBuffer) defrag_fn,
 			std::vector<uint32_t>& offsetsVector,
 			std::vector<uint32_t>& freeHandlesVector,
-			RHI::Buffer** buffer,
+			RHI::Ptr<RHI::Buffer>* buffer,
 			uint32_t size, 
 			const void* initialData = nullptr);
 	private:

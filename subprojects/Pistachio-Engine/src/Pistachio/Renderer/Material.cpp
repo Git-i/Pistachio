@@ -1,3 +1,4 @@
+#include "Ptr.h"
 #include "ptpch.h"
 #include "Material.h"
 #include "../Renderer/Renderer.h"
@@ -119,7 +120,7 @@ namespace Pistachio
 	{
 		shader = _shader;
 	}
-	void Material::Bind(RHI::GraphicsCommandList* list)
+	void Material::Bind(RHI::Weak<RHI::GraphicsCommandList> list)
 	{
 		ShaderAsset* shader_asset = GetAssetManager()->GetShaderResource(shader);
 		Shader* shd = shader_asset->GetShader();

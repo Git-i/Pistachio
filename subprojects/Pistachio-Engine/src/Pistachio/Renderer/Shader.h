@@ -106,28 +106,13 @@ namespace Pistachio {
 		int ID = 0;
 		int _pad = 0;
 	};
-	enum class PISTACHIO_API BufferLayoutFormat
-	{
-		FLOAT4 = 0,
-		UINT4,
-		INT4,
-		FLOAT3,
-		UINT3,
-		INT3,
-		FLOAT2,
-		UINT2,
-		INT2,
-		FLOAT,
-		UINT,
-		INT,
-	};
 	struct PISTACHIO_API BufferLayout
 	{
 		const char* Name;
-		BufferLayoutFormat Format;
+		RHI::Format Format;
 		unsigned int Offset;
 
-		BufferLayout(const char* name, BufferLayoutFormat format, unsigned int offset) : Name(name), Format(format), Offset(offset)
+		BufferLayout(const char* name, RHI::Format format, unsigned int offset) : Name(name), Format(format), Offset(offset)
 		{}
 		BufferLayout(){}
 	};

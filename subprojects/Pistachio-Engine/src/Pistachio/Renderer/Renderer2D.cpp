@@ -1,3 +1,4 @@
+#include "FormatsAndTypes.h"
 #include "ptpch.h"
 #include "Renderer2D.h"
 #include "Buffer.h"
@@ -65,11 +66,11 @@ namespace Pistachio {
 		unsigned char white[4] = { 255, 255, 255, 255 };
 		//s_Data.whiteTexture.reset(Pistachio::Texture2D::Create(1, 1, TextureFormat::RGBA8U,white));
 		//s_Data._2DShader = std::make_shared<Shader>(L"resources/shaders/vertex/2D_vs.cso", L"resources/shaders/pixel/2D_fs.cso");
-		BufferLayout layout[5] = { {"POSITION", BufferLayoutFormat::FLOAT3, 0  }, 
-									{"UV",      BufferLayoutFormat::FLOAT2, 12 }, 
-									{"COLOR",   BufferLayoutFormat::FLOAT4, 20 }, 
-									{"TEXINDEX",BufferLayoutFormat::FLOAT,  36 },
-									{"ID", BufferLayoutFormat::INT, 40}
+		BufferLayout layout[5] = { {"POSITION", RHI::Format::FLOAT3, 0  }, 
+									{"UV",      RHI::Format::FLOAT2, 12 }, 
+									{"COLOR",   RHI::Format::FLOAT4, 20 }, 
+									{"TEXINDEX",RHI::Format::FLOAT,  36 },
+									{"ID",      RHI::Format::INT, 40}
 								 };
 		s_Data.TextureSlots[0] = s_Data.whiteTexture;
 	}
