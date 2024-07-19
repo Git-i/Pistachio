@@ -113,7 +113,7 @@ namespace Pistachio {
 	bool RendererBase::Init(PlatformData* pd, InitOptions& options)
 	{
 		PT_PROFILE_FUNCTION();
-		PT_CORE_ASSERT((options.custom_instance && options.custom_device) || !options.custom_instance && !options.custom_device);
+		PT_CORE_ASSERT((options.custom_instance && options.custom_device) || (!options.custom_instance && !options.custom_device));
 		headless = options.headless;
 		if(options.custom_instance) instance = RHI::Instance::FromNativeHandle(options.custom_instance);
 		else RHICreateInstance(&instance);

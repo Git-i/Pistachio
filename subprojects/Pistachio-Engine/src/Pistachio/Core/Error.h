@@ -24,9 +24,9 @@ namespace Pistachio {
 				return true;
 			return false;
 		}
-		static inline Error None()
+		Error()
 		{
-			return Error(ErrorType::Success, "");
+			*this = Error(ErrorType::Success, "");
 		}
 		static Error FromRHIError(RHI::CreationError e, const std::string& str = "")
 		{

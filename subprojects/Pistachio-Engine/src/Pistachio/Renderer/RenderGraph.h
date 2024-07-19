@@ -1,5 +1,6 @@
 #pragma once
 #include "Barrier.h"
+#include "CommandList.h"
 #include "Texture.h"
 #include "Shader.h"
 #include "RenderTexture.h"
@@ -223,11 +224,6 @@ namespace Pistachio
 		bool signal = false;
 		const char* passName;
 	};
-	struct RGCommandList
-	{
-		RHI::Ptr<RHI::GraphicsCommandList> list;
-		std::mutex listMutex; //so multiple threads cant record to the list at once and change the pipline state
-	};
 	//we can possibly have 3 cmd lists and for every independent pass use those three
 	/*
 	* Every Pass in a graph can have multiple inputs and outputs
@@ -286,7 +282,7 @@ namespace Pistachio
 		std::vector<std::pair<uint32_t, PassAction>> levelTransitionIndices;
 		std::vector<std::pair<uint32_t, PassAction>> computeLevelTransitionIndices;
 		uint64_t maxFence = 0;
-		std::vector<RGCommandList> cmdLists;
-		std::vector<RGCommandList> computeCmdLists;
+		std::vector<RHI::Ptr<RHI::GraphicsCommandList>> cmdLists;
+		std::vector<RHI::Ptr<RHI::GraphicsCommandList>> computeCmdLists;
 	};
 }

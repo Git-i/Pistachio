@@ -651,8 +651,8 @@ namespace Pistachio {
 		
 
 		skyboxRG.Execute();
-		skyboxRG.cmdLists[0].list->PipelineBarrier(RHI::PipelineStage::ALL_GRAPHICS_BIT, RHI::PipelineStage::FRAGMENT_SHADER_BIT, 0, 0, 1, barr);
-		skyboxRG.cmdLists[0].list->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT,     RHI::PipelineStage::FRAGMENT_SHADER_BIT,0,0,1,barr+1);
+		skyboxRG.cmdLists[0]->PipelineBarrier(RHI::PipelineStage::ALL_GRAPHICS_BIT, RHI::PipelineStage::FRAGMENT_SHADER_BIT, 0, 0, 1, barr);
+		skyboxRG.cmdLists[0]->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT,     RHI::PipelineStage::FRAGMENT_SHADER_BIT,0,0,1,barr+1);
 		skyboxRG.SubmitToQueue();
 	}
 	void Renderer::EndScene()

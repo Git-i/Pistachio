@@ -1,3 +1,4 @@
+#include "FormatsAndTypes.h"
 #include "ptpch.h"
 #include "Mesh.h"
 #include "assimp/Importer.hpp"
@@ -9,9 +10,9 @@
 #include "Renderer.h"
 #include <thread>
 Pistachio::BufferLayout Pistachio::Mesh::layout[] = {
-			{"POSITION", Pistachio::BufferLayoutFormat::FLOAT3, 0},
-			{"NORMAL", Pistachio::BufferLayoutFormat::FLOAT3, 12},
-			{"UV", Pistachio::BufferLayoutFormat::FLOAT2, 24}
+			{"POSITION", RHI::Format::FLOAT3, 0},
+			{"NORMAL",   RHI::Format::FLOAT3, 12},
+			{"UV",       RHI::Format::FLOAT2, 24}
 };
 void ProcessIndices(const aiMesh* pMesh, std::vector<unsigned int>& indices)
 {

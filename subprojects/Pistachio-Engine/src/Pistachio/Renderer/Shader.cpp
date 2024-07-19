@@ -781,11 +781,11 @@ namespace Pistachio {
 void Pistachio::Helpers::ZeroAndFillShaderDesc(ShaderCreateDesc* desc, const char* VS, const char* PS, uint32_t numRenderTargets,  uint32_t numDSModes, RHI::DepthStencilMode* dsMode, uint32_t numBlendModes, RHI::BlendMode* blendModes, uint32_t numRasterizerModes, RHI::RasterizerMode* rsModes, const char* GS,const char* HS,   const char* DS)
 {
 	memset(desc, 0, sizeof(ShaderCreateDesc));
-	desc->VS = RHI::ShaderCode{ (char*)VS, 0 };
-	desc->PS = RHI::ShaderCode{ (char*)PS, 0 };
-	desc->GS = RHI::ShaderCode{ (char*)GS, 0 };
-	desc->HS = RHI::ShaderCode{ (char*)HS, 0 };
-	desc->DS = RHI::ShaderCode{ (char*)DS, 0 };
+	desc->VS = RHI::ShaderCode{ {(char*)VS}, 0 };
+	desc->PS = RHI::ShaderCode{ {(char*)PS}, 0 };
+	desc->GS = RHI::ShaderCode{ {(char*)GS}, 0 };
+	desc->HS = RHI::ShaderCode{ {(char*)HS}, 0 };
+	desc->DS = RHI::ShaderCode{ {(char*)DS}, 0 };
 	desc->NumRenderTargets = numRenderTargets;
 	desc->numDepthStencilModes = numDSModes;
 	desc->numBlendModes = numBlendModes;
