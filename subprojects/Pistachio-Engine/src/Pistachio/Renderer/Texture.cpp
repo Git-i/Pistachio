@@ -23,7 +23,7 @@ namespace Pistachio
         desc.usage |= ((flags & TextureFlags::Compute) != TextureFlags::None) ? RHI::TextureUsage::StorageImage : RHI::TextureUsage::None;
         RHI::AutomaticAllocationInfo allocInfo;
         allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-        RendererBase::device->CreateTexture(&desc, &m_ID, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic);
+        m_ID = RendererBase::device->CreateTexture(desc, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic).value();
         RHI::SubResourceRange range;
         range.FirstArraySlice = 0;
         range.imageAspect = RHI::Aspect::COLOR_BIT;
@@ -41,13 +41,13 @@ namespace Pistachio
             barrier.previousQueue = RHI::QueueFamily::Graphics;
             barrier.nextQueue = RHI::QueueFamily::Graphics;
             barrier.subresourceRange = range;
-            barrier.texture = m_ID.Get();
+            barrier.texture = m_ID;
             RendererBase::stagingCommandList->PipelineBarrier(
                 RHI::PipelineStage::TOP_OF_PIPE_BIT,
                 RHI::PipelineStage::TRANSFER_BIT,
                 0, nullptr,
                 1, &barrier);
-            RendererBase::PushTextureUpdate(m_ID.Get(), m_Width * m_Height * RHI::Util::GetFormatBPP(m_format), data, &range, {m_Width, m_Height,1}, {0,0,0},m_format); //todo image sizes
+            RendererBase::PushTextureUpdate(m_ID, m_Width * m_Height * RHI::Util::GetFormatBPP(m_format), data, &range, {m_Width, m_Height,1}, {0,0,0},m_format); //todo image sizes
             barrier.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
             barrier.AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
             barrier.newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
@@ -61,9 +61,9 @@ namespace Pistachio
         RHI::TextureViewDesc viewDesc;
         viewDesc.format = m_format;
         viewDesc.range = range;
-        viewDesc.texture = m_ID.Get();
+        viewDesc.texture = m_ID;
         viewDesc.type = RHI::TextureViewType::Texture2D;
-        RendererBase::device->CreateTextureView(&viewDesc, &m_view);
+        m_view = RendererBase::device->CreateTextureView(viewDesc).value();
     }
     RHI::Format Texture2D::GetFormat() const
     {
@@ -115,7 +115,7 @@ namespace Pistachio
         m_Height = Height;
         m_format = format;
         CreateTexture(data, flags);
-        PT_DEBUG_REGION(if(m_ID.Get()) m_ID->SetName(name)); 
+        PT_DEBUG_REGION(if(m_ID.IsValid()) m_ID->SetName(name)); 
         stbi_image_free(data);
     }
     void Texture2D::CreateStack(uint32_t width, uint32_t height, RHI::Format format, void* data PT_DEBUG_REGION(, const char* name),TextureFlags flags)
@@ -125,7 +125,7 @@ namespace Pistachio
         m_Height = height;
         m_format = format;
         CreateTexture(data, flags);
-        PT_DEBUG_REGION(if(m_ID.Get()) m_ID->SetName(name));
+        PT_DEBUG_REGION(if(m_ID.IsValid()) m_ID->SetName(name));
     }
     void Texture2D::CopyIntoRegion(Texture2D& source, unsigned int location_x, unsigned int location_y, unsigned int src_left, unsigned int src_right, unsigned int src_up, unsigned int src_down, unsigned int mipSlice, unsigned int arraySlice)
     {
@@ -191,6 +191,6 @@ namespace Pistachio
     bool Texture2D::operator==(const Texture2D& texture) const
     {
         PT_PROFILE_FUNCTION();
-        return (m_ID.Get() == texture.m_ID.Get());
+        return (m_ID == texture.m_ID);
     }
 }

@@ -42,7 +42,7 @@ namespace Pistachio {
 		}
 		ID = std::move(res).value();
 		if(verts) RendererBase::PushBufferUpdate(ID, 0, verts, size);
-		return Error::None();
+		return Error();
 	}
 	void VertexBuffer::SetData(const void* data, unsigned int size)
 	{
@@ -74,7 +74,7 @@ namespace Pistachio {
 			RendererBase::PushBufferUpdate(ID, 0, indices, size);
 		}
 		ID = std::move(res).value();
-		return Error::None();
+		return Error();
 	}
 	Result<IndexBuffer*> IndexBuffer::Create(const void* indices, std::uint32_t size, std::uint32_t stride)
 	{
@@ -108,7 +108,7 @@ namespace Pistachio {
 			memcpy(writePointer, data, size);
 			ID->UnMap();
 		}
-		return Error::None();
+		return Error();
 		
 	}
 	void StructuredBuffer::Bind(std::uint32_t slot) const
@@ -160,7 +160,7 @@ namespace Pistachio {
 			memcpy(writePointer, data, size);
 			ID->UnMap();
 		}
-		return Error::None();
+		return Error();
 	}
 	Result<ConstantBuffer*> ConstantBuffer::Create(void* data, std::uint32_t size)
 	{
@@ -172,6 +172,6 @@ namespace Pistachio {
 			delete retVal;
 			return ezr::err(std::move(res));
 		}	
-		return ezr::ok(std::move(retVal));
+		return Result<ConstantBuffer*>::ok(retVal);
 	}
 }
