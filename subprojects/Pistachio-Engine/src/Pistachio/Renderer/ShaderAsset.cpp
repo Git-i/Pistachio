@@ -124,7 +124,6 @@ namespace Pistachio
         returnVal->shader.PS = { {(char*)malloc(code.size())}, (uint32_t)code.size()};
         memcpy(returnVal->shader.PS.mut_data, code.data(), code.size());
         returnVal->shader.CreateSetInfos(VSReflection, PSReflection);
-        PSReflection->Release();
 
         RHI::RootParameterDesc rpDesc[5];
         rpDesc[0].type = RHI::RootParameterType::DescriptorTable;

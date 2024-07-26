@@ -865,8 +865,8 @@ namespace Pistachio
         size_t numGFXCmdLists = levelTransitionIndices.size();
         size_t numComputeCmdLists = RendererBase::MQ ? computeLevelTransitionIndices.size() : 0;
         if (!RendererBase::MQ) numGFXCmdLists = (levelTransitionIndices.size() + computeLevelTransitionIndices.size()) ? 1 : 0;
-        cmdLists.reserve(numGFXCmdLists);
-        computeCmdLists.reserve(numComputeCmdLists);
+        cmdLists.resize(numGFXCmdLists);
+        computeCmdLists.resize(numComputeCmdLists);
         for (uint32_t i = 0; i < numGFXCmdLists; i++)
         {
             cmdLists[i] = RendererBase::device->CreateCommandList(RHI::CommandListType::Direct,

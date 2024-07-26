@@ -67,8 +67,8 @@ namespace Pistachio {
 				PT_CORE_ERROR(GetErrorString(e));
 		};
 		inline static void Assert(const Error & e) {
-			if(e.GetSeverity() == 2)
-				PT_CORE_ASSERT(GetErrorString(e) == "0");
+			LogErrorToConsole(e);
+			PT_CORE_ASSERT(e.GetSeverity() != 2);
 		};
 		ErrorType GetErrorType() const { return type; };
 		const char* GetReporterString() const { return ReporterString.c_str(); };

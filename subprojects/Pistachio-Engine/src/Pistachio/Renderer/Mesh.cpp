@@ -1,4 +1,5 @@
 #include "FormatsAndTypes.h"
+#include "Pistachio/Core/Error.h"
 #include "ptpch.h"
 #include "Mesh.h"
 #include "assimp/Importer.hpp"
@@ -24,12 +25,17 @@ void ProcessIndices(const aiMesh* pMesh, std::vector<unsigned int>& indices)
 	}
 }
 namespace Pistachio {
-	Mesh* Mesh::Create(const char* filepath, std::uint32_t index)
+	Result<Mesh*> Mesh::Create(const char* filepath, std::uint32_t index)
 	{
 		PT_PROFILE_FUNCTION()
 		Mesh* result = new Mesh;
-		result->CreateStack(filepath, index);
-		return result;
+		auto err = result->CreateStack(filepath, index);
+		if(err.GetErrorType() != ErrorType::Success)
+		{
+			delete result;
+			return ezr::err(std::move(err));
+		}
+		return ezr::ok(std::move(result));
 	}
 	Error Mesh::CreateStack(const char* filepath, std::uint32_t index)
 	{

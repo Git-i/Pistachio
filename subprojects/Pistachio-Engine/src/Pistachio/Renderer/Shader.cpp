@@ -545,7 +545,6 @@ namespace Pistachio {
 				rootParams.push_back(desc);
 			}
 			CreateSetInfos(VSreflection, nullptr);
-			VSreflection->Release();
 		}
 		if (PS.data)
 		{
@@ -582,7 +581,6 @@ namespace Pistachio {
 				rootParams.push_back(desc);
 			}
 			CreateSetInfos(nullptr,PSreflection);
-			PSreflection->Release();
 		}
 		for (auto& param : rootParams)
 		{
@@ -746,10 +744,10 @@ namespace Pistachio {
 			rsDesc.numRootParameters = (uint32_t)rootParams.size();
 			rsDesc.rootParameters = rootParams.data();
 			numLayouts = (uint32_t)rootParams.size();
+			layouts.resize(numLayouts);
 			rSig = RendererBase::device->CreateRootSignature(&rsDesc, layouts.data()).value();
 		}
 		CreateSetInfos(CSReflection);
-		CSReflection->Release();
 
 	}
 
