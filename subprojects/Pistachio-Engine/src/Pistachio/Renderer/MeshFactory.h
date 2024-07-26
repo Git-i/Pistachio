@@ -20,5 +20,10 @@ namespace Pistachio {
 		static Mesh* CreateQuadSphere(int resolution);
 		//Generate a (Tetrahedron/Hexahedron/Octahedron/Dodecahedron/Icosahedron)
 		static Mesh* CreatePlatonic();
+		static void InitializeAsPlane(Mesh&);
+		static void InitializeAsCube(Mesh&);
+		static void InitializeAsUVSphere(Mesh&,int,int);
+		static void InitializeAsIcoSphere(Mesh&,int);
+		static void InitializeAsQuadSphere(Mesh&,int);
 	};
 };

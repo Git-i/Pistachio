@@ -1,3 +1,4 @@
+#include "Core.h"
 #include "GLFW/glfw3.h"
 #include "Pistachio/Core/Application.h"
 #include "ptpch.h"
@@ -61,6 +62,11 @@ namespace Pistachio {
 	{
 		Shutdown();
 	}
+	void error_callback(int, const char* details)
+	{
+		PT_CORE_ERROR("GLFW Error: {0}", details);
+		DEBUG_BREAK;
+	}
 	int LinuxWindow::Init(const WindowInfo& info)
 	{
 		PT_PROFILE_FUNCTION();
@@ -69,6 +75,7 @@ namespace Pistachio {
 		m_data.height = info.height;
 		m_data.width = info.width;
 		m_data.vsync = info.vsync;
+		glfwSetErrorCallback(error_callback);
 		glfwInit();
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         pd.window = glfwCreateWindow(info.width, info.height, info.title, NULL, NULL);

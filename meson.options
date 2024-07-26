@@ -1,3 +1,1 @@
-#specify config for glfw
-option('linux_use_wayland', type : 'boolean',value:false)
-option('linux_use_x11', type : 'boolean',value:true)
+

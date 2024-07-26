@@ -31,8 +31,8 @@ namespace Pistachio {
 	class PISTACHIO_API Mesh {
 	public:
 		Mesh(){}
-		static Mesh* Create(const char* filepath, std::uint32_t index = 0);
-		Error CreateStack(const char* filepath, std::uint32_t index = 0);
+		static Result<Mesh*> Create(const char* filepath, std::uint32_t index = 0);
+		[[nodiscard]] Error CreateStack(const char* filepath, std::uint32_t index = 0);
 		//Don't use the copy constructor, no reason to, keeping it for backward compatibility
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 		Mesh(const std::vector<Vertex>&& vertices, const std::vector<unsigned int>&& indices);

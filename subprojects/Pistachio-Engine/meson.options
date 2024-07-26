@@ -1,1 +1,1 @@
-option('linux_compositor', type: 'combo', choices: ['wayland', 'x11'], value: 'wayland') 
+option('linux_compositor', type: 'combo', choices: ['wayland', 'x11'], value: 'x11') 

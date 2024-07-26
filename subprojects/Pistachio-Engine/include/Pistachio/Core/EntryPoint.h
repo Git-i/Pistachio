@@ -16,7 +16,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLi
 
     PT_PROFILE_BEGIN_SESSION("Shutdown", "Pistachio-Shutdown-Profile.json");
     delete app;
-    Pistachio::RendererBase::Getd3dDevice()->Release();
     PT_PROFILE_END_SESSION();
 
     return 0;

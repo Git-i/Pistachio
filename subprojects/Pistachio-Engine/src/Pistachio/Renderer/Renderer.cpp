@@ -340,7 +340,7 @@ namespace Pistachio {
 		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
 		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::FRAGMENT_SHADER_BIT, 0, 0, 1, &barr);
 		//Replace with mesh generation engine
-		cube.CreateStack("cube.obj");
+		Error::Assert(cube.CreateStack("cube.obj"));
 		ChangeSkybox(skyboxFile);
 		EndScene();
 	}
@@ -809,7 +809,6 @@ namespace Pistachio {
 		RendererBase::FlushStagingBuffer();
 		//before destroying old buffer, wait for old frames to render
 		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
-		meshVertices->Release();
 		meshVertices = newVB;
 		vbFreeSpace += minSize + GROW_FACTOR;
 		vbFreeFastSpace += minSize + GROW_FACTOR;
@@ -844,7 +843,6 @@ namespace Pistachio {
 		RendererBase::FlushStagingBuffer();
 		//before destroying old buffer, wait for old frames to render
 		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
-		meshIndices->Release();
 		meshIndices = newIB;
 		ibFreeSpace += minSize + GROW_FACTOR;
 		ibFreeFastSpace += minSize + GROW_FACTOR;
