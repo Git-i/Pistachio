@@ -15,6 +15,10 @@ namespace Pistachio {
 		friend class RenderGraph;
 		RHI::Ptr<RHI::Texture> m_ID;
 	public:
+		RHI::Ptr<RHI::Texture> GetID() const
+		{
+			return m_ID;
+		}
 		virtual RHI::Format GetFormat() const = 0;
 		virtual uint32_t GetHeight() const = 0;
 		virtual uint32_t GetWidth() const = 0;

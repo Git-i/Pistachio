@@ -345,7 +345,7 @@ namespace Pistachio {
 				desc.numRenderTargets = numRenderTargets;
 				memcpy(desc.RTVFormats, rtvFormats, sizeof(RHI::Format) * 6);
 				currentPSO = newHash;
-				PSOs[newHash] = RendererBase::Getd3dDevice()->CreatePipelineStateObject(desc).value();
+				PSOs[newHash] = RendererBase::Get3dDevice()->CreatePipelineStateObject(desc).value();
 				return 0;
 			}
 			return  1;
@@ -450,7 +450,7 @@ namespace Pistachio {
 						PT_CORE_WARN("{0} A disabled state still had valid configuration, this config would be zeroed during comparisons", __FUNCTION__);
 					}
 #endif
-					PSOs[hash] = RendererBase::Getd3dDevice()->CreatePipelineStateObject(PSOdesc).value();
+					PSOs[hash] = RendererBase::Get3dDevice()->CreatePipelineStateObject(PSOdesc).value();
 				}
 			}
 		}
@@ -590,7 +590,7 @@ namespace Pistachio {
 		RSdesc.rootParameters = rootParams.data();
 		numLayouts = (uint32_t)rootParams.size();
 		layouts.resize(numLayouts);
-		rootSig = RendererBase::Getd3dDevice()->CreateRootSignature(&RSdesc, layouts.data()).value();
+		rootSig = RendererBase::Get3dDevice()->CreateRootSignature(&RSdesc, layouts.data()).value();
 	}
 
 
@@ -607,7 +607,7 @@ namespace Pistachio {
 		updateDesc.numDescriptors = 1;
 		updateDesc.type = type;
 		updateDesc.bufferInfos = &info;
-		RendererBase::Getd3dDevice()->UpdateDescriptorSet(1, &updateDesc, set);
+		RendererBase::Get3dDevice()->UpdateDescriptorSet(1, &updateDesc, set);
 	}
 
 	void SetInfo::UpdateBufferBinding(const BufferBindingUpdateDesc& desc, uint32_t slot)
@@ -622,7 +622,7 @@ namespace Pistachio {
 		updateDesc.numDescriptors = 1;
 		updateDesc.type = desc.type;
 		updateDesc.bufferInfos = &info;
-		RendererBase::Getd3dDevice()->UpdateDescriptorSet(1, &updateDesc, set);
+		RendererBase::Get3dDevice()->UpdateDescriptorSet(1, &updateDesc, set);
 	}
 	void SetInfo::UpdateTextureBinding(RHI::Weak<RHI::TextureView> desc, uint32_t slot, RHI::DescriptorType type)
 	{
@@ -634,7 +634,7 @@ namespace Pistachio {
 		updateDesc.numDescriptors = 1;
 		updateDesc.type = type;
 		updateDesc.textureInfos = &info;
-		RendererBase::Getd3dDevice()->UpdateDescriptorSet(1, &updateDesc, set);
+		RendererBase::Get3dDevice()->UpdateDescriptorSet(1, &updateDesc, set);
 	}
 	void SetInfo::UpdateSamplerBinding(SamplerHandle handle, uint32_t slot)
 	{
@@ -646,7 +646,7 @@ namespace Pistachio {
 		updateDesc.numDescriptors = 1;
 		updateDesc.type = RHI::DescriptorType::Sampler;
 		updateDesc.samplerInfos = &info;
-		RendererBase::Getd3dDevice()->UpdateDescriptorSet(1, &updateDesc, set);
+		RendererBase::Get3dDevice()->UpdateDescriptorSet(1, &updateDesc, set);
 	}
 
 	bool PSOHash::operator==(const PSOHash& hash) const
@@ -776,55 +776,55 @@ namespace Pistachio {
 
 }
 
-void Pistachio::Helpers::ZeroAndFillShaderDesc(ShaderCreateDesc* desc, const char* VS, const char* PS, uint32_t numRenderTargets,  uint32_t numDSModes, RHI::DepthStencilMode* dsMode, uint32_t numBlendModes, RHI::BlendMode* blendModes, uint32_t numRasterizerModes, RHI::RasterizerMode* rsModes, const char* GS,const char* HS,   const char* DS)
+void Pistachio::Helpers::ZeroAndFillShaderDesc(ShaderCreateDesc& desc, const char* VS, const char* PS, uint32_t numRenderTargets,  uint32_t numDSModes, RHI::DepthStencilMode* dsMode, uint32_t numBlendModes, RHI::BlendMode* blendModes, uint32_t numRasterizerModes, RHI::RasterizerMode* rsModes, const char* GS,const char* HS,   const char* DS)
 {
-	memset(desc, 0, sizeof(ShaderCreateDesc));
-	desc->VS = RHI::ShaderCode{ {(char*)VS}, 0 };
-	desc->PS = RHI::ShaderCode{ {(char*)PS}, 0 };
-	desc->GS = RHI::ShaderCode{ {(char*)GS}, 0 };
-	desc->HS = RHI::ShaderCode{ {(char*)HS}, 0 };
-	desc->DS = RHI::ShaderCode{ {(char*)DS}, 0 };
-	desc->NumRenderTargets = numRenderTargets;
-	desc->numDepthStencilModes = numDSModes;
-	desc->numBlendModes = numBlendModes;
-	desc->DepthStencilModes = dsMode;
-	desc->BlendModes = blendModes;
-	desc->RasterizerModes = rsModes;
-	desc->numRasterizerModes = numRasterizerModes;
-	desc->shaderMode = RHI::ShaderMode::File;
+	memset(&desc, 0, sizeof(ShaderCreateDesc));
+	desc.VS = RHI::ShaderCode{ {(char*)VS}, 0 };
+	desc.PS = RHI::ShaderCode{ {(char*)PS}, 0 };
+	desc.GS = RHI::ShaderCode{ {(char*)GS}, 0 };
+	desc.HS = RHI::ShaderCode{ {(char*)HS}, 0 };
+	desc.DS = RHI::ShaderCode{ {(char*)DS}, 0 };
+	desc.NumRenderTargets = numRenderTargets;
+	desc.numDepthStencilModes = numDSModes;
+	desc.numBlendModes = numBlendModes;
+	desc.DepthStencilModes = dsMode;
+	desc.BlendModes = blendModes;
+	desc.RasterizerModes = rsModes;
+	desc.numRasterizerModes = numRasterizerModes;
+	desc.shaderMode = RHI::ShaderMode::File;
 }
 
-void Pistachio::Helpers::FillDepthStencilMode(RHI::DepthStencilMode* mode, bool depthEnabled, RHI::DepthWriteMask mask, RHI::ComparisonFunc depthFunc, bool stencilEnable, uint8_t stencilReadMask, uint8_t stencilWriteMask, RHI::DepthStencilOp* front, RHI::DepthStencilOp* back)
+void Pistachio::Helpers::FillDepthStencilMode(RHI::DepthStencilMode& mode, bool depthEnabled, RHI::DepthWriteMask mask, RHI::ComparisonFunc depthFunc, bool stencilEnable, uint8_t stencilReadMask, uint8_t stencilWriteMask, RHI::DepthStencilOp* front, RHI::DepthStencilOp* back)
 {
-	mode->DepthEnable = depthEnabled;
-	mode->DepthWriteMask = mask;
-	mode->DepthFunc = depthFunc;
-	if(front) mode->FrontFace = *front;
-	if(back) mode->BackFace = *back;
-	mode->StencilEnable = stencilEnable;
-	mode->StencilReadMask = stencilReadMask;
-	mode->StencilWriteMask = stencilWriteMask;
+	mode.DepthEnable = depthEnabled;
+	mode.DepthWriteMask = mask;
+	mode.DepthFunc = depthFunc;
+	if(front) mode.FrontFace = *front;
+	if(back) mode.BackFace = *back;
+	mode.StencilEnable = stencilEnable;
+	mode.StencilReadMask = stencilReadMask;
+	mode.StencilWriteMask = stencilWriteMask;
 }
 
-void Pistachio::Helpers::BlendModeDisabledBlend(RHI::BlendMode* mode)
+void Pistachio::Helpers::BlendModeDisabledBlend(RHI::BlendMode& mode)
 {
-	mode->BlendAlphaToCoverage = false;
-	mode->IndependentBlend = true;
-	mode->blendDescs[0].blendEnable = false;
+	mode.BlendAlphaToCoverage = false;
+	mode.IndependentBlend = true;
+	mode.blendDescs[0].blendEnable = false;
 }
 
-void Pistachio::Helpers::FillRaseterizerMode(RHI::RasterizerMode* mode, RHI::FillMode fillMode, RHI::CullMode cullMode, RHI::PrimitiveTopology topology, bool multiSample, bool antiAliasedLine, bool conservativeRaster, int depthBias, float depthBiasClamp, float ssDepthBias, bool depthClip)
+void Pistachio::Helpers::FillRaseterizerMode(RHI::RasterizerMode& mode, RHI::FillMode fillMode, RHI::CullMode cullMode, RHI::PrimitiveTopology topology, bool multiSample, bool antiAliasedLine, bool conservativeRaster, int depthBias, float depthBiasClamp, float ssDepthBias, bool depthClip)
 {
-	mode->AntialiasedLineEnable = antiAliasedLine;
-	mode->conservativeRaster = conservativeRaster;
-	mode->cullMode = cullMode;
-	mode->depthBias = depthBias;
-	mode->depthBiasClamp = depthBiasClamp;
-	mode->depthClipEnable = depthClip;
-	mode->fillMode = fillMode;
-	mode->multisampleEnable = multiSample;
-	mode->slopeScaledDepthBias = ssDepthBias;
-	mode->topology = topology;
+	mode.AntialiasedLineEnable = antiAliasedLine;
+	mode.conservativeRaster = conservativeRaster;
+	mode.cullMode = cullMode;
+	mode.depthBias = depthBias;
+	mode.depthBiasClamp = depthBiasClamp;
+	mode.depthClipEnable = depthClip;
+	mode.fillMode = fillMode;
+	mode.multisampleEnable = multiSample;
+	mode.slopeScaledDepthBias = ssDepthBias;
+	mode.topology = topology;
 }
 
 void Pistachio::Helpers::FillDescriptorSetRootParam(RHI::RootParameterDesc* rpDesc, uint32_t numRanges, uint32_t setIndex, RHI::DescriptorRange* ranges)

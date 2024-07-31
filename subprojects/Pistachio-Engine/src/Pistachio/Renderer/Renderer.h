@@ -2,19 +2,16 @@
 #include "Barrier.h"
 #include "FormatsAndTypes.h"
 #include "Pistachio/Renderer/RenderGraph.h"
+#include "Pistachio/Renderer/RendererContext.h"
 #include "Ptr.h"
 #include "RendererBase.h"
-#include "Camera.h"
 #include "Shader.h"
-#include "Model.h"
 #include "RenderTexture.h"
 #include "Texture.h"
 #include "Pistachio/Event/Event.h"
 #include "Pistachio/Event/ApplicationEvent.h"
 #include "Pistachio/Asset/AssetManager.h"
-#include "Pistachio/Renderer/EditorCamera.h"
 #include "Pistachio/Allocators/AtlasAllocator.h"
-#include "ShadowMap.h"
 #include "Pistachio/Allocators/FreeList.h"
 #include "BufferHandles.h"
 namespace Pistachio {
@@ -32,12 +29,7 @@ namespace Pistachio {
 	* 
 	*/
 	class Material;
-	struct FrameResource
-	{
-		ConstantBuffer transformBuffer;
-		RHI::Ptr<RHI::DynamicDescriptor> transformBufferDesc;
-		RHI::Ptr<RHI::DynamicDescriptor> transformBufferDescPS;
-	};
+	
 	struct PISTACHIO_API Light {
 		DirectX::XMFLOAT3 position;
 		LightType type;
@@ -67,11 +59,7 @@ namespace Pistachio {
 	};
 	using RegularLight = Light;
 	
-	struct PISTACHIO_API TransformData
-	{
-		DirectX::XMFLOAT4X4 transform;
-		DirectX::XMFLOAT4X4 normal;
-	};
+	
 	class PISTACHIO_API Renderer {
 	public:
 		static void Shutdown();
@@ -138,74 +126,9 @@ namespace Pistachio {
 			uint32_t size, 
 			const void* initialData = nullptr);
 	private:
-		static void (*CBInvalidated)();
-		//New Renderer
-		static RHI::Ptr<RHI::Buffer> meshVertices; // all meshes in the scene?
-		static RHI::Ptr<RHI::Buffer>  meshIndices;
-		static uint32_t     vbFreeFastSpace;//free space for an immerdiate allocation
-		static uint32_t     vbFreeSpace;   //total free space to consider reordering
-		static uint32_t     vbCapacity;
-		static FreeList     vbFreeList;
-		/*
-		 * handles map buffer handles to thier actual offsets, in case defragmentation moves them around
-		 * each handle is just an offset into this vector
-		 */
-		static std::vector<uint32_t> vbHandleOffsets;
-		// in the case we free a vertex buffer, we dont want to have to resize the offset vector even when there are unused spaces
-		static std::vector<uint32_t> vbUnusedHandles;
-		static uint32_t     ibFreeFastSpace;
-		static uint32_t     ibFreeSpace;
-		static uint32_t     ibCapacity;
-		static FreeList     ibFreeList;
-		static std::vector<uint32_t> ibHandleOffsets;
-		static std::vector<uint32_t> ibUnusedHandles;
-		/*
-		 * Constant Buffers are a little bit tricky
-		 * Handling updates to all buffers is the job of the caller
-		 * but handling allocations and defragments is the job of the renderer
-		 * An option would be to keep a uint for every frame that needs an op
-		 * eg uint32_t numDirtyAllocs; OnUpdate(){if(numDirtyAllocs){}}
-		 * but then we'd have to store op's order and details.
-		 * We'd probably wait for the gpu to get to the current frame, before doing any op's except updating
-		 * since updating is handled by the scene, it'll have the data needed to recreate the update event
-		 * 
-		 * Im leaving the above comment, but i might just have found a better way.
-		 * Allocate wouldn't update just give you a handle, and you update for all three buffers
-		 * Deallocate would just update the free list
-		 * Grow and Defrag would however block
-		 */
-		
-		static uint32_t     cbCapacity;
-		static uint32_t     cbFreeSpace;
-		static uint32_t     cbFreeFastSpace;
-		static FreeList     cbFreeList;
-		static uint32_t     numDirtyCBFrames;
-		static std::vector<uint32_t> cbHandleOffsets;
-		static std::vector<uint32_t> cbUnusedHandles;
-		static FrameResource resources[3];
-		static RenderCubeMap skybox;
-		static RenderCubeMap irradianceSkybox;
-		static RenderCubeMap prefilterSkybox;
-		static Texture2D BrdfTex;
-		static Shader* eqShader;//equirectangular to cube map
-		static Shader* irradianceShader;
-		static Shader* prefilterShader;
-		static SetInfo eqShaderVS[6];
-		static SetInfo eqShaderPS;
-		static SetInfo irradianceShaderPS;
-		static SetInfo prefilterShaderVS[5];
-
-		static SetInfo backgroundInfo;
-		static Mesh cube;
-
-		static SamplerHandle defaultSampler;
-		static SamplerHandle brdfSampler;
-		static SamplerHandle shadowSampler;
-
-		static StructuredBuffer computeShaderMiscBuffer; //contains the compute shader counter and other data
-		static std::unordered_map<std::string, ComputeShader*> computeShaders;
-		static std::unordered_map<std::string, Shader*> shaders;//these are shaders that cant be used for materials
+		static RendererContext ctx;
 		//-----------OLD-STUFF---------------
+		/*
 		static DirectX::XMMATRIX viewproj;
 		static DirectX::XMVECTOR m_campos;
 		static struct CamerData { DirectX::XMMATRIX viewProjection; DirectX::XMMATRIX view;  DirectX::XMFLOAT4 viewPos; }CameraData;
@@ -219,5 +142,6 @@ namespace Pistachio {
 		friend class Scene;
 		friend class Material;
 		static Shader* brdfShader;
+		*/
 	};
 }

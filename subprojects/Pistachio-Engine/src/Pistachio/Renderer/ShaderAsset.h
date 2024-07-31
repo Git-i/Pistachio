@@ -1,5 +1,6 @@
 #pragma once
 #include "../Asset/RefCountedObject.h"
+#include "Pistachio/Renderer/RendererContext.h"
 #include "Shader.h"
 namespace Pistachio
 {
@@ -36,10 +37,11 @@ namespace Pistachio
 		~ShaderAsset();
 		static ShaderAsset* Create(const char* filename);
 		ParamInfo GetParameterInfo(const std::string& paramName);
-		inline Shader* GetShader() { return &shader; }
+		inline Shader& GetShader() { return shader; }
+		inline const Shader& GetShader() const { return shader; }
 		inline uint32_t GetParamBufferSize() { return paramBufferSize; }
 	private:
-		friend class Renderer;
+		friend class RendererContext;
 		uint32_t paramBufferSize;
 		std::unordered_map<std::string, ParamInfo> parametersMap;
 		std::unordered_map<std::string, uint32_t> bindingsMap;

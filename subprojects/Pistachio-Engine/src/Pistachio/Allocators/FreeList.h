@@ -1,4 +1,6 @@
 #pragma once
+#include <cstdint>
+#include "Pistachio/Core.h"
 namespace Pistachio
 {
 	struct FreeBlock

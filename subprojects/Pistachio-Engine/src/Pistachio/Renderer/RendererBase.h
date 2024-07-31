@@ -83,7 +83,7 @@ namespace Pistachio {
 		static void SetDepthStencilOp(DepthStencilOp op);
 		static void BindMainTarget();
 		static bool Init(PlatformData* pd, InitOptions& options);
-		static RHI::Ptr<RHI::Device> Getd3dDevice();
+		static RHI::Ptr<RHI::Device> Get3dDevice();
 		static RHI::Instance* GetInstance();
 		static RHI::Ptr<RHI::GraphicsCommandList> GetMainCommandList();
 		static RHI::Ptr<RHI::SwapChain> GetSwapChain();
