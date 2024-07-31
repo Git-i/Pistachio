@@ -504,7 +504,7 @@ namespace Pistachio {
 	{
 		//todo replace with begine/end calls??
 	}
-	RHI::Ptr<RHI::Device> RendererBase::Getd3dDevice()
+	RHI::Ptr<RHI::Device> RendererBase::Get3dDevice()
 	{
 		return device;
 	}

@@ -8,59 +8,6 @@
 #include "../Scene/Scene.h"
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Core/Math.h"
-DirectX::XMMATRIX Pistachio::Renderer::viewproj = DirectX::XMMatrixIdentity();
-DirectX::XMVECTOR Pistachio::Renderer::m_campos = DirectX::XMVectorZero();
-Pistachio::Texture2D Pistachio::Renderer::BrdfTex;
-Pistachio::RenderCubeMap Pistachio::Renderer::skybox = Pistachio::RenderCubeMap();
-Pistachio::RenderCubeMap Pistachio::Renderer::irradianceSkybox = Pistachio::RenderCubeMap();
-Pistachio::RenderCubeMap Pistachio::Renderer::prefilterSkybox = { Pistachio::RenderCubeMap() };
-Pistachio::StructuredBuffer Pistachio::Renderer::computeShaderMiscBuffer;
-std::vector<Pistachio::RegularLight>   Pistachio::Renderer::RegularLightData = {};
-std::vector<Pistachio::ShadowCastingLight>   Pistachio::Renderer::ShadowLightData = {};
-std::vector<std::uint8_t> Pistachio::Renderer::LightSBCPU;
-std::unordered_map<std::string, Pistachio::ComputeShader*> Pistachio::Renderer::computeShaders;
-std::unordered_map<std::string, Pistachio::Shader*> Pistachio::Renderer::shaders;
-Pistachio::Renderer::CamerData Pistachio::Renderer::CameraData = {};
-Pistachio::Texture2D Pistachio::Renderer::whiteTexture = Pistachio::Texture2D();
-Pistachio::Material* Pistachio::Renderer::currentMat = nullptr;
-Pistachio::Shader* Pistachio::Renderer::currentShader = nullptr;
-Pistachio::SetInfo Pistachio::Renderer::eqShaderVS[6];
-Pistachio::SetInfo Pistachio::Renderer::eqShaderPS;
-Pistachio::SetInfo Pistachio::Renderer::irradianceShaderPS;
-Pistachio::SetInfo Pistachio::Renderer::prefilterShaderVS[5];
-Pistachio::DepthTexture Pistachio::Renderer::shadowMapAtlas;
-Pistachio::Shader* Pistachio::Renderer::eqShader;
-Pistachio::Shader* Pistachio::Renderer::irradianceShader;
-Pistachio::Shader* Pistachio::Renderer::brdfShader;
-Pistachio::Shader* Pistachio::Renderer::prefilterShader;
-Pistachio::SamplerHandle Pistachio::Renderer::defaultSampler;
-Pistachio::SamplerHandle Pistachio::Renderer::brdfSampler;
-Pistachio::SamplerHandle Pistachio::Renderer::shadowSampler;
-RHI::Ptr<RHI::Buffer>             Pistachio::Renderer::meshVertices; // all meshes in the scene?
-RHI::Ptr<RHI::Buffer>             Pistachio::Renderer::meshIndices;
-uint32_t                 Pistachio::Renderer::vbFreeFastSpace;//free space for an immerdiate allocation
-uint32_t                 Pistachio::Renderer::vbFreeSpace;   //total free space to consider reordering
-uint32_t                 Pistachio::Renderer::vbCapacity;
-Pistachio::FreeList      Pistachio::Renderer::vbFreeList;
-uint32_t                 Pistachio::Renderer::ibFreeFastSpace;
-uint32_t                 Pistachio::Renderer::ibFreeSpace;
-uint32_t                 Pistachio::Renderer::ibCapacity;
-uint32_t                 Pistachio::Renderer::cbCapacity;
-uint32_t                 Pistachio::Renderer::cbFreeSpace;
-uint32_t                 Pistachio::Renderer::cbFreeFastSpace;
-Pistachio::FreeList      Pistachio::Renderer::cbFreeList;
-Pistachio::FreeList      Pistachio::Renderer::ibFreeList;
-Pistachio::FrameResource Pistachio::Renderer::resources[3];
-std::vector<uint32_t>    Pistachio::Renderer::ibHandleOffsets;
-std::vector<uint32_t>    Pistachio::Renderer::ibUnusedHandles;
-std::vector<uint32_t>    Pistachio::Renderer::vbHandleOffsets;
-std::vector<uint32_t>    Pistachio::Renderer::vbUnusedHandles;
-std::vector<uint32_t>    Pistachio::Renderer::cbHandleOffsets;
-std::vector<uint32_t>    Pistachio::Renderer::cbUnusedHandles; 
-Pistachio::SetInfo 		 Pistachio::Renderer::backgroundInfo;
-Pistachio::Mesh    		 Pistachio::Renderer::cube;
-
-void (*Pistachio::Renderer::CBInvalidated)() = nullptr;
 static const uint32_t VB_INITIAL_SIZE = 1024;
 static const uint32_t IB_INITIAL_SIZE = 1024;
 static const uint32_t INITIAL_NUM_LIGHTS = 20;
@@ -299,12 +246,12 @@ namespace Pistachio {
 
 
 		BrdfTex.CreateStack(512, 512, RHI::Format::R16G16_FLOAT, nullptr PT_DEBUG_REGION(,"Renderer -> White Texture"),TextureFlags::Compute);
-		ComputeShader* brdfShader = ComputeShader::Create({ (char*)"resources/shaders/compute/Compiled/BRDF_LUT_cs",0 },RHI::ShaderMode::File);
+		ComputeShader* brdfShader = ComputeShader::Create({ "resources/shaders/compute/Compiled/BRDF_LUT_cs",0 },RHI::ShaderMode::File);
 
 		ShaderDesc.DepthStencilModes->DepthWriteMask = RHI::DepthWriteMask::None;
 		ShaderDesc.RasterizerModes->cullMode = RHI::CullMode::None;
-		ShaderDesc.VS = {(char*)"resources/shaders/vertex/Compiled/background_vs", 0};
-		ShaderDesc.PS = {(char*)"resources/shaders/pixel/Compiled/background_ps", 0};
+		ShaderDesc.VS = { {"resources/shaders/vertex/Compiled/background_vs"}, 0};
+		ShaderDesc.PS = { {"resources/shaders/pixel/Compiled/background_ps"}, 0};
 		ShaderDesc.NumRenderTargets = 1;
 		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
 		auto background_shader = Shader::Create(ShaderDesc);
@@ -966,8 +913,6 @@ namespace Pistachio {
 		resources[0].transformBuffer.ID->UnMap();
 		resources[1].transformBuffer.ID->UnMap();
 		resources[2].transformBuffer.ID->UnMap();
-		if(CBInvalidated)
-			CBInvalidated(); // the scene would bind a function here to update all descriptor sets
 	}
 	const uint32_t Pistachio::Renderer::GetIBOffset(const RendererIBHandle handle)
 	{

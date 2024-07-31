@@ -2,6 +2,7 @@
 #include "../Core.h"
 #include "Core/Device.h"
 #include "PipelineStateObject.h"
+#include "Pistachio/Renderer/RendererContext.h"
 #include "RendererID_t.h"
 #include "RendererBase.h"
 #include "Core/ShaderReflect.h"
@@ -121,11 +122,11 @@ namespace Pistachio {
 	struct ShaderCreateDesc
 	{
 		//Constant
-		RHI::ShaderCode VS = {nullptr, 0};
-		RHI::ShaderCode PS = {nullptr, 0};
-		RHI::ShaderCode GS = {nullptr, 0};
-		RHI::ShaderCode HS = {nullptr, 0};
-		RHI::ShaderCode DS = {nullptr, 0};
+		RHI::ShaderCode VS = {{nullptr}, 0};
+		RHI::ShaderCode PS = {{nullptr}, 0};
+		RHI::ShaderCode GS = {{nullptr}, 0};
+		RHI::ShaderCode HS = {{nullptr}, 0};
+		RHI::ShaderCode DS = {{nullptr}, 0};
 		uint32_t NumRenderTargets = 1;	//can't be changed because this is with the pixel shader
 		RHI::Format RTVFormats[8]; // make this constant too??, or make it such that a shader can be used with multipe rtv formats
 		RHI::Format DSVFormat;
@@ -232,6 +233,7 @@ namespace Pistachio {
 	private:
 		friend class ShaderAsset;
 		friend class Renderer;
+		friend class RendererContext;
 		std::unordered_map<PSOHash, RHI::Ptr<RHI::PipelineStateObject>> PSOs;
 		ShaderSetInfos m_VSinfo;
 		ShaderSetInfos m_PSinfo;
@@ -263,7 +265,7 @@ namespace Pistachio {
 		*	Texture formats are not filled
 		*	Input Description is Filled
 		*/
-		void ZeroAndFillShaderDesc(ShaderCreateDesc* desc,
+		void ZeroAndFillShaderDesc(ShaderCreateDesc& desc,
 			const char* VS = nullptr,
 			const char* PS = nullptr,
 			uint32_t numRenderTargets = 1,
@@ -276,7 +278,7 @@ namespace Pistachio {
 			const char* GS = nullptr,
 			const char* HS = nullptr,
 			const char* DS = nullptr);
-		void FillDepthStencilMode(RHI::DepthStencilMode* mode,
+		void FillDepthStencilMode(RHI::DepthStencilMode& mode,
 			bool depthEnabled = true,
 			RHI::DepthWriteMask mask = RHI::DepthWriteMask::All,
 			RHI::ComparisonFunc depthFunc = RHI::ComparisonFunc::LessEqual,
@@ -285,8 +287,8 @@ namespace Pistachio {
 			uint8_t stencilWriteMask = 0,
 			RHI::DepthStencilOp* front = nullptr,
 			RHI::DepthStencilOp* back = nullptr);
-		void BlendModeDisabledBlend(RHI::BlendMode* mode);
-		void FillRaseterizerMode(RHI::RasterizerMode* mode,
+		void BlendModeDisabledBlend(RHI::BlendMode& mode);
+		void FillRaseterizerMode(RHI::RasterizerMode& mode,
 			RHI::FillMode fillMode = RHI::FillMode::Solid,
 			RHI::CullMode cullMode = RHI::CullMode::Back,
 			RHI::PrimitiveTopology topology = RHI::PrimitiveTopology::TriangleList,

@@ -82,6 +82,9 @@ namespace Pistachio {
 		void UpdateTransforms(entt::entity e, const Matrix4& mat);
 	private:
 		friend class FrameComposer;
+		friend class Entity;
+		friend class SceneHierarchyPanel;
+		friend class SceneSerializer;
 		std::vector<entt::entity> meshesToDraw;
 		std::vector<ShadowCastingLight> shadowLights;
 		std::vector<RegularLight> regularLights;
@@ -92,10 +95,7 @@ namespace Pistachio {
 		Pistachio::Mesh* ScreenSpaceQuad;//?
 		entt::registry m_Registry;
 		entt::entity root;
-		physx::PxScene* m_PhysicsScene = __null;
-		friend class Entity;
-		friend class SceneHierarchyPanel;
-		friend class SceneSerializer;
+		physx::PxScene* m_PhysicsScene = nullptr;
 		RGTextureHandle finalRenderTex;
 		uint32_t lightListSize;
 		uint32_t clustersDim[3];
