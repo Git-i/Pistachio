@@ -21,7 +21,90 @@ namespace Pistachio
         freeFastSpace = initialSize;
         freeList = FreeList(initialSize);
     }
-
+	uint32_t MonolithicBufferAllocator::AssignHandle(std::uint32_t offset)
+	{
+		if (UnusedHandles.empty())
+		{
+			HandleOffsets.push_back(offset);
+			return(uint32_t)( HandleOffsets.size() - 1);
+		}
+		uint32_t handle = UnusedHandles.back();
+		HandleOffsets[handle] = offset;
+		UnusedHandles.pop_back();
+		return handle;
+	}
+	inline RendererVBHandle MonolithicBufferAllocator::Allocate(
+		const std::function<void(uint32_t)>& grow_fn, const std::function<void()>& defrag_fn,
+		uint32_t size,
+		RHI::Ptr<RHI::Buffer> buffer, 
+		const void* initialData)
+	{
+		RendererVBHandle handle;
+		//check if we have immediate space available
+		if (size < freeFastSpace)
+		{
+			//allocate to buffer end
+			//fast space is always at the end
+			PT_CORE_ASSERT(freeList.Allocate(capacity - freeFastSpace, size) == 0);
+			if (initialData)
+			{
+				RendererBase::PushBufferUpdate(buffer, capacity - freeFastSpace, initialData, size);
+				RendererBase::FlushStagingBuffer();
+			}
+			handle.handle = AssignHandle(capacity - freeFastSpace);
+			handle.size = size;
+			freeFastSpace -= size;
+			freeSpace -= size;
+			return handle;
+		}
+		//if not, check if we have space at all
+		else if (size < freeSpace)
+		{
+			//if we have space, check the free list to see if space is continuos
+			if (auto space = freeList.Find(size); space != UINT32_MAX)
+			{
+				//allocate
+				PT_CORE_ASSERT(freeList.Allocate(space, size) == 0);
+				if (initialData)
+				{
+					RendererBase::PushBufferUpdate(buffer, space, initialData, size);
+					RendererBase::FlushStagingBuffer();
+				}
+				handle.handle = AssignHandle(space);
+				handle.size = size;
+				freeSpace -= size;
+				return handle;
+			}
+			PT_CORE_WARN("Defragmenting Buffer");
+			defrag_fn();
+			if (initialData)
+			{
+				RendererBase::PushBufferUpdate(buffer, capacity - freeFastSpace, initialData, size);
+				RendererBase::FlushStagingBuffer();
+			}
+			handle.handle = AssignHandle(capacity - freeFastSpace);
+			handle.size = size;
+			freeFastSpace -= size;
+			freeSpace -= size;
+			return handle;
+			//allocate to buffer end
+		}
+		else
+		{
+			PT_CORE_WARN("Growing Buffer");
+			grow_fn(size);
+			//growth doesnt guarantee that the free space is "Fast" it just guarantees we'll have enough space for the op
+			return Allocate(grow_fn,defrag_fn,size, buffer,initialData);
+			//allocate to buffer end
+		}
+		return handle;
+	}
+	void MonolithicBufferAllocator::DeAllocate(RendererVBHandle handle)
+	{
+		freeSpace += handle.size;
+		freeList.DeAllocate(HandleOffsets[handle.handle], handle.size);
+		UnusedHandles.push_back(handle.handle);
+	}
     void MonolithicBuffer::Initialize(uint32_t initialSize, RHI::BufferUsage usage)
     {
 

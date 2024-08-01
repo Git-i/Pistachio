@@ -3,21 +3,25 @@
 Holds data for the Renderer
 
 */
+#include "Pistachio/Core/Math.h"
 #include "FormatsAndTypes.h"
 #include "Pistachio/Core.h"
 #include "Pistachio/Allocators/FreeList.h"
 #include "Core/Device.h"
 #include "Pistachio/Renderer/Buffer.h"
+#include "Pistachio/Renderer/BufferHandles.h"
 #include "Pistachio/Renderer/RendererBase.h"
 #include "Pistachio/Renderer/Shader.h"
 #include "Pistachio/Renderer/Texture.h"
 #include <cstdint>
+#include <functional>
+#include <zconf.h>
 namespace Pistachio
 {
 	struct PISTACHIO_API TransformData
 	{
-		DirectX::XMFLOAT4X4 transform;
-		DirectX::XMFLOAT4X4 normal;
+		Matrix4 transform;
+		Matrix4 normal;
 	};
     struct MonolithicBufferAllocator
     {
@@ -32,6 +36,13 @@ namespace Pistachio
 		 */
         std::vector<uint32_t> HandleOffsets;
 		std::vector<uint32_t> UnusedHandles;
+		uint32_t AssignHandle(std::uint32_t offset);
+		RendererVBHandle Allocate(
+			const std::function<void(uint32_t)>&, const std::function<void()>&,
+			uint32_t size,
+			RHI::Ptr<RHI::Buffer> buffer = nullptr, 
+			const void* initialData = nullptr);
+		void DeAllocate(RendererVBHandle handle);	
     };
     struct MonolithicBuffer
     {
