@@ -1,5 +1,7 @@
+#include "FormatsAndTypes.h"
 #include "Pistachio/Renderer/RenderGraph.h"
 #include "Pistachio/Renderer/RendererBase.h"
+#include "Pistachio/Renderer/RendererContext.h"
 #include "Pistachio/Renderer/Shader.h"
 #include "Texture.h"
 #include "ptpch.h"
@@ -8,6 +10,7 @@
 #include "../Scene/Scene.h"
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Core/Math.h"
+#include <functional>
 static const uint32_t VB_INITIAL_SIZE = 1024;
 static const uint32_t IB_INITIAL_SIZE = 1024;
 static const uint32_t INITIAL_NUM_LIGHTS = 20;
@@ -37,16 +40,22 @@ namespace Pistachio {
 	}
 	const RendererVBHandle Renderer::AllocateVertexBuffer(uint32_t size,const void* initialData)
 	{
-		return AllocateBuffer(vbFreeList, vbFreeSpace, vbFreeFastSpace, vbCapacity, &Renderer::GrowMeshVertexBuffer,&Renderer::DefragmentMeshVertexBuffer, vbHandleOffsets,vbUnusedHandles,&meshVertices, size, initialData);
+		return ctx.meshVertices.allocator.Allocate(std::bind(Renderer::GrowMeshBuffer, std::placeholders::_1, 
+			RHI::BufferUsage::VertexBuffer|RHI::BufferUsage::CopySrc|RHI::BufferUsage::CopyDst,
+			ctx.meshVertices),
+			std::bind(Renderer::DefragmentMeshBuffer, ctx.meshIndices),size,ctx.meshVertices.buffer, initialData);
 	}
 	const RendererIBHandle Renderer::AllocateIndexBuffer(uint32_t size, const void* initialData)
 	{
-		auto [a,b] = AllocateBuffer(ibFreeList, ibFreeSpace, ibFreeFastSpace, ibCapacity, &Renderer::GrowMeshIndexBuffer, &Renderer::DefragmentMeshIndexBuffer,ibHandleOffsets,ibUnusedHandles,&meshIndices, size, initialData);
+		auto [a,b] = ctx.meshIndices.allocator.Allocate(std::bind(Renderer::GrowMeshBuffer, std::placeholders::_1, 
+			RHI::BufferUsage::IndexBuffer|RHI::BufferUsage::CopySrc|RHI::BufferUsage::CopyDst,
+			ctx.meshIndices), 
+			std::bind(Renderer::DefragmentMeshBuffer, ctx.meshIndices), size,ctx.meshIndices.buffer, initialData);
 		return { a,b };
 	}
 	ComputeShader* Renderer::GetBuiltinComputeShader(const std::string& name)
 	{
-		if (auto it = computeShaders.find(name); it != computeShaders.end())
+		if (auto it = ctx.computeShaders.find(name); it != ctx.computeShaders.end())
 		{
 			return it->second;
 		}
@@ -54,7 +63,7 @@ namespace Pistachio {
 	}
 	Shader* Renderer::GetBuiltinShader(const std::string& name)
 	{
-		if (auto it = shaders.find(name); it != shaders.end())
+		if (auto it = ctx.shaders.find(name); it != ctx.shaders.end())
 		{
 			return it->second;
 		}
@@ -62,168 +71,50 @@ namespace Pistachio {
 	}
 	const RendererCBHandle Renderer::AllocateConstantBuffer(uint32_t size)
 	{
-		auto [a,b] = AllocateBuffer(cbFreeList, cbFreeSpace, cbFreeFastSpace, cbCapacity, &Renderer::GrowConstantBuffer, &Renderer::DefragmentConstantBuffer, cbHandleOffsets, cbUnusedHandles, nullptr, RendererUtils::ConstantBufferElementSize(size), nullptr);
+		auto [a,b] = ctx.constantBufferAllocator.Allocate(&Renderer::GrowConstantBuffer, &Renderer::DefragmentConstantBuffer, size);
 		return { a,b };
 	}
-	RenderCubeMap& Pistachio::Renderer::GetSkybox()
+	void Renderer::GrowMeshBuffer(uint32_t minExtraSize,
+			RHI::BufferUsage usage,
+			MonolithicBuffer& buffer)
 	{
-		return skybox;
-	}
-	inline RendererVBHandle Renderer::AllocateBuffer(
-		FreeList& flist, uint32_t& free_space, 
-		uint32_t& fast_space, 
-		uint32_t& capacity,
-		decltype(&Renderer::GrowMeshVertexBuffer) grow_fn,
-		decltype(&Renderer::DefragmentMeshVertexBuffer) defrag_fn,
-		std::vector<uint32_t>& offsetsVector,
-		std::vector<uint32_t>& freeHandlesVector,
-		RHI::Ptr<RHI::Buffer>* buffer, 
-		uint32_t size,
-		const void* initialData)
-	{
-		RendererVBHandle handle;
-		//check if we have immediate space available
-		if (size < fast_space)
-		{
-			//allocate to buffer end
-			//fast space is always at the end
-			PT_CORE_ASSERT(flist.Allocate(capacity - fast_space, size) == 0);
-			if (initialData)
-			{
-				RendererBase::PushBufferUpdate(*buffer, capacity - fast_space, initialData, size);
-				RendererBase::FlushStagingBuffer();
-			}
-			handle.handle = AssignHandle(offsetsVector,freeHandlesVector,capacity - fast_space);
-			handle.size = size;
-			fast_space -= size;
-			free_space -= size;
-			return handle;
-		}
-		//if not, check if we have space at all
-		else if (size < free_space)
-		{
-			//if we have space, check the free list to see if space is continuos
-			if (auto space = flist.Find(size); space != UINT32_MAX)
-			{
-				//allocate
-				PT_CORE_ASSERT(flist.Allocate(space, size) == 0);
-				if (initialData)
-				{
-					RendererBase::PushBufferUpdate(*buffer, space, initialData, size);
-					RendererBase::FlushStagingBuffer();
-				}
-				handle.handle = AssignHandle(offsetsVector, freeHandlesVector, space);
-				handle.size = size;
-				free_space -= size;
-				return handle;
-			}
-			PT_CORE_WARN("Defragmenting Buffer");
-			defrag_fn();
-			if (initialData)
-			{
-				RendererBase::PushBufferUpdate(*buffer, capacity - fast_space, initialData, size);
-				RendererBase::FlushStagingBuffer();
-			}
-			handle.handle = AssignHandle(offsetsVector,freeHandlesVector,capacity - fast_space);
-			handle.size = size;
-			fast_space -= size;
-			free_space -= size;
-			return handle;
-			//allocate to buffer end
-		}
-		else
-		{
-			PT_CORE_WARN("Growing Buffer");
-			grow_fn(size);
-			//growth doesnt guarantee that the free space is "Fast" it just guarantees we'll have enough space for the op
-			return AllocateBuffer(flist, free_space, fast_space, capacity,grow_fn,defrag_fn,offsetsVector,freeHandlesVector,buffer,size, initialData);
-			//allocate to buffer end
-		}
-		return handle;
-	}
-	uint32_t Renderer::AssignHandle(std::vector<uint32_t>& offsetsVector, std::vector<uint32_t>& freeHandlesVector, std::uint32_t offset)
-	{
-		if (freeHandlesVector.empty())
-		{
-			offsetsVector.push_back(offset);
-			return(uint32_t)( offsetsVector.size() - 1);
-		}
-		uint32_t handle = freeHandlesVector[freeHandlesVector.size()-1];
-		offsetsVector[handle] = offset;
-		freeHandlesVector.pop_back();
-		return (uint32_t)handle;
-	}
-	void Renderer::GrowMeshVertexBuffer(uint32_t minSize)
-	{
+		uint32_t capacity = buffer.allocator.capacity;
 		const uint32_t GROW_FACTOR = 20; //probably use a better, more size dependent method to determing this
-		uint32_t new_size = vbCapacity + minSize + GROW_FACTOR;
+		uint32_t new_size = capacity + minExtraSize + GROW_FACTOR;
 		RHI::BufferDesc desc;
 		desc.size = new_size;
-		desc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
+		desc.usage = usage;
 		RHI::AutomaticAllocationInfo allocInfo;
 		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		RHI::Ptr<RHI::Buffer> newVB = RendererBase::device->CreateBuffer(desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
+		RHI::Ptr<RHI::Buffer> newBuffer = RendererBase::device->CreateBuffer(desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
 		RHI::BufferMemoryBarrier barr;
 		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
 		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_READ;
-		barr.buffer = meshVertices;
+		barr.buffer = buffer.buffer;
 		barr.nextQueue = barr.previousQueue = RHI::QueueFamily::Ignored;
-		barr.size = vbCapacity;
+		barr.size = capacity;
 		barr.offset = 0;
 		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, 1,&barr,0,0);
 		//Queue it with staging stuff
-		RendererBase::stagingCommandList->CopyBufferRegion(0, 0, vbCapacity, meshVertices, newVB);
+		RendererBase::stagingCommandList->CopyBufferRegion(0, 0, capacity, buffer.buffer, newBuffer);
 		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
-		barr.buffer = newVB;
+		barr.buffer = newBuffer;
 		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, 1,&barr,0,0);
 		//wait until copy is finished?
 		RendererBase::FlushStagingBuffer();
 		//before destroying old buffer, wait for old frames to render
 		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
-		meshVertices = newVB;
-		vbFreeSpace += minSize + GROW_FACTOR;
-		vbFreeFastSpace += minSize + GROW_FACTOR;
-		vbCapacity = new_size;
-		vbFreeList.Grow(new_size);
-	}
-	void Renderer::GrowMeshIndexBuffer(uint32_t minSize)
-	{
-		const uint32_t GROW_FACTOR = 20; //probably use a better, more size dependent method to determing this
-		uint32_t new_size = ibCapacity + minSize + GROW_FACTOR;
-		RHI::BufferDesc desc;
-		desc.size = new_size;
-		desc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst | RHI::BufferUsage::CopySrc;
-		
-		RHI::AutomaticAllocationInfo allocInfo;
-		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		RHI::Ptr<RHI::Buffer> newIB = RendererBase::device->CreateBuffer(desc, 0, 0, &allocInfo, 0, RHI::ResourceType::Automatic).value();
-		//Queue it with staging stuff
-		RHI::BufferMemoryBarrier barr;
-		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
-		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_READ;
-		barr.buffer = meshIndices;
-		barr.nextQueue = barr.previousQueue = RHI::QueueFamily::Ignored;
-		barr.size = ibCapacity;
-		barr.offset = 0;
-		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, 1,&barr,0,0);
-		RendererBase::stagingCommandList->CopyBufferRegion(0, 0, ibCapacity, meshIndices, newIB);
-		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
-		barr.buffer = newIB;
-		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, 1,&barr,0,0);
-		//wait until copy is finished?
-		RendererBase::FlushStagingBuffer();
-		//before destroying old buffer, wait for old frames to render
-		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
-		meshIndices = newIB;
-		ibFreeSpace += minSize + GROW_FACTOR;
-		ibFreeFastSpace += minSize + GROW_FACTOR;
-		ibCapacity = new_size;
-		ibFreeList.Grow(new_size);
+		buffer.buffer = newBuffer;
+		buffer.allocator.freeSpace += minExtraSize + GROW_FACTOR;
+		buffer.allocator.freeFastSpace += minExtraSize + GROW_FACTOR;
+		buffer.allocator.capacity = new_size;
+		buffer.allocator.freeList.Grow(new_size);
 	}
 	void Pistachio::Renderer::GrowConstantBuffer(uint32_t minExtraSize)
 	{
+		uint32_t capacity = ctx.constantBufferAllocator.capacity;
 		const uint32_t GROW_FACTOR = 20; //probably use a better, more size dependent method to determing this
-		uint32_t new_size = cbCapacity + minExtraSize + GROW_FACTOR;
+		uint32_t new_size = capacity + minExtraSize + GROW_FACTOR;
 		RHI::BufferDesc desc;
 		desc.size = new_size;
 		desc.usage = RHI::BufferUsage::ConstantBuffer;
@@ -237,90 +128,66 @@ namespace Pistachio {
 			void* writePtr;
 			void* readPtr;
 			newCB->Map(&writePtr);
-			resources[i].transformBuffer.ID->Map(&readPtr);
-			memcpy(writePtr, readPtr, cbCapacity);
-			resources[i].transformBuffer.ID->UnMap();
+			ctx.resources[i].transformBuffer.ID->Map(&readPtr);
+			memcpy(writePtr, readPtr, capacity);
+			ctx.resources[i].transformBuffer.ID->UnMap();
 			newCB->UnMap();
-			resources[i].transformBuffer.ID = newCB;
+			ctx.resources[i].transformBuffer.ID = newCB;
 		}
+		ctx.constantBufferAllocator.freeSpace += minExtraSize + GROW_FACTOR;
+		ctx.constantBufferAllocator.freeFastSpace += minExtraSize + GROW_FACTOR;
+		ctx.constantBufferAllocator.capacity = new_size;
+		ctx.constantBufferAllocator.freeList.Grow(new_size);
 	}
 	void Pistachio::Renderer::FreeVertexBuffer(const RendererVBHandle handle)
 	{
-		vbFreeSpace += handle.size;
-		vbFreeList.DeAllocate(vbHandleOffsets[handle.handle], handle.size);
-		vbUnusedHandles.push_back(handle.handle);
+		ctx.meshVertices.allocator.DeAllocate(handle);
 	}
 	void Renderer::FreeIndexBuffer(const RendererIBHandle handle)
 	{
-		ibFreeSpace += handle.size;
-		ibFreeList.DeAllocate(ibHandleOffsets[handle.handle], handle.size);
-		ibUnusedHandles.push_back(handle.handle);
+		ctx.meshIndices.allocator.DeAllocate({handle.handle, handle.size});
 	}
 	RHI::Ptr<RHI::Buffer> Renderer::GetVertexBuffer()
 	{
-		return meshVertices;
+		return ctx.meshVertices.buffer;
 	}
 	RHI::Ptr<RHI::Buffer> Renderer::GetIndexBuffer()
 	{
-		return meshIndices;
+		return ctx.meshIndices.buffer;
 	}
-	void Renderer::DefragmentMeshVertexBuffer()
+	void Renderer::DefragmentMeshBuffer(MonolithicBuffer& buffer)
 	{
-		auto block = vbFreeList.GetBlockPtr();
+		auto block = buffer.allocator.freeList.GetBlockPtr();
 		uint32_t nextFreeOffset = 0;
 		while (block)
 		{
 			if (block->offset > nextFreeOffset)
 			{
-				RendererBase::stagingCommandList->CopyBufferRegion(block->offset, nextFreeOffset, block->size, meshVertices, meshVertices);
+				RendererBase::stagingCommandList->CopyBufferRegion(block->offset, nextFreeOffset, block->size, buffer.buffer, buffer.buffer);
 				nextFreeOffset += block->size;
 			}
 			block = block->next;
 		}
-		vbFreeList.Reset();
+		buffer.allocator.freeList.Reset();
 		//fill up the beginning of the free list with the memory size we just copied
-		vbFreeList.Allocate(0, nextFreeOffset);
-		vbFreeFastSpace = vbFreeSpace;//after defrag all free space is fast space
+		buffer.allocator.freeList.Allocate(0, nextFreeOffset);
+		buffer.allocator.freeFastSpace = buffer.allocator.freeSpace;//after defrag all free space is fast space
 		/*
-		 *Is that a safe assumptions;
+		 *Is that a safe assumption?
 		 *we dont flush for every copy, because we asssume copies are done in order, so memory won't get overritten
 		 */
 		RendererBase::FlushStagingBuffer();
 		
 	}
-	void Renderer::DefragmentMeshIndexBuffer()
-	{
-		auto block = ibFreeList.GetBlockPtr();
-		uint32_t nextFreeOffset = 0;
-		while (block)
-		{
-			if (block->offset > nextFreeOffset)
-			{
-				RendererBase::stagingCommandList->CopyBufferRegion(block->offset, nextFreeOffset, block->size, meshIndices, meshIndices);
-				nextFreeOffset += block->size;
-			}
-			block = block->next;
-		}
-		ibFreeList.Reset();
-		//fill up the beginning of the free list with the memory size we just copied
-		ibFreeList.Allocate(0, nextFreeOffset);
-		ibFreeFastSpace = vbFreeSpace;//after defrag all free space is fast space
-		/*
-		 *Is that a safe assumptions;
-		 *we dont flush for every copy, because we asssume copies are done in order, so memory won't get overritten
-		 */
-		RendererBase::FlushStagingBuffer();
-
-	}
 	void Renderer::DefragmentConstantBuffer()
 	{
 		RendererBase::mainFence->Wait(RendererBase::currentFenceVal);
-		auto block = cbFreeList.GetBlockPtr();
+		auto block = ctx.constantBufferAllocator.freeList.GetBlockPtr();
 		uint32_t nextFreeOffset = 0;
 		void *ptr1, *ptr2, *ptr3;
-		resources[0].transformBuffer.ID->Map(&ptr1);
-		resources[1].transformBuffer.ID->Map(&ptr2);
-		resources[2].transformBuffer.ID->Map(&ptr3);
+		ctx.resources[0].transformBuffer.ID->Map(&ptr1);
+		ctx.resources[1].transformBuffer.ID->Map(&ptr2);
+		ctx.resources[2].transformBuffer.ID->Map(&ptr3);
 		while (block)
 		{
 			//if block has gap from last block
@@ -334,56 +201,52 @@ namespace Pistachio {
 			}
 			block = block->next;
 		}
-		resources[0].transformBuffer.ID->UnMap();
-		resources[1].transformBuffer.ID->UnMap();
-		resources[2].transformBuffer.ID->UnMap();
+		ctx.resources[0].transformBuffer.ID->UnMap();
+		ctx.resources[1].transformBuffer.ID->UnMap();
+		ctx.resources[2].transformBuffer.ID->UnMap();
 	}
 	const uint32_t Pistachio::Renderer::GetIBOffset(const RendererIBHandle handle)
 	{
-		return ibHandleOffsets[handle.handle];
+		return ctx.meshIndices.allocator.HandleOffsets[handle.handle];
 	}
 	const uint32_t Pistachio::Renderer::GetVBOffset(const RendererVBHandle handle)
 	{
-		return vbHandleOffsets[handle.handle];
+		return ctx.meshVertices.allocator.HandleOffsets[handle.handle];
+	}
+	const uint32_t Pistachio::Renderer::GetCBOffset(const RendererCBHandle handle)
+	{
+		return ctx.constantBufferAllocator.HandleOffsets[handle.handle];
 	}
 	void Pistachio::Renderer::PartialCBUpdate(RendererCBHandle handle, void* data, uint32_t offset, uint32_t size)
 	{
 		PT_CORE_ASSERT(offset+size <= handle.size);
-		resources[RendererBase::currentFrameIndex].transformBuffer.Update(data, size, cbHandleOffsets[handle.handle] + offset);
+		ctx.resources[RendererBase::currentFrameIndex].transformBuffer.Update(data, size, GetCBOffset(handle) + offset);
 	}
 	void Pistachio::Renderer::FullCBUpdate(RendererCBHandle handle, void* data)
 	{
-		resources[RendererBase::currentFrameIndex].transformBuffer.Update(data, handle.size, cbHandleOffsets[handle.handle]);
+		ctx.resources[RendererBase::currentFrameIndex].transformBuffer.Update(data, handle.size, GetCBOffset(handle));
 	}
 	RHI::Ptr<RHI::Buffer> Pistachio::Renderer::GetConstantBuffer()
 	{
-		return resources[RendererBase::currentFrameIndex].transformBuffer.ID;
+		return ctx.resources[RendererBase::currentFrameIndex].transformBuffer.ID;
 	}
 	const RHI::Ptr<RHI::DynamicDescriptor> Pistachio::Renderer::GetCBDesc()
 	{
-		return resources[RendererBase::currentFrameIndex].transformBufferDesc;
+		return ctx.resources[RendererBase::currentFrameIndex].transformBufferDesc;
 	}
 	const RHI::Ptr<RHI::DynamicDescriptor> Renderer::GetCBDescPS()
 	{
-		return resources[RendererBase::currentFrameIndex].transformBufferDescPS;
-	}
-	const uint32_t Pistachio::Renderer::GetCBOffset(const RendererCBHandle handle)
-	{
-		return cbHandleOffsets[handle.handle];
+		return ctx.resources[RendererBase::currentFrameIndex].transformBufferDescPS;
 	}
 	void Pistachio::Renderer::Submit(RHI::Weak<RHI::GraphicsCommandList> list,const RendererVBHandle vb, const RendererIBHandle ib, uint32_t vertexStride)
 	{
 		list->DrawIndexed(ib.size / sizeof(uint32_t),
 			1,
-			ibHandleOffsets[ib.handle] / sizeof(uint32_t),
-			vbHandleOffsets[vb.handle] / vertexStride, 0);
-	}
-	const Texture2D& Pistachio::Renderer::GetWhiteTexture()
-	{
-		return whiteTexture;
+			GetIBOffset(ib) / sizeof(uint32_t),
+			GetVBOffset(vb) / vertexStride, 0);
 	}
 	SamplerHandle Pistachio::Renderer::GetDefaultSampler()
 	{
-		return defaultSampler;
+		return ctx.defaultSampler;
 	}
 }

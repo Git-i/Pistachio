@@ -101,30 +101,15 @@ namespace Pistachio {
 		}
 		
 	private:
-		static uint32_t AssignHandle(
-			std::vector<uint32_t>& offsetsVector,
-			std::vector<uint32_t>& freeHandlesVector,
-			std::uint32_t offset);
-		static void GrowMeshVertexBuffer(uint32_t minExtraSize);
+		static void GrowMeshBuffer(uint32_t minExtraSize,
+			RHI::BufferUsage usage,
+			MonolithicBuffer& buffer);
 		static void GrowMeshIndexBuffer(uint32_t minExtraSize);
 		static void GrowConstantBuffer(uint32_t minExtraSize);
 
 		static void ChangeRGTexture(RGTextureHandle& texture, RHI::ResourceLayout newLayout, RHI::ResourceAcessFlags newAccess,RHI::QueueFamily newFamily);
-		static void DefragmentMeshVertexBuffer();
-		static void DefragmentMeshIndexBuffer();
+		static void DefragmentMeshBuffer(MonolithicBuffer& buffer);
 		static void DefragmentConstantBuffer();
-		inline static RendererVBHandle AllocateBuffer(
-			FreeList& flist,
-			uint32_t& free_space,
-			uint32_t& fast_space,
-			uint32_t& capacity,
-			decltype(&Renderer::GrowMeshVertexBuffer) grow_fn,
-			decltype(&Renderer::DefragmentMeshVertexBuffer) defrag_fn,
-			std::vector<uint32_t>& offsetsVector,
-			std::vector<uint32_t>& freeHandlesVector,
-			RHI::Ptr<RHI::Buffer>* buffer,
-			uint32_t size, 
-			const void* initialData = nullptr);
 	private:
 		static RendererContext ctx;
 		//-----------OLD-STUFF---------------
