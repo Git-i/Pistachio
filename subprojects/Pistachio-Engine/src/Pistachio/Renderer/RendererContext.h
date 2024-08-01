@@ -1,6 +1,7 @@
 #pragma once
 /*
 Holds data for the Renderer
+
 */
 #include "FormatsAndTypes.h"
 #include "Pistachio/Core.h"

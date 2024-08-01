@@ -116,16 +116,6 @@ namespace Pistachio
 		ShaderDesc.numInputs = Mesh::GetLayoutSize();
 		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
 
-		eqShader = Shader::Create(ShaderDesc);
-		ShaderDesc.PS = { {"resources/shaders/pixel/Compiled/irradiance_fs"},0 };
-		irradianceShader = Shader::Create(ShaderDesc);
-		irradianceShader->GetPSShaderBinding(irradianceShaderPS,1);
-
-		ShaderDesc.VS = { {"resources/shaders/vertex/Compiled/prefilter_vs"},0};
-		ShaderDesc.PS = { {"resources/shaders/pixel/Compiled/prefilter_fs"} ,0};
-		prefilterShader = Shader::Create(ShaderDesc);
-		for(uint32_t i = 0; i < 5; i++)
-			prefilterShader->GetVSShaderBinding(prefilterShaderVS[i], 2);
 
 		computeShaders["Build Clusters"] = ComputeShader::Create({   {"resources/shaders/compute/Compiled/CFBuildClusters_cs"},0 }, RHI::ShaderMode::File);
 		computeShaders["Filter Clusters"] = ComputeShader::Create({  {"resources/shaders/compute/Compiled/CFActiveClusters_cs"},0 }, RHI::ShaderMode::File);
@@ -169,10 +159,10 @@ namespace Pistachio
 		RHI::Ptr<RHI::DescriptorSetLayout> layouts[5]{};
 		rs = RendererBase::Get3dDevice()->CreateRootSignature(&rsDesc, layouts).value();
 
-		Pistachio::Helpers::FillDepthStencilMode(&dsMode, true, RHI::DepthWriteMask::None);
-		Pistachio::Helpers::BlendModeDisabledBlend(&blendMode);
-		Pistachio::Helpers::FillRaseterizerMode(&rsMode);
-		Pistachio::Helpers::ZeroAndFillShaderDesc(&ShaderDesc, 
+		Pistachio::Helpers::FillDepthStencilMode(dsMode, true, RHI::DepthWriteMask::None);
+		Pistachio::Helpers::BlendModeDisabledBlend(blendMode);
+		Pistachio::Helpers::FillRaseterizerMode(rsMode);
+		Pistachio::Helpers::ZeroAndFillShaderDesc(ShaderDesc, 
 			"resources/shaders/vertex/Compiled/VertexShader", 
 			"resources/shaders/pixel/Compiled/CFPBRShader_ps", 1, 1, &dsMode,1, &blendMode,1,&rsMode);
 		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
@@ -201,10 +191,10 @@ namespace Pistachio
 		rs = RendererBase::Get3dDevice()->CreateRootSignature(&rsDesc, layouts).value();
 
 		//Z-Prepass
-		Pistachio::Helpers::FillDepthStencilMode(&dsMode);
-		Pistachio::Helpers::BlendModeDisabledBlend(&blendMode);
-		Pistachio::Helpers::FillRaseterizerMode(&rsMode);
-		Pistachio::Helpers::ZeroAndFillShaderDesc(&ShaderDesc,
+		Pistachio::Helpers::FillDepthStencilMode(dsMode);
+		Pistachio::Helpers::BlendModeDisabledBlend(blendMode);
+		Pistachio::Helpers::FillRaseterizerMode(rsMode);
+		Pistachio::Helpers::ZeroAndFillShaderDesc(ShaderDesc,
 			"resources/shaders/vertex/Compiled/StandaloneVertexShader",
 			nullptr, 0, 1, &dsMode, 1, &blendMode, 1, &rsMode);
 		ShaderDesc.DSVFormat = RHI::Format::D32_FLOAT;
