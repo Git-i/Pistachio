@@ -71,9 +71,6 @@ namespace Pistachio
 		uint32_t     numDirtyCBFrames;
 		FrameResource resources[RendererBase::numFramesInFlight];
 		Texture2D BrdfTex;
-		Shader* eqShader;
-		Shader* irradianceShader;
-		Shader* prefilterShader;
 
 		SamplerHandle defaultSampler;
 		SamplerHandle brdfSampler;

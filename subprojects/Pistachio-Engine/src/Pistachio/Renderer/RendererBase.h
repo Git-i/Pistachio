@@ -3,6 +3,7 @@
 #include "Buffer.h"
 #include "../Core/Instance.h"
 #include "Pistachio/Core/Window.h"
+#include "Pistachio/Renderer/Texture.h"
 #include "Ptr.h"
 namespace Pistachio {
 	enum class CullMode {
@@ -136,6 +137,9 @@ namespace Pistachio {
 		static RHI::Ptr<RHI::Fence> mainFence;
 		static RHI::Ptr<RHI::Fence> stagingFence;
 		static RHI::Ptr<RHI::DescriptorHeap> heap;
+
+		static RHI::Ptr<RHI::Texture> whiteTexture;
+		static RHI::Ptr<RHI::Texture> blackTexture;
 		//Staging buffer to manage GPU resource updates, default size probably 2mb
 		static RHI::Ptr<RHI::Buffer> stagingBuffer;
 		static bool headless;
