@@ -1,12 +1,15 @@
 #include "CommandList.h"
 #include "Device.h"
+#include "FormatsAndTypes.h"
 #include "Ptr.h"
+#include "Texture.h"
 #include "ptpch.h"
 #include "RendererBase.h"
 #include "Pistachio/Core/Log.h"
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Core/Error.h"
 #include "Util/FormatUtils.h"
+#include <cstdint>
 
 RHI::Ptr<RHI::Device>              Pistachio::RendererBase::device;
 RHI::Ptr<RHI::GraphicsCommandList> Pistachio::RendererBase::mainCommandList;
@@ -323,6 +326,31 @@ namespace Pistachio {
 		RHI::AutomaticAllocationInfo allocInfo;
 		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential;
 		stagingBuffer = device->CreateBuffer(stagingBufferDesc, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic).value();
+
+		allocInfo.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
+		auto textureDesc = RHI::TextureDesc{
+			.width = 1,
+			.height = 1,
+			.depthOrArraySize = 1,
+			.format = RHI::Format::R8G8B8A8_UNORM,
+			.mipLevels = 1,
+			.mode = RHI::TextureTilingMode::Optimal,	
+		};
+		whiteTexture = device->CreateTexture(textureDesc, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic).value();
+		blackTexture = device->CreateTexture(textureDesc, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic).value();
+
+		uint8_t whiteData[4] = {255,255,255,255};
+		uint8_t blackData[4] = {0,0,0,0};
+
+		auto textureRange = RHI::SubResourceRange{
+			.imageAspect = RHI::Aspect::COLOR_BIT,
+			.IndexOrFirstMipLevel = 0,
+			.NumMipLevels = 1,
+			.FirstArraySlice = 0,
+			.NumArraySlices = 1,
+		};
+		PushTextureUpdate(whiteTexture, 4, whiteData, &textureRange, {1,1,1}, {0,0,0}, RHI::Format::R8G8B8A8_UNORM);
+		PushTextureUpdate(blackTexture, 4, blackData, &textureRange, {1,1,1}, {0,0,0}, RHI::Format::R8G8B8A8_UNORM);
 
 		//prep for rendering
 		mainCommandList->Begin(commandAllocators[0]);
