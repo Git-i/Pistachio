@@ -114,8 +114,8 @@ public:
 		mat->ChangeParam("Diffuse", 1);
 		
 		mat->ChangeParam("Metallic", .0f);
-		Shader* shader = asset->GetShader();
-		shader->GetPSShaderBinding(mat->mtlInfo, 3);
+		Shader& shader = asset->GetShader();
+		shader.GetPSShaderBinding(mat->mtlInfo, 3);
 		mat->mtlInfo.UpdateTextureBinding(Renderer::GetWhiteTexture().GetView(), 0);
 		mat->mtlInfo.UpdateTextureBinding(Renderer::GetWhiteTexture().GetView(), 1);
 		mat->mtlInfo.UpdateTextureBinding(Renderer::GetWhiteTexture().GetView(), 2);

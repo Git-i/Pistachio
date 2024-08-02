@@ -111,7 +111,7 @@ namespace Pistachio
 		std::string shader_name = data["Shader Asset"].as<std::string>();
 		mat->shader = GetAssetManager()->CreateShaderAsset(shader_name);
 		ShaderAsset* shader = GetAssetManager()->GetShaderResource(mat->shader);
-		shader->GetShader()->GetPSShaderBinding(mat->mtlInfo, 3);
+		shader->GetShader().GetPSShaderBinding(mat->mtlInfo, 3);
 		Renderer::AllocateConstantBuffer(shader->GetParamBufferSize());
 		
 		return mat;
@@ -123,9 +123,9 @@ namespace Pistachio
 	void Material::Bind(RHI::Weak<RHI::GraphicsCommandList> list)
 	{
 		ShaderAsset* shader_asset = GetAssetManager()->GetShaderResource(shader);
-		Shader* shd = shader_asset->GetShader();
-		shd->Bind(list);
-		shd->ApplyBinding(list, mtlInfo);
+		Shader& shd = shader_asset->GetShader();
+		shd.Bind(list);
+		shd.ApplyBinding(list, mtlInfo);
 		list->BindDynamicDescriptor(Renderer::GetCBDescPS(), 4, Renderer::GetCBOffset(parametersBuffer));
 	}
 }
