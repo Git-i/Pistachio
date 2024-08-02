@@ -23,6 +23,8 @@ RHI::Ptr<RHI::CommandQueue>        Pistachio::RendererBase::directQueue;
 std::vector<RHI::Ptr<RHI::Texture>>Pistachio::RendererBase::backBufferTextures; //todo: tripebuffering support
 RHI::Ptr<RHI::DescriptorHeap>      Pistachio::RendererBase::MainRTVheap;
 RHI::Ptr<RHI::DescriptorHeap>      Pistachio::RendererBase::dsvHeap;
+Pistachio::Texture2D			   Pistachio::RendererBase::whiteTexture;
+Pistachio::Texture2D			   Pistachio::RendererBase::blackTexture;
 std::uint64_t             Pistachio::RendererBase::fence_vals[3]; //managing sync across allocators
 std::uint64_t             Pistachio::RendererBase::currentFenceVal=0; //managing sync across allocators
 RHI::Ptr<RHI::Fence>               Pistachio::RendererBase::mainFence;
@@ -336,21 +338,12 @@ namespace Pistachio {
 			.mipLevels = 1,
 			.mode = RHI::TextureTilingMode::Optimal,	
 		};
-		whiteTexture = device->CreateTexture(textureDesc, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic).value();
-		blackTexture = device->CreateTexture(textureDesc, nullptr, nullptr, &allocInfo, 0, RHI::ResourceType::Automatic).value();
 
 		uint8_t whiteData[4] = {255,255,255,255};
 		uint8_t blackData[4] = {0,0,0,0};
 
-		auto textureRange = RHI::SubResourceRange{
-			.imageAspect = RHI::Aspect::COLOR_BIT,
-			.IndexOrFirstMipLevel = 0,
-			.NumMipLevels = 1,
-			.FirstArraySlice = 0,
-			.NumArraySlices = 1,
-		};
-		PushTextureUpdate(whiteTexture, 4, whiteData, &textureRange, {1,1,1}, {0,0,0}, RHI::Format::R8G8B8A8_UNORM);
-		PushTextureUpdate(blackTexture, 4, blackData, &textureRange, {1,1,1}, {0,0,0}, RHI::Format::R8G8B8A8_UNORM);
+		whiteTexture.CreateStack(1,1,RHI::Format::R8G8B8A8_UNORM,whiteData PT_DEBUG_REGION(, "RendererBase -> White Texture"));
+		blackTexture.CreateStack(1,1,RHI::Format::R8G8B8A8_UNORM,blackData PT_DEBUG_REGION(, "RendererBase -> White Texture"));
 
 		//prep for rendering
 		mainCommandList->Begin(commandAllocators[0]);
@@ -702,4 +695,6 @@ namespace Pistachio {
 	RHI::Ptr<RHI::Texture>        RendererBase::GetDefaultDepthTexture() { return depthTexture; }
 	uint32_t             RendererBase::GetCurrentRTVIndex() { return currentRTVindex; }
 	uint32_t             RendererBase::GetCurrentFrameIndex() { return currentFrameIndex;}
+	Texture2D& RendererBase::GetWhiteTexture() { return whiteTexture; }
+	Texture2D& RendererBase::GetBlackTexture() { return blackTexture; }
 }

@@ -93,6 +93,8 @@ namespace Pistachio {
 		static RHI::Ptr<RHI::DescriptorHeap> GetMainDescriptorHeap();
 		static RHI::Ptr<RHI::Texture> GetBackBufferTexture(uint32_t index);
 		static RHI::Ptr<RHI::Texture> GetDefaultDepthTexture();
+		static Texture2D& GetWhiteTexture();
+		static Texture2D& GetBlackTexture();
 		static uint32_t GetCurrentRTVIndex();
 		static uint32_t GetCurrentFrameIndex();
 		static const constexpr uint32_t numFramesInFlight = 3;
@@ -138,8 +140,8 @@ namespace Pistachio {
 		static RHI::Ptr<RHI::Fence> stagingFence;
 		static RHI::Ptr<RHI::DescriptorHeap> heap;
 
-		static RHI::Ptr<RHI::Texture> whiteTexture;
-		static RHI::Ptr<RHI::Texture> blackTexture;
+		static Texture2D whiteTexture;
+		static Texture2D blackTexture;
 		//Staging buffer to manage GPU resource updates, default size probably 2mb
 		static RHI::Ptr<RHI::Buffer> stagingBuffer;
 		static bool headless;
