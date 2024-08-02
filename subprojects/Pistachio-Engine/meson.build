@@ -80,6 +80,7 @@ sources = [
     'src/Pistachio/Renderer/FrameComposer.cpp',
     'src/Pistachio/Renderer/RenderGraph.cpp',
     'src/Pistachio/Renderer/Renderer2D.cpp',
+    'src/Pistachio/Renderer/RendererContext.cpp',
     'src/Pistachio/Renderer/Model.cpp',
     'src/Pistachio/Renderer/ShaderAsset.cpp',
     'src/Pistachio/Renderer/Renderer.cpp',

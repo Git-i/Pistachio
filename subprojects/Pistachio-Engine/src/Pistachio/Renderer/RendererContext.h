@@ -88,7 +88,7 @@ namespace Pistachio
 		SamplerHandle brdfSampler;
 		SamplerHandle shadowSampler;
 
-		StructuredBuffer computeShaderMiscBuffer;
+		
 		std::unordered_map<std::string, ComputeShader*> computeShaders;
 		std::unordered_map<std::string, Shader*> shaders;
     };

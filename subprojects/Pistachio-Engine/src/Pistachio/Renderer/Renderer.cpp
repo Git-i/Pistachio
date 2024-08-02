@@ -19,6 +19,7 @@ static const uint32_t INITIAL_NUM_OBJECTS = 20;
 static const uint32_t NUM_SKYBOX_MIPS = 5;
 
 namespace Pistachio {
+	RendererContext Renderer::ctx;
 	void Renderer::Init(const char* skyboxFile)
 	{
 	}

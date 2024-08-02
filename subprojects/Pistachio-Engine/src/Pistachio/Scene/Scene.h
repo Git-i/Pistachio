@@ -117,9 +117,13 @@ namespace Pistachio {
 		SetInfo cullLightsInfo;
 		SetInfo sceneInfo;
 		SetInfo shadowSetInfo;
+		//Should Move this to the asset system
+		RenderCubeMap irSkybox;
+		RenderCubeMap pfSkybox;
 		DepthTexture shadowMapAtlas;
 		DepthTexture zPrepass;
 		RenderTexture finalRender;
+		StructuredBuffer computeShaderMiscBuffer;
 		ConstantBuffer passCB[RendererBase::numFramesInFlight];
 		RenderGraph graph;
 	};

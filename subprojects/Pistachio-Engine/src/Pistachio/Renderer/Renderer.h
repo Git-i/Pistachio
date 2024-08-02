@@ -12,7 +12,6 @@
 #include "Pistachio/Event/ApplicationEvent.h"
 #include "Pistachio/Asset/AssetManager.h"
 #include "Pistachio/Allocators/AtlasAllocator.h"
-#include "Pistachio/Allocators/FreeList.h"
 #include "BufferHandles.h"
 namespace Pistachio {
 	/*
@@ -111,6 +110,7 @@ namespace Pistachio {
 		static void DefragmentMeshBuffer(MonolithicBuffer& buffer);
 		static void DefragmentConstantBuffer();
 	private:
+		friend class Scene;
 		static RendererContext ctx;
 		//-----------OLD-STUFF---------------
 		/*

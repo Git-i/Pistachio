@@ -177,7 +177,7 @@ namespace Pistachio
 			shadowSampler = RendererBase::CreateSampler(sampler);
 		}
 
-		computeShaderMiscBuffer.CreateStack(nullptr, sizeof(uint32_t) * 2, SBCreateFlags::None);
+		
 
 		RHI::BlendMode blendMode{};
 		Helpers::BlendModeDisabledBlend(blendMode);

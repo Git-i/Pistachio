@@ -35,7 +35,7 @@ namespace Pistachio {
 		vbDesc.usage = RHI::BufferUsage::VertexBuffer | RHI::BufferUsage::CopyDst;
 		RHI::AutomaticAllocationInfo info;
 		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		auto res = RendererBase::Getd3dDevice()->CreateBuffer(vbDesc, nullptr, nullptr,&info, 0, RHI::ResourceType::Automatic);
+		auto res = RendererBase::Get3dDevice()->CreateBuffer(vbDesc, nullptr, nullptr,&info, 0, RHI::ResourceType::Automatic);
 		if(res.is_err())
 		{
 			return Error::FromRHIError(res.err());
@@ -67,7 +67,7 @@ namespace Pistachio {
 		desc.usage = RHI::BufferUsage::IndexBuffer | RHI::BufferUsage::CopyDst;
 		RHI::AutomaticAllocationInfo info;
 		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
-		auto res = RendererBase::Getd3dDevice()->CreateBuffer(desc, nullptr, nullptr, &info,0, RHI::ResourceType::Automatic);
+		auto res = RendererBase::Get3dDevice()->CreateBuffer(desc, nullptr, nullptr, &info,0, RHI::ResourceType::Automatic);
 		if(res.is_err()) return Error::FromRHIError(res.err());
 		if (indices)
 		{
@@ -98,7 +98,7 @@ namespace Pistachio {
 		info.access_mode = ((flags & SBCreateFlags::AllowCPUAccess)==SBCreateFlags::None) ? 
 			RHI::AutomaticAllocationCPUAccessMode::None :
 			RHI::AutomaticAllocationCPUAccessMode::Sequential;
-		auto res = RendererBase::Getd3dDevice()->CreateBuffer(bufferDesc, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
+		auto res = RendererBase::Get3dDevice()->CreateBuffer(bufferDesc, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
 		if(res.is_err()) return Error::FromRHIError(res.err());
 		ID = std::move(res).value();
 		if (data)
@@ -150,7 +150,7 @@ namespace Pistachio {
 		bufferDesc.usage = RHI::BufferUsage::ConstantBuffer;
 		RHI::AutomaticAllocationInfo info;
 		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::Sequential;
-		auto res = RendererBase::Getd3dDevice()->CreateBuffer(bufferDesc, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
+		auto res = RendererBase::Get3dDevice()->CreateBuffer(bufferDesc, nullptr, nullptr, &info, 0, RHI::ResourceType::Automatic);
 		if(res.is_err()) return Error::FromRHIError(res.err());
 		ID = std::move(res).value();
 		if (data)
