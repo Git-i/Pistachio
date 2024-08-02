@@ -33,7 +33,7 @@ namespace Pistachio
 		UnusedHandles.pop_back();
 		return handle;
 	}
-	inline RendererVBHandle MonolithicBufferAllocator::Allocate(
+	RendererVBHandle MonolithicBufferAllocator::Allocate(
 		const std::function<void(uint32_t)>& grow_fn, const std::function<void()>& defrag_fn,
 		uint32_t size,
 		RHI::Ptr<RHI::Buffer> buffer, 

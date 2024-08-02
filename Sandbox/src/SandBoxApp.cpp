@@ -116,10 +116,10 @@ public:
 		mat->ChangeParam("Metallic", .0f);
 		Shader& shader = asset->GetShader();
 		shader.GetPSShaderBinding(mat->mtlInfo, 3);
-		mat->mtlInfo.UpdateTextureBinding(Renderer::GetWhiteTexture().GetView(), 0);
-		mat->mtlInfo.UpdateTextureBinding(Renderer::GetWhiteTexture().GetView(), 1);
-		mat->mtlInfo.UpdateTextureBinding(Renderer::GetWhiteTexture().GetView(), 2);
-		mat->mtlInfo.UpdateTextureBinding(Renderer::GetWhiteTexture().GetView(), 3);
+		mat->mtlInfo.UpdateTextureBinding(RendererBase::GetWhiteTexture().GetView(), 0);
+		mat->mtlInfo.UpdateTextureBinding(RendererBase::GetWhiteTexture().GetView(), 1);
+		mat->mtlInfo.UpdateTextureBinding(RendererBase::GetWhiteTexture().GetView(), 2);
+		mat->mtlInfo.UpdateTextureBinding(RendererBase::GetWhiteTexture().GetView(), 3);
 		mrc.modelIndex = 0;
 		mrc.material = GetAssetManager()->FromResource(mat, "Matrrl", ResourceType::Material);
 		mrc.handle = Renderer::AllocateConstantBuffer(sizeof(DirectX::XMFLOAT4X4) * 2);
