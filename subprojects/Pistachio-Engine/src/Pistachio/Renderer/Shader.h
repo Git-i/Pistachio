@@ -9,6 +9,8 @@
 #include "Core/Device.h"
 #include "Pistachio/Core/Math.h"
 #include "xxhash.h"
+#include <cstdint>
+#include <optional>
 #include <type_traits>
 namespace Pistachio
 {
@@ -201,7 +203,7 @@ namespace Pistachio {
 	public:
 		Shader();
 		~Shader();
-		static Shader* Create(const ShaderCreateDesc& desc);
+		static Shader* Create(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets, std::optional<uint32_t> push_block = std::nullopt);
 		static Shader* CreateWithRs(const ShaderCreateDesc& desc, RHI::Ptr<RHI::RootSignature> rs,RHI::Ptr<RHI::DescriptorSetLayout>* layouts,uint32_t numLayouts);
 		void Bind(RHI::Weak<RHI::GraphicsCommandList> list);
 		void GetDepthStencilMode(RHI::DepthStencilMode& mode);
@@ -224,11 +226,11 @@ namespace Pistachio {
 		}
 	private:
 		void Initialize(const ShaderCreateDesc& desc,RHI::Ptr<RHI::RootSignature> rs);
-		void CreateStack(const ShaderCreateDesc& desc);
+		void CreateStack(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets, std::optional<uint32_t> push_block);
 		void CreateStackRs(const ShaderCreateDesc& desc, RHI::Ptr<RHI::RootSignature> rs, RHI::Ptr<RHI::DescriptorSetLayout>* layouts, uint32_t numLayouts);
 		void CreateSetInfos(RHI::Weak<RHI::ShaderReflection> VSreflection, RHI::Weak<RHI::ShaderReflection> PSreflection);
 		void FillSetInfo(RHI::Weak<RHI::ShaderReflection> reflection,ShaderSetInfos& info);
-		void CreateRootSignature();
+		void CreateRootSignature(std::span<const uint32_t> dynamic_sets, std::optional<uint32_t> push_block);
 	private:
 		friend class ShaderAsset;
 		friend class Renderer;

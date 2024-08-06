@@ -315,7 +315,7 @@ namespace Pistachio {
 				for (auto entt : view)
 				{
 					auto id = view.get<IDComponent>(entt);
-					if (pid == id.uuid)
+					if (pid == static_cast<uint64_t>(id.uuid))
 					{
 						entities[i].GetComponent<HierarchyComponent>().parentID = entt;
 					}
