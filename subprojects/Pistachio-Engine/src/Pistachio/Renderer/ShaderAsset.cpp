@@ -5,10 +5,9 @@
 namespace Pistachio
 {
     std::vector<char>      ShaderAsset::vs;
-    RHI::Ptr<RHI::ShaderReflection> ShaderAsset::VSReflection;
     ShaderAsset::~ShaderAsset()
     {
-        shader.VS.data = nullptr; //avoid the shader destructor deletin this
+        //shader.VS.data = nullptr; //avoid the shader destructor deletin this
     }
     ShaderAsset* ShaderAsset::Create(const char* filename)
     {
@@ -94,9 +93,7 @@ namespace Pistachio
             vs.resize(vsSize);
             vertexShaderFile.seekg(0, std::ios::beg);
             vertexShaderFile.read(vs.data(), vsSize);
-            VSReflection = RHI::ShaderReflection::CreateFromMemory(vs.data(), (uint32_t)vs.size()).value();
         }
-        PSReflection = RHI::ShaderReflection::CreateFromMemory(code.data(), (uint32_t)code.size()).value();
         RHI::BlendMode blendMode{};
         blendMode.BlendAlphaToCoverage = false;
         blendMode.IndependentBlend = true;
@@ -109,8 +106,8 @@ namespace Pistachio
         rsMode.fillMode = RHI::FillMode::Solid;
         rsMode.topology = RHI::PrimitiveTopology::TriangleList;
         ShaderCreateDesc desc{};
-        desc.VS = {vs.data()  ,(uint32_t)vs.size()};
-        desc.PS = {code.data(),(uint32_t)code.size()};
+        desc.VS = {{vs.data()}  ,(uint32_t)vs.size()};
+        desc.PS = {{code.data()},(uint32_t)code.size()};
         desc.BlendModes = &blendMode;
         desc.DepthStencilModes = &dsMode;
         desc.RasterizerModes = &rsMode;
@@ -120,73 +117,9 @@ namespace Pistachio
         desc.NumRenderTargets = 1;
         desc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
         desc.shaderMode = RHI::ShaderMode::Memory;
-        returnVal->shader.VS = { {vs.data()},(uint32_t)vs.size()};
-        returnVal->shader.PS = { {(char*)malloc(code.size())}, (uint32_t)code.size()};
-        memcpy(returnVal->shader.PS.mut_data, code.data(), code.size());
-        returnVal->shader.CreateSetInfos(VSReflection, PSReflection);
 
-        RHI::RootParameterDesc rpDesc[5];
-        rpDesc[0].type = RHI::RootParameterType::DescriptorTable;
-        rpDesc[0].descriptorTable.numDescriptorRanges = 1;
-        rpDesc[0].descriptorTable.setIndex = 0;
-        RHI::DescriptorRange frameCB;
-        frameCB.BaseShaderRegister = 0;
-        frameCB.numDescriptors = 1;
-        frameCB.stage = RHI::ShaderStage::Vertex;
-        frameCB.type = RHI::DescriptorType::ConstantBuffer;
-        rpDesc[0].descriptorTable.ranges = &frameCB;
 
-        rpDesc[1].type = RHI::RootParameterType::DynamicDescriptor;
-        rpDesc[1].dynamicDescriptor.setIndex = 1;
-        rpDesc[1].dynamicDescriptor.stage = RHI::ShaderStage::Vertex;
-        rpDesc[1].dynamicDescriptor.type = RHI::DescriptorType::ConstantBufferDynamic;
-
-        rpDesc[2].type = RHI::RootParameterType::DescriptorTable;
-        rpDesc[2].descriptorTable.setIndex = 2;
-        rpDesc[2].descriptorTable.numDescriptorRanges = 4;//BRDF, irradiance, prefilter, shadowMap
-        RHI::DescriptorRange rendererRanges[4];
-        rendererRanges[0].numDescriptors = 1;
-        rendererRanges[0].stage = RHI::ShaderStage::Pixel;
-        rendererRanges[0].type = RHI::DescriptorType::SampledTexture;
-        rendererRanges[1] = rendererRanges[2] = rendererRanges[3] = rendererRanges[0];
-        for (uint32_t i = 0; i < 4; i++) rendererRanges[i].BaseShaderRegister = i;
-        rpDesc[2].descriptorTable.ranges = rendererRanges;
-
-        rpDesc[3].type = RHI::RootParameterType::DescriptorTable;//Parameters constant buffer
-        //user data
-        std::vector<RHI::DescriptorRange> customRange;
-        customRange.reserve(returnVal->bindingsMap.size());
-        for (auto& [_, index] : returnVal->bindingsMap)
-        {
-            auto& range = customRange.emplace_back();
-            range.BaseShaderRegister = index;
-            range.numDescriptors = 1;
-            range.stage = RHI::ShaderStage::Pixel;
-            range.type = RHI::DescriptorType::SampledTexture;
-        }
-        rpDesc[3].descriptorTable.numDescriptorRanges = (uint32_t)customRange.size();
-        rpDesc[3].descriptorTable.ranges = customRange.data();
-        rpDesc[3].descriptorTable.setIndex = 3;
-
-        rpDesc[4].type = RHI::RootParameterType::DynamicDescriptor;
-        rpDesc[4].dynamicDescriptor.setIndex = 4;
-        rpDesc[4].dynamicDescriptor.type = RHI::DescriptorType::ConstantBufferDynamic;
-        rpDesc[4].dynamicDescriptor.stage = RHI::ShaderStage::Pixel;
-
-        RHI::RootSignatureDesc rsDesc;
-        rsDesc.numRootParameters = 5;
-        rsDesc.rootParameters = rpDesc;
-        
-        RHI::Ptr<RHI::RootSignature> rs;
-        RHI::Ptr<RHI::DescriptorSetLayout> layouts[5];
-        rs = RendererBase::device->CreateRootSignature(&rsDesc,  layouts).value();
-
-        returnVal->shader.Initialize(desc, rs);
-        for (uint32_t i = 0; i < 4; i++)
-        {
-            returnVal->shader.layouts.push_back(layouts[i]);
-        }
-        
+        returnVal->shader.CreateStack(desc, {{1u}}, std::nullopt);
         return returnVal;
     }
     ParamInfo ShaderAsset::GetParameterInfo(const std::string& paramName)

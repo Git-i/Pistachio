@@ -1,6 +1,7 @@
 #include "Barrier.h"
 #include "CommandList.h"
 #include "FormatsAndTypes.h"
+#include "Pistachio/Core.h"
 #include "Pistachio/Renderer/RendererBase.h"
 #include "Ptr.h"
 #include "Texture.h"
@@ -49,7 +50,7 @@ namespace Pistachio
                 RendererBase::directQueue->ExecuteCommandLists(&cmdLists[0]->ID, 1);
                 RendererBase::directQueue->SignalFence(fence, ++maxFence);
             }
-            RESULT res = RendererBase::device->QueueWaitIdle(RendererBase::directQueue);
+            //RESULT res = RendererBase::device->QueueWaitIdle(RendererBase::directQueue);
             return;
         }
 
@@ -446,21 +447,24 @@ namespace Pistachio
             barr.newLayout = barrier.newLayout;
         }
         if (
-            tex.current_layout != barrier.newLayout ||
-            tex.currentFamily != srcQueue
+            tex.current_layout == barrier.newLayout &&
+            tex.currentFamily == srcQueue
             )
         {
-            //transition
-            barrier.AccessFlagsBefore = tex.currentAccess;
-            barrier.oldLayout = tex.current_layout;
-            barrier.texture = tex.texture;
-            barrier.subresourceRange = range;
-            barrier.previousQueue = tex.currentFamily == srcQueue ? RHI::QueueFamily::Ignored : tex.currentFamily;
-            barrier.nextQueue = tex.currentFamily == srcQueue ? RHI::QueueFamily::Ignored : srcQueue;
-            tex.currentFamily = srcQueue;
-            tex.current_layout = barrier.newLayout;
-            tex.currentAccess = barrier.AccessFlagsAfter;
+            barriers.pop_back();
+            return;
         }
+        
+        //transition
+        barrier.AccessFlagsBefore = tex.currentAccess;
+        barrier.oldLayout = tex.current_layout;
+        barrier.texture = tex.texture;
+        barrier.subresourceRange = range;
+        barrier.previousQueue = tex.currentFamily == srcQueue ? RHI::QueueFamily::Ignored : tex.currentFamily;
+        barrier.nextQueue = tex.currentFamily == srcQueue ? RHI::QueueFamily::Ignored : srcQueue;
+        tex.currentFamily = srcQueue;
+        tex.current_layout = barrier.newLayout;
+        tex.currentAccess = barrier.AccessFlagsAfter;
     }
     void FillBufferBarrier(RGBuffer& buff, BufferAttachmentInfo& info,
         std::vector<RHI::BufferMemoryBarrier>& barriers,
@@ -481,20 +485,20 @@ namespace Pistachio
             barr.buffer = buff.buffer;
         }
         barrier.AccessFlagsAfter = access_fn(info.usage);
-        if (
-            buff.currentFamily != srcQueue
-            )
+        //transition
+        if(buff.currentFamily == srcQueue)
         {
-            //transition
-            barrier.AccessFlagsBefore = buff.currentAccess;
-            barrier.buffer = buff.buffer;
-            barrier.previousQueue = buff.currentFamily;
-            barrier.nextQueue = srcQueue;
-            barrier.offset = buff.offset;
-            barrier.size = buff.size;
-            buff.currentAccess = barrier.AccessFlagsAfter;
-            buff.currentFamily = srcQueue;
+            barriers.pop_back();
+            return;
         }
+        barrier.AccessFlagsBefore = buff.currentAccess;
+        barrier.buffer = buff.buffer;
+        barrier.previousQueue = buff.currentFamily;
+        barrier.nextQueue = srcQueue;
+        barrier.offset = buff.offset;
+        barrier.size = buff.size;
+        buff.currentAccess = barrier.AccessFlagsAfter;
+        buff.currentFamily = srcQueue;
     }
     enum AttachmentType
     {
@@ -532,6 +536,7 @@ namespace Pistachio
             Desc.TextureArray = tex.IsArray;
             Desc.textureMipSlice = tex.mipSlice;
            if constexpr (type == AttachRT) *handle = RendererBase::CreateRenderTargetView(tex.texture, Desc);
+           if constexpr (type == AttachDS) *handle = RendererBase::CreateDepthStencilView(tex.texture, Desc);
         }
         attachment.ImageView = RendererBase::GetCPUHandle(*handle);
     }
@@ -860,6 +865,10 @@ namespace Pistachio
     void RenderGraph::Compile()
     {
         SortPasses();
+        for(auto& buf : this->buffers)
+            PT_CORE_ASSERT(buf.buffer.IsValid());
+        for(auto& tex : this->textures)
+            PT_CORE_ASSERT(tex.texture.IsValid());
         cmdLists.clear();
         computeCmdLists.clear();
         size_t numGFXCmdLists = levelTransitionIndices.size();

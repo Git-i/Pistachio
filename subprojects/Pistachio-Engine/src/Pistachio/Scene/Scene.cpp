@@ -1,5 +1,6 @@
 #include "CommandList.h"
 #include "DirectXMath.h"
+#include "FormatsAndTypes.h"
 #include "Pistachio/Renderer/BufferHandles.h"
 #include "Pistachio/Renderer/Mesh.h"
 #include "Pistachio/Renderer/RenderGraph.h"
@@ -134,7 +135,8 @@ namespace Pistachio {
 		shadowMarker.CreateStack(nullptr, sizeof(uint32_t));
 		shadowMapAtlas.CreateStack(1024, 1024,1, RHI::Format::D32_FLOAT PT_DEBUG_REGION(, "Scene -> Shadow Map"));
 		computeShaderMiscBuffer.CreateStack(nullptr, sizeof(uint32_t) * 2, SBCreateFlags::None);
-
+		irSkybox.CreateStack(1, 1, 1, RHI::Format::R8G8B8A8_UNORM PT_DEBUG_REGION(, "Scene -> irSkybox"));
+		pfSkybox.CreateStack(1, 1, 1, RHI::Format::R8G8B8A8_UNORM PT_DEBUG_REGION(, "Scene -> pfSkybox"));
 		ComputeShader* shd_buildClusters = Renderer::GetBuiltinComputeShader("Build Clusters");
 		ComputeShader* shd_activeClusters = Renderer::GetBuiltinComputeShader("Filter Clusters");
 		ComputeShader* shd_tightenList = Renderer::GetBuiltinComputeShader("Tighten Clusters");
@@ -147,8 +149,8 @@ namespace Pistachio {
 		{
 			passCB[i].CreateStack(nullptr, sizeof(PassConstants));
 			shd_buildClusters->GetShaderBinding(passCBinfoCMP[i], 1);
-			shd_prepass->GetVSShaderBinding(passCBinfoGFX[i], 1);
-			shd_fwd->GetVSShaderBinding(passCBinfoVS_PS[i], 1);
+			shd_prepass->GetShaderBinding(passCBinfoGFX[i], 1);
+			shd_fwd->GetShaderBinding(passCBinfoVS_PS[i], 1);
 
 			BufferBindingUpdateDesc bbud;
 			bbud.buffer = passCB[i].GetID();
@@ -160,7 +162,7 @@ namespace Pistachio {
 			passCBinfoVS_PS[i].UpdateBufferBinding(bbud, 0);
 			
 		}
-		shd_fwd->GetPSShaderBinding(sceneInfo, 2);
+		shd_fwd->GetShaderBinding(sceneInfo, 2);
 		sceneInfo.UpdateTextureBinding(Renderer::ctx.BrdfTex.GetView(), 0);
 		sceneInfo.UpdateTextureBinding(irSkybox.GetView(), 1);
 		sceneInfo.UpdateTextureBinding(pfSkybox.GetView(), 2);
@@ -174,7 +176,7 @@ namespace Pistachio {
 		sceneInfo.UpdateSamplerBinding(Renderer::ctx.defaultSampler, 8);
 		sceneInfo.UpdateSamplerBinding(Renderer::ctx.shadowSampler, 9);
 
-		shd_Shadow->GetVSShaderBinding(shadowSetInfo, 1);
+		shd_Shadow->GetShaderBinding(shadowSetInfo, 1);
 		shadowSetInfo.UpdateBufferBinding(lightList.GetID(), 0, lightListSize, RHI::DescriptorType::StructuredBuffer, 0);
 
 		shd_buildClusters->GetShaderBinding(buildClusterInfo, 0);
@@ -1211,7 +1213,6 @@ namespace Pistachio {
 		
 		graph.Execute();
 		graph.SubmitToQueue();
-		this;
 		RHI::SubResourceRange range;
 		range.FirstArraySlice = 0;
 		range.imageAspect = RHI::Aspect::COLOR_BIT;

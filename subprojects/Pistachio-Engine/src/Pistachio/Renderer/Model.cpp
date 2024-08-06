@@ -10,9 +10,19 @@
  * Ill probably get to optimize/potentially rewrite it later on
 */
 namespace Pistachio {
-    Model* Model::Create(const char* path)
+    Result<Model*> Model::Create(const char* path)
     {
-        return new Model(path);
+        Model* md = new Model;
+        auto e = md->loadModel(path);
+        if(e.GetErrorType() != ErrorType::Success)
+        {
+            delete md;
+            return ezr::err(std::move(e));
+        }
+        else
+        {
+            return ezr::ok(std::move(md));
+        }
     }
     Error Model::loadModel(const char* path)
     {

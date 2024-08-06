@@ -111,7 +111,7 @@ namespace Pistachio
 		std::string shader_name = data["Shader Asset"].as<std::string>();
 		mat->shader = GetAssetManager()->CreateShaderAsset(shader_name);
 		ShaderAsset* shader = GetAssetManager()->GetShaderResource(mat->shader);
-		shader->GetShader().GetPSShaderBinding(mat->mtlInfo, 3);
+		shader->GetShader().GetShaderBinding(mat->mtlInfo, 3);
 		Renderer::AllocateConstantBuffer(shader->GetParamBufferSize());
 		
 		return mat;
