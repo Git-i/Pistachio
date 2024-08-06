@@ -4,14 +4,16 @@
 #include "FormatsAndTypes.h"
 #include "PipelineStateObject.h"
 #include "Pistachio/Asset/AssetManager.h"
+#include "Pistachio/Core/Log.h"
 #include "Pistachio/Renderer/Shader.h"
 #include "Pistachio/Renderer/ShaderAsset.h"
+#include "RootSignature.h"
+#include "ShaderReflect.h"
+#include <initializer_list>
 static const uint32_t VB_INITIAL_SIZE = 1024;
 static const uint32_t IB_INITIAL_SIZE = 1024;
-static const uint32_t INITIAL_NUM_LIGHTS = 20;
 static const uint32_t INITIAL_NUM_OBJECTS = 20;
 
-static const uint32_t NUM_SKYBOX_MIPS = 5;
 namespace Pistachio
 {
     void MonolithicBufferAllocator::Initialize(uint32_t initialSize)
@@ -199,48 +201,23 @@ namespace Pistachio
 		ShaderDesc.numInputs = Mesh::GetLayoutSize();
 		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
 
-
+		PT_CORE_INFO("Creating Compute Shaders...");
+		PT_CORE_INFO("Build Clusters");
 		computeShaders["Build Clusters"] = ComputeShader::Create({   {"resources/shaders/compute/Compiled/CFBuildClusters_cs"},0 }, RHI::ShaderMode::File);
+		PT_CORE_INFO("Filter Clusters");
 		computeShaders["Filter Clusters"] = ComputeShader::Create({  {"resources/shaders/compute/Compiled/CFActiveClusters_cs"},0 }, RHI::ShaderMode::File);
+		PT_CORE_INFO("Filter Clusters");
 		computeShaders["Tighten Clusters"] = ComputeShader::Create({ {"resources/shaders/compute/Compiled/CFTightenList_cs"},0 }, RHI::ShaderMode::File);
+		PT_CORE_INFO("Cull Lights");
 		computeShaders["Cull Lights"] = ComputeShader::Create({ {"resources/shaders/compute/Compiled/CFCullLights_cs"},0 }, RHI::ShaderMode::File);
 		
-		RHI::RootParameterDesc rpDesc[5];
-		RHI::DescriptorRange FrameCBRange;
-		Pistachio::Helpers::FillDescriptorRange(&FrameCBRange, 1, 0, RHI::ShaderStage::Vertex | RHI::ShaderStage::Pixel, RHI::DescriptorType::ConstantBuffer);
-		Pistachio::Helpers::FillDynamicDescriptorRootParam(rpDesc + 0, 0, RHI::DescriptorType::ConstantBufferDynamic, RHI::ShaderStage::Vertex);
-		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 1, 1, 1, &FrameCBRange);
 
+		std::array<RHI::Ptr<RHI::ShaderReflection>, 2> refls;
+		refls[0] = RHI::ShaderReflection::CreateFromFile("resources/shaders/vertex/Compiled/VertexShader").value();
+		refls[1] = RHI::ShaderReflection::CreateFromFile("resources/shaders/pixel/Compiled/CFPBRShader_ps").value();
 
-		RHI::DescriptorRange RendererPsRanges[10];
-		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 0, 1, 0, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//brdf
-		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 1, 1, 1, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//prefilter
-		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 2, 1, 2, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//irradiance
-		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 3, 1, 3, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//shadow map
-		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 4, 1, 4, RHI::ShaderStage::Pixel, RHI::DescriptorType::StructuredBuffer);//light grid
-		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 5, 1, 5, RHI::ShaderStage::Pixel, RHI::DescriptorType::StructuredBuffer);//lights
-		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 6, 1, 6, RHI::ShaderStage::Pixel, RHI::DescriptorType::StructuredBuffer);//light index list
-		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 7, 1, 7, RHI::ShaderStage::Pixel, RHI::DescriptorType::Sampler);//brdf sampler
-		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 8, 1, 8, RHI::ShaderStage::Pixel, RHI::DescriptorType::Sampler);//shadow sampler
-		Pistachio::Helpers::FillDescriptorRange(RendererPsRanges + 9, 1, 9, RHI::ShaderStage::Pixel, RHI::DescriptorType::Sampler);//texture sampler
-		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 2, 10, 2, RendererPsRanges);
-
-		RHI::DescriptorRange materialRanges[4];
-		Pistachio::Helpers::FillDescriptorRange(materialRanges + 0, 1, 0, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//diffuse
-		Pistachio::Helpers::FillDescriptorRange(materialRanges + 1, 1, 1, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//metallic
-		Pistachio::Helpers::FillDescriptorRange(materialRanges + 2, 1, 2, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//roughness
-		Pistachio::Helpers::FillDescriptorRange(materialRanges + 3, 1, 3, RHI::ShaderStage::Pixel, RHI::DescriptorType::SampledTexture);//normal
-		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 3, 4, 3, materialRanges);
-
-		Pistachio::Helpers::FillDynamicDescriptorRootParam(rpDesc + 4, 4, RHI::DescriptorType::ConstantBufferDynamic, RHI::ShaderStage::Pixel);
-
-		RHI::RootSignatureDesc rsDesc;
-		rsDesc.numRootParameters = 5;
-		rsDesc.rootParameters = rpDesc;
-
-		RHI::Ptr<RHI::RootSignature> rs;
-		RHI::Ptr<RHI::DescriptorSetLayout> layouts[5]{};
-		rs = RendererBase::Get3dDevice()->CreateRootSignature(&rsDesc, layouts).value();
+		auto[rsd,_1,_2] = RHI::ShaderReflection::FillRootSignatureDesc(refls, {{0u,4u}});
+		
 
 		Pistachio::Helpers::FillDepthStencilMode(dsMode, true, RHI::DepthWriteMask::None);
 		Pistachio::Helpers::BlendModeDisabledBlend(blendMode);

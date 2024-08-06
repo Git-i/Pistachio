@@ -1,9 +1,11 @@
+#include "PipelineStateObject.h"
 #include "Ptr.h"
 #include "ShaderReflect.h"
 #include "Util/FormatUtils.h"
 #include "ptpch.h"
 #include "Shader.h"
 #include "RendererBase.h"
+#include <optional>
 #define VERTEX_SHADER(ID) ((ID3D11VertexShader*)ID.Get())
 #define VERTEX_SHADER_PP(ID) ((ID3D11VertexShader**)ID.GetAddressOf())
 
@@ -240,10 +242,10 @@ namespace Pistachio {
 		if (DS.data) free(const_cast<char*>(DS.data));
 	}
 
-	Shader* Shader::Create(const ShaderCreateDesc& desc)
+	Shader* Shader::Create(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets)
 	{
 		Shader* shader = new Shader;
-		shader->CreateStack(desc);
+		shader->CreateStack(desc, dynamic_sets);
 		return shader;
 	}
 
@@ -456,7 +458,7 @@ namespace Pistachio {
 		}
 		currentPSO = PSOs.begin()->first;
 	}
-	void Shader::CreateStack(const ShaderCreateDesc& desc)
+	void Shader::CreateStack(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets)
 	{
 		VS = desc.VS;
 		PS = desc.PS;
@@ -500,97 +502,29 @@ namespace Pistachio {
 		}
 	}
 
-	void Shader::CreateRootSignature()
+	void Shader::CreateRootSignature(std::span<const uint32_t> dynamic_sets, std::optional<uint32_t> push_block)
 	{
-		// Creating an RHI::RootSignature
-		// we first need to reflect the vertex and pixel shaders
-		RHI::Ptr<RHI::ShaderReflection> VSreflection;
-		RHI::Ptr<RHI::ShaderReflection> PSreflection;
-		RHI::RootSignatureDesc RSdesc;
-		std::vector<RHI::RootParameterDesc> rootParams;
-		std::vector<RHI::DescriptorRange> ranges;
-		uint32_t rangeOffset = 0;
-		if (VS.data)
+		//RHI's reflection API will take of this for us
+		std::vector<RHI::Ptr<RHI::ShaderReflection>> reflections;
+		if(mode == RHI::File)
 		{
-			if (mode == RHI::ShaderMode::File)
-				VSreflection = RHI::ShaderReflection::CreateFromFile(VS.data).value();
-			else
-				VSreflection = RHI::ShaderReflection::CreateFromMemory(VS.data, VS.size).value();
-			uint32_t numSets = VSreflection->GetNumDescriptorSets();
-			std::vector<RHI::SRDescriptorSet> sets(numSets);
-			VSreflection->GetAllDescriptorSets(sets.data());
-			for (uint32_t i = 0; i < numSets; i++)
-			{
-				RHI::RootParameterDesc desc;
-
-				desc.type = RHI::RootParameterType::DescriptorTable;
-				desc.descriptorTable.setIndex = sets[i].setIndex;
-				desc.descriptorTable.numDescriptorRanges = sets[i].bindingCount;
-				desc.descriptorTable.ranges = (RHI::DescriptorRange*)rangeOffset;
-
-				std::vector<RHI::SRDescriptorBinding> bindings(sets[i].bindingCount);
-				VSreflection->GetDescriptorSetBindings(&sets[i], bindings.data());
-
-				//fill out all the ranges (descriptors)
-				for (uint32_t j = 0; j < sets[i].bindingCount; j++)
-				{
-					RHI::DescriptorRange range;
-					range.BaseShaderRegister = bindings[j].bindingSlot;
-					range.numDescriptors = bindings[j].count;
-					range.type = bindings[j].resourceType;
-					range.stage = RHI::ShaderStage::Vertex;
-					ranges.push_back(range);
-					rangeOffset++;
-				}
-				rootParams.push_back(desc);
-			}
-			CreateSetInfos(VSreflection, nullptr);
+			if(VS.data) reflections.push_back(RHI::ShaderReflection::CreateFromFile(VS.data).value());
+			if(PS.data) reflections.push_back(RHI::ShaderReflection::CreateFromFile(PS.data).value());
+			if(GS.data) reflections.push_back(RHI::ShaderReflection::CreateFromFile(GS.data).value());
+			if(HS.data) reflections.push_back(RHI::ShaderReflection::CreateFromFile(HS.data).value());
+			if(DS.data) reflections.push_back(RHI::ShaderReflection::CreateFromFile(DS.data).value());
 		}
-		if (PS.data)
+		else if (mode == RHI::Memory)
 		{
-			if (mode == RHI::ShaderMode::File)
-				PSreflection = RHI::ShaderReflection::CreateFromFile(PS.data).value();
-			else
-				PSreflection = RHI::ShaderReflection::CreateFromMemory(PS.data, PS.size).value();
-			uint32_t numSets = PSreflection->GetNumDescriptorSets();
-			std::vector<RHI::SRDescriptorSet> sets(numSets);
-			PSreflection->GetAllDescriptorSets(sets.data());
-			for (uint32_t i = 0; i < numSets; i++)
-			{
-				RHI::RootParameterDesc desc;
-				desc.descriptorTable.setIndex = sets[i].setIndex;
-				desc.type = RHI::RootParameterType::DescriptorTable;
-				desc.descriptorTable.numDescriptorRanges = sets[i].bindingCount;
-				desc.descriptorTable.ranges = (RHI::DescriptorRange*)rangeOffset;
-
-				std::vector<RHI::SRDescriptorBinding> bindings(sets[i].bindingCount);
-				PSreflection->GetDescriptorSetBindings(&sets[i], bindings.data());
-
-				//fill out all the ranges (descriptors)
-				for (uint32_t j = 0; j < sets[i].bindingCount; j++)
-				{
-					RHI::DescriptorRange range;
-					range.BaseShaderRegister = bindings[j].bindingSlot;
-					range.numDescriptors = bindings[j].count;
-					range.type = bindings[j].resourceType;
-					range.stage = RHI::ShaderStage::Pixel;
-					ranges.emplace_back(range);
-					rangeOffset++;
-				}
-				
-				rootParams.push_back(desc);
-			}
-			CreateSetInfos(nullptr,PSreflection);
+			if(VS.data) reflections.push_back(RHI::ShaderReflection::CreateFromMemory(VS.data, VS.size).value());
+			if(PS.data) reflections.push_back(RHI::ShaderReflection::CreateFromMemory(PS.data, PS.size).value());
+			if(GS.data) reflections.push_back(RHI::ShaderReflection::CreateFromMemory(GS.data, GS.size).value());
+			if(HS.data) reflections.push_back(RHI::ShaderReflection::CreateFromMemory(HS.data, HS.size).value());
+			if(DS.data) reflections.push_back(RHI::ShaderReflection::CreateFromMemory(DS.data, DS.size).value());
 		}
-		for (auto& param : rootParams)
-		{
-			param.descriptorTable.ranges = &ranges[(size_t)param.descriptorTable.ranges];
-		}
-		RSdesc.numRootParameters = (uint32_t)rootParams.size();
-		RSdesc.rootParameters = rootParams.data();
-		numLayouts = (uint32_t)rootParams.size();
-		layouts.resize(numLayouts);
-		rootSig = RendererBase::Get3dDevice()->CreateRootSignature(&RSdesc, layouts.data()).value();
+		auto[rsd,_1,_2] = RHI::ShaderReflection::FillRootSignatureDesc(reflections, dynamic_sets, push_block);
+		layouts.resize(rsd.numRootParameters);
+		rootSig = RendererBase::Get3dDevice()->CreateRootSignature(&rsd, layouts.data()).value();
 	}
 
 

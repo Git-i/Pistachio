@@ -69,11 +69,11 @@ namespace Pistachio {
 		info.access_mode = RHI::AutomaticAllocationCPUAccessMode::None;
 		auto res = RendererBase::Get3dDevice()->CreateBuffer(desc, nullptr, nullptr, &info,0, RHI::ResourceType::Automatic);
 		if(res.is_err()) return Error::FromRHIError(res.err());
+		ID = std::move(res).value();
 		if (indices)
 		{
 			RendererBase::PushBufferUpdate(ID, 0, indices, size);
 		}
-		ID = std::move(res).value();
 		return Error();
 	}
 	Result<IndexBuffer*> IndexBuffer::Create(const void* indices, std::uint32_t size, std::uint32_t stride)

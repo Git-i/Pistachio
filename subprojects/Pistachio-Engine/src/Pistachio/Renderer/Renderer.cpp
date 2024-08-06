@@ -22,6 +22,7 @@ namespace Pistachio {
 	RendererContext Renderer::ctx;
 	void Renderer::Init(const char* skyboxFile)
 	{
+		ctx.Initailize();
 	}
 	void Renderer::ChangeRGTexture(RGTextureHandle& texture, RHI::ResourceLayout newLayout, RHI::ResourceAcessFlags newAccess,RHI::QueueFamily newFamily)
 	{

@@ -1,5 +1,6 @@
 #include "ptpch.h"
 #include "Pistachio/Renderer/Material.h"
+#include <cstdint>
 #include "AssetManager.h"
 
 namespace Pistachio
@@ -14,7 +15,7 @@ namespace Pistachio
 		auto assetMan = GetAssetManager();
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
-		if (m_uuid != 0)
+		if (static_cast<uint64_t>(m_uuid) != 0)
 			assetMan->assetResourceMap[m_uuid]->hold();
 	}
 	void Asset::operator=(const Asset& other)
@@ -34,7 +35,7 @@ namespace Pistachio
 		}
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
-		if (m_uuid != 0)
+		if (static_cast<uint64_t>(m_uuid) != 0)
 			assetMan->assetResourceMap[m_uuid]->hold();
 	}
 	void Asset::operator=(Asset&& other) noexcept
@@ -54,7 +55,7 @@ namespace Pistachio
 		}
 		m_type = other.m_type;
 		m_uuid = other.m_uuid;
-		if (m_uuid != 0)
+		if (static_cast<uint64_t>(m_uuid) != 0)
 			assetMan->assetResourceMap[m_uuid]->hold();
 		other.~Asset();
 	}

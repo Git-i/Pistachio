@@ -1,6 +1,7 @@
 #include "CommandList.h"
 #include "Device.h"
 #include "FormatsAndTypes.h"
+#include "PhysicalDevice.h"
 #include "Ptr.h"
 #include "Texture.h"
 #include "ptpch.h"
@@ -114,6 +115,10 @@ namespace Pistachio {
 			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
 		}
 		//wait for the the cmd allocator to be done
+	}
+	static inline RHI::PhysicalDevice* SelectPhysicalDevice()
+	{
+		
 	}
 	bool RendererBase::Init(PlatformData* pd, InitOptions& options)
 	{
