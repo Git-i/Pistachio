@@ -6,6 +6,7 @@
 
 #include "Mesh.h"
 #include "../Asset/RefCountedObject.h"
+#include "Pistachio/Core/Error.h"
 #include "Pistachio/Core/Math.h"
 namespace Pistachio {
     class PISTACHIO_API Model : public RefCountedObject
@@ -14,13 +15,9 @@ namespace Pistachio {
         // model data 
         std::vector<Mesh> meshes;
         std::vector<BoundingBox> aabbs;
-        // constructor, expects a filepath to a 3D model.
-        Model(const char* path)
-        {
-            Error::LogErrorToConsole(loadModel(path));
-        }
+        
 
-        static Model* Create(const char* path);
+        static Result<Model*> Create(const char* path);
     private:
         // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
         Error loadModel(const char* path);

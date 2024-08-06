@@ -204,15 +204,13 @@ namespace Pistachio {
 		Shader();
 		~Shader();
 		static Shader* Create(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets, std::optional<uint32_t> push_block = std::nullopt);
-		static Shader* CreateWithRs(const ShaderCreateDesc& desc, RHI::Ptr<RHI::RootSignature> rs,RHI::Ptr<RHI::DescriptorSetLayout>* layouts,uint32_t numLayouts);
 		void Bind(RHI::Weak<RHI::GraphicsCommandList> list);
 		void GetDepthStencilMode(RHI::DepthStencilMode& mode);
 		uint32_t SetDepthStencilMode(const RHI::DepthStencilMode& mode, ShaderModeSetFlags flags);
 		void GetRasterizerMode(const RHI::RasterizerMode& mode);
 		uint32_t SetRasterizerMode(const RHI::RasterizerMode& mode, ShaderModeSetFlags flags);
 		void GetBlendMode(const RHI::BlendMode& mode);
-		void GetVSShaderBinding(SetInfo& info, uint32_t setIndex);
-		void GetPSShaderBinding(SetInfo& info, uint32_t setIndex);
+		void GetShaderBinding(SetInfo& info, uint32_t setIndex);
 		void ApplyBinding(RHI::Weak<RHI::GraphicsCommandList> list, const SetInfo& info);
 		RHI::Ptr<RHI::RootSignature> GetRootSignature() { return rootSig; };
 		uint32_t SetBlendMode(const RHI::BlendMode& mode, ShaderModeSetFlags flags);
@@ -224,20 +222,16 @@ namespace Pistachio {
 			static_assert(std::is_invocable_v<Fn, const RHI::DepthStencilMode&>, "Invalid Function Passed");
 			return fn(ds);
 		}
+		void CreateStack(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets, std::optional<uint32_t> push_block);
 	private:
 		void Initialize(const ShaderCreateDesc& desc,RHI::Ptr<RHI::RootSignature> rs);
-		void CreateStack(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets, std::optional<uint32_t> push_block);
-		void CreateStackRs(const ShaderCreateDesc& desc, RHI::Ptr<RHI::RootSignature> rs, RHI::Ptr<RHI::DescriptorSetLayout>* layouts, uint32_t numLayouts);
-		void CreateSetInfos(RHI::Weak<RHI::ShaderReflection> VSreflection, RHI::Weak<RHI::ShaderReflection> PSreflection);
-		void FillSetInfo(RHI::Weak<RHI::ShaderReflection> reflection,ShaderSetInfos& info);
+		void FillSetInfo(RHI::RootSignatureDesc& dsc);
 		void CreateRootSignature(std::span<const uint32_t> dynamic_sets, std::optional<uint32_t> push_block);
 	private:
-		friend class ShaderAsset;
 		friend class Renderer;
 		friend class RendererContext;
 		std::unordered_map<PSOHash, RHI::Ptr<RHI::PipelineStateObject>> PSOs;
-		ShaderSetInfos m_VSinfo;
-		ShaderSetInfos m_PSinfo;
+		ShaderSetInfos m_infos;
 		RHI::Ptr<RHI::RootSignature> rootSig;
 		std::vector<RHI::Ptr<RHI::DescriptorSetLayout>> layouts;
 		uint32_t numLayouts;

@@ -23,6 +23,7 @@ namespace Pistachio
 		Matrix4 transform;
 		Matrix4 normal;
 	};
+	struct MonolithicBuffer;
     struct MonolithicBufferAllocator
     {
         void Initialize(uint32_t initialSize);
@@ -40,7 +41,7 @@ namespace Pistachio
 		RendererVBHandle Allocate(
 			const std::function<void(uint32_t)>&, const std::function<void()>&,
 			uint32_t size,
-			RHI::Ptr<RHI::Buffer> buffer = nullptr, 
+			MonolithicBuffer* buffer = nullptr, 
 			const void* initialData = nullptr);
 		void DeAllocate(RendererVBHandle handle);	
     };

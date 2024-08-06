@@ -8,6 +8,6 @@ namespace Pistachio {
 		int release() const;
 		int count();
 	private:
-		mutable int m_count_ = 0;
+		mutable int m_count_ = 1;
 	};
 }

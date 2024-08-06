@@ -10,6 +10,7 @@
 #include "RootSignature.h"
 #include "ShaderReflect.h"
 #include <initializer_list>
+#include <optional>
 static const uint32_t VB_INITIAL_SIZE = 1024;
 static const uint32_t IB_INITIAL_SIZE = 1024;
 static const uint32_t INITIAL_NUM_OBJECTS = 20;
@@ -38,9 +39,11 @@ namespace Pistachio
 	RendererVBHandle MonolithicBufferAllocator::Allocate(
 		const std::function<void(uint32_t)>& grow_fn, const std::function<void()>& defrag_fn,
 		uint32_t size,
-		RHI::Ptr<RHI::Buffer> buffer, 
+		MonolithicBuffer* m_buffer, 
 		const void* initialData)
 	{
+		RHI::Ptr<RHI::Buffer> buffer;
+		if(m_buffer) buffer = m_buffer->buffer;
 		RendererVBHandle handle;
 		//check if we have immediate space available
 		if (size < freeFastSpace)
@@ -96,7 +99,7 @@ namespace Pistachio
 			PT_CORE_WARN("Growing Buffer");
 			grow_fn(size);
 			//growth doesnt guarantee that the free space is "Fast" it just guarantees we'll have enough space for the op
-			return Allocate(grow_fn,defrag_fn,size, buffer,initialData);
+			return Allocate(grow_fn,defrag_fn,size, m_buffer,initialData);
 			//allocate to buffer end
 		}
 		return handle;
@@ -206,17 +209,11 @@ namespace Pistachio
 		computeShaders["Build Clusters"] = ComputeShader::Create({   {"resources/shaders/compute/Compiled/CFBuildClusters_cs"},0 }, RHI::ShaderMode::File);
 		PT_CORE_INFO("Filter Clusters");
 		computeShaders["Filter Clusters"] = ComputeShader::Create({  {"resources/shaders/compute/Compiled/CFActiveClusters_cs"},0 }, RHI::ShaderMode::File);
-		PT_CORE_INFO("Filter Clusters");
+		PT_CORE_INFO("Tighten Clusters");
 		computeShaders["Tighten Clusters"] = ComputeShader::Create({ {"resources/shaders/compute/Compiled/CFTightenList_cs"},0 }, RHI::ShaderMode::File);
 		PT_CORE_INFO("Cull Lights");
 		computeShaders["Cull Lights"] = ComputeShader::Create({ {"resources/shaders/compute/Compiled/CFCullLights_cs"},0 }, RHI::ShaderMode::File);
 		
-
-		std::array<RHI::Ptr<RHI::ShaderReflection>, 2> refls;
-		refls[0] = RHI::ShaderReflection::CreateFromFile("resources/shaders/vertex/Compiled/VertexShader").value();
-		refls[1] = RHI::ShaderReflection::CreateFromFile("resources/shaders/pixel/Compiled/CFPBRShader_ps").value();
-
-		auto[rsd,_1,_2] = RHI::ShaderReflection::FillRootSignatureDesc(refls, {{0u,4u}});
 		
 
 		Pistachio::Helpers::FillDepthStencilMode(dsMode, true, RHI::DepthWriteMask::None);
@@ -231,7 +228,7 @@ namespace Pistachio
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
 
 		ShaderAsset* fwdShader = new ShaderAsset();
-		fwdShader->GetShader().CreateStackRs(ShaderDesc, rs, layouts, 5);
+		fwdShader->GetShader().CreateStack(ShaderDesc, {{0,4}}, std::nullopt);
 		fwdShader->paramBufferSize = 12;
 		fwdShader->parametersMap["Diffuse"] = ParamInfo{ 0,ParamType::Float };
 		fwdShader->parametersMap["Metallic"] = ParamInfo{ 4,ParamType::Float };
@@ -240,15 +237,7 @@ namespace Pistachio
 		fwdShader->bindingsMap["Metallic Texture"] = 1;
 		fwdShader->bindingsMap["Roughness Texture"] = 2;
 		fwdShader->bindingsMap["Normal Texture"] = 3;
-		fwdShader->hold();//keep alive
 		GetAssetManager()->FromResource(fwdShader, "Default Shader", Pistachio::ResourceType::Shader);
-
-		Pistachio::Helpers::FillDescriptorRange(&FrameCBRange, 1, 0, RHI::ShaderStage::Vertex, RHI::DescriptorType::ConstantBuffer);
-		Pistachio::Helpers::FillDynamicDescriptorRootParam(rpDesc + 0, 0, RHI::DescriptorType::ConstantBufferDynamic, RHI::ShaderStage::Vertex);
-		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 1, 1, 1, &FrameCBRange);
-		rsDesc.numRootParameters = 2;
-
-		rs = RendererBase::Get3dDevice()->CreateRootSignature(&rsDesc, layouts).value();
 
 		//Z-Prepass
 		Pistachio::Helpers::FillDepthStencilMode(dsMode);
@@ -260,22 +249,12 @@ namespace Pistachio
 		ShaderDesc.DSVFormat = RHI::Format::D32_FLOAT;
 		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
-		shaders["Z-Prepass"] = Shader::CreateWithRs(ShaderDesc, rs, layouts, 2);
+		shaders["Z-Prepass"] = Shader::Create(ShaderDesc, {}, std::nullopt);
 
-		RHI::DescriptorRange shadowRanges[1];
-		Pistachio::Helpers::FillDescriptorRange(shadowRanges + 0, 1, 0, RHI::ShaderStage::Vertex, RHI::DescriptorType::StructuredBuffer);
-		Pistachio::Helpers::FillDescriptorSetRootParam(rpDesc + 1, 1, 1, shadowRanges);
-		rpDesc[2].type = RHI::RootParameterType::PushConstant;
-		rpDesc[2].pushConstant.bindingIndex = 1;
-		rpDesc[2].pushConstant.numConstants = 2;
-		rpDesc[2].pushConstant.offset = 0;
-		rpDesc[2].pushConstant.stage = RHI::ShaderStage::Vertex;
-		rsDesc.numRootParameters = 3;
-		rs = RendererBase::Get3dDevice()->CreateRootSignature(&rsDesc, layouts).value();
 		//shadow shaders
 		ShaderDesc.VS = RHI::ShaderCode{ {"resources/shaders/vertex/Compiled/Shadow_vs"},0 };
 		ShaderDesc.RasterizerModes->cullMode = RHI::CullMode::Front;
-		shaders["Shadow Shader"] = Shader::CreateWithRs(ShaderDesc, rs, layouts, 2);
+		shaders["Shadow Shader"] = Shader::Create(ShaderDesc, {}, 1);
 
 
 		BrdfTex.CreateStack(512, 512, RHI::Format::R16G16_FLOAT, nullptr PT_DEBUG_REGION(,"Renderer -> White Texture"),TextureFlags::Compute);
@@ -287,7 +266,7 @@ namespace Pistachio
 		ShaderDesc.PS = { {"resources/shaders/pixel/Compiled/background_ps"}, 0};
 		ShaderDesc.NumRenderTargets = 1;
 		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
-		
+		shaders["Background Shader"] = Shader::Create(ShaderDesc, {});
 
 		SetInfo brdfTexInfo;
 		brdfShader->GetShaderBinding(brdfTexInfo, 0);

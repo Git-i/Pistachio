@@ -44,15 +44,15 @@ namespace Pistachio {
 	{
 		return ctx.meshVertices.allocator.Allocate(std::bind(Renderer::GrowMeshBuffer, std::placeholders::_1, 
 			RHI::BufferUsage::VertexBuffer|RHI::BufferUsage::CopySrc|RHI::BufferUsage::CopyDst,
-			ctx.meshVertices),
-			std::bind(Renderer::DefragmentMeshBuffer, ctx.meshIndices),size,ctx.meshVertices.buffer, initialData);
+			std::ref(ctx.meshVertices)),
+			std::bind(Renderer::DefragmentMeshBuffer, std::ref(ctx.meshIndices)),size,&ctx.meshVertices, initialData);
 	}
 	const RendererIBHandle Renderer::AllocateIndexBuffer(uint32_t size, const void* initialData)
 	{
 		auto [a,b] = ctx.meshIndices.allocator.Allocate(std::bind(Renderer::GrowMeshBuffer, std::placeholders::_1, 
 			RHI::BufferUsage::IndexBuffer|RHI::BufferUsage::CopySrc|RHI::BufferUsage::CopyDst,
-			ctx.meshIndices), 
-			std::bind(Renderer::DefragmentMeshBuffer, ctx.meshIndices), size,ctx.meshIndices.buffer, initialData);
+			std::ref(ctx.meshIndices)), 
+			std::bind(Renderer::DefragmentMeshBuffer, std::ref(ctx.meshIndices)), size,&ctx.meshIndices, initialData);
 		return { a,b };
 	}
 	ComputeShader* Renderer::GetBuiltinComputeShader(const std::string& name)

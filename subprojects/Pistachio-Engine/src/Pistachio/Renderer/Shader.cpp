@@ -1,11 +1,15 @@
+#include "FormatsAndTypes.h"
 #include "PipelineStateObject.h"
+#include "Pistachio/Renderer/Renderer.h"
 #include "Ptr.h"
+#include "RootSignature.h"
 #include "ShaderReflect.h"
 #include "Util/FormatUtils.h"
 #include "ptpch.h"
 #include "Shader.h"
 #include "RendererBase.h"
 #include <optional>
+#include <ranges>
 #define VERTEX_SHADER(ID) ((ID3D11VertexShader*)ID.Get())
 #define VERTEX_SHADER_PP(ID) ((ID3D11VertexShader**)ID.GetAddressOf())
 
@@ -235,53 +239,20 @@ namespace Pistachio {
 
 	Shader::~Shader()
 	{
-		if (VS.data) free(const_cast<char*>(VS.data));
-		if (PS.data) free(const_cast<char*>(PS.data));
-		if (HS.data) free(const_cast<char*>(HS.data));
-		if (GS.data) free(const_cast<char*>(GS.data));
-		if (DS.data) free(const_cast<char*>(DS.data));
+		if (VS.data) free(VS.mut_data);
+		if (PS.data) free(PS.mut_data);
+		if (HS.data) free(HS.mut_data);
+		if (GS.data) free(GS.mut_data);
+		if (DS.data) free(DS.mut_data);
 	}
 
-	Shader* Shader::Create(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets)
+	Shader* Shader::Create(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets, std::optional<uint32_t> push_block)
 	{
 		Shader* shader = new Shader;
-		shader->CreateStack(desc, dynamic_sets);
+		shader->CreateStack(desc, dynamic_sets, push_block);
 		return shader;
 	}
 
-	Shader* Shader::CreateWithRs(const ShaderCreateDesc& desc, RHI::Ptr<RHI::RootSignature> rs,RHI::Ptr<RHI::DescriptorSetLayout>* layouts, uint32_t numLayouts)
-	{
-		Shader* shader = new Shader;
-		shader->CreateStackRs(desc, rs, layouts, numLayouts);
-		return shader;
-	}
-	void Shader::CreateStackRs(const ShaderCreateDesc& desc, RHI::Ptr<RHI::RootSignature> rs,RHI::Ptr<RHI::DescriptorSetLayout>* in_layouts, uint32_t in_numLayouts)
-	{
-		RHI::Ptr<RHI::ShaderReflection> VSReflection;
-		RHI::Ptr<RHI::ShaderReflection> PSReflection;
-		if (desc.VS.data)
-		{
-			VS = desc.VS;
-			if (desc.shaderMode == RHI::ShaderMode::File) VSReflection = RHI::ShaderReflection::CreateFromFile(desc.VS.data).value();
-			else VSReflection = RHI::ShaderReflection::CreateFromMemory(desc.VS.data, desc.VS.size).value();
-		}
-		if (desc.PS.data)
-		{
-			PS = desc.PS;
-			if (desc.shaderMode == RHI::ShaderMode::File) PSReflection = RHI::ShaderReflection::CreateFromFile(desc.PS.data).value();
-			else PSReflection = RHI::ShaderReflection::CreateFromMemory(desc.PS.data, desc.PS.size).value();
-		}
-		HS = desc.HS;
-		GS = desc.GS;
-		DS = desc.DS;
-		CreateSetInfos(VSReflection, PSReflection);
-		Initialize(desc, rs);
-		numLayouts = in_numLayouts;
-		for (uint32_t i = 0; i < in_numLayouts; i++)
-		{
-			layouts.push_back(in_layouts[i]);
-		}
-	}
 
 	void Shader::Bind(RHI::Weak<RHI::GraphicsCommandList> list)
 	{
@@ -356,27 +327,15 @@ namespace Pistachio {
 
 
 
-	void Shader::GetVSShaderBinding(SetInfo& info, uint32_t setIndex)
+	void Shader::GetShaderBinding(SetInfo& info, uint32_t setIndex)
 	{
 		uint32_t index = UINT32_MAX;
-		for (uint32_t i = 0; i < m_VSinfo.sets.size(); i++)
+		for (uint32_t i = 0; i < m_infos.sets.size(); i++)
 		{
-			if (m_VSinfo.sets[i].setIndex == setIndex) index = i;
+			if (m_infos.sets[i].setIndex == setIndex) index = i;
 		}
-		info = m_VSinfo.sets[index];
-		info.set = RendererBase::device->CreateDescriptorSets(RendererBase::heap, 1, &layouts[index]).value()[0];
-	}
-
-	void Shader::GetPSShaderBinding(SetInfo& info, uint32_t setIndex)
-	{
-		//we make the assumption that vertex shaders come first in the layout array
-		uint32_t index = UINT32_MAX;
-		for (uint32_t i = 0; i < m_PSinfo.sets.size(); i++)
-		{
-			if (m_PSinfo.sets[i].setIndex == setIndex) index = i;
-		}
-		info = m_PSinfo.sets[index];
-		info.set = RendererBase::device->CreateDescriptorSets(RendererBase::heap, 1, &layouts[setIndex]).value()[0];
+		info = m_infos.sets[index];
+		info.set = RendererBase::CreateDescriptorSet(layouts[index]);
 	}
 
 	void Shader::ApplyBinding(RHI::Weak<RHI::GraphicsCommandList> list,const SetInfo& info)
@@ -458,7 +417,7 @@ namespace Pistachio {
 		}
 		currentPSO = PSOs.begin()->first;
 	}
-	void Shader::CreateStack(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets)
+	void Shader::CreateStack(const ShaderCreateDesc& desc, std::span<const uint32_t> dynamic_sets, std::optional<uint32_t> push_block)
 	{
 		VS = desc.VS;
 		PS = desc.PS;
@@ -466,37 +425,29 @@ namespace Pistachio {
 		GS = desc.GS;
 		DS = desc.DS;
 		mode = desc.shaderMode;
-		CreateRootSignature();
+		CreateRootSignature(dynamic_sets, push_block);
 		Initialize(desc, rootSig);
 	}
 
-	void Shader::CreateSetInfos(RHI::Weak<RHI::ShaderReflection> VSreflection, RHI::Weak<RHI::ShaderReflection> PSreflection)
+	void Shader::FillSetInfo(RHI::RootSignatureDesc& dsc)
 	{
-		FillSetInfo(VSreflection, m_VSinfo);
-		FillSetInfo(PSreflection, m_PSinfo);
-	}
-
-	void Shader::FillSetInfo(RHI::Weak<RHI::ShaderReflection> reflection, ShaderSetInfos& info)
-	{
-		if (reflection.IsValid())
+		for(auto i : std::views::iota(dsc.rootParameters, dsc.rootParameters + dsc.numRootParameters))
 		{
-			uint32_t numSets = reflection->GetNumDescriptorSets();
-			std::vector<RHI::SRDescriptorSet> sets(numSets);
-			reflection->GetAllDescriptorSets(sets.data());
-			info.sets.reserve(numSets);
-			for (uint32_t i = 0; i < numSets; i++)
+			if(i->type == RHI::RootParameterType::DescriptorTable)
 			{
-				auto& set = info.sets.emplace_back();
-				set.setIndex = sets[i].setIndex;
-				set.set = nullptr;
-				std::vector<RHI::SRDescriptorBinding> bindings(sets[i].bindingCount);
-				reflection->GetDescriptorSetBindings(&sets[i], bindings.data());
-				for (uint32_t j = 0; j < sets[i].bindingCount; j++)
+				auto& s = m_infos.sets.emplace_back();
+				s.setIndex = i->descriptorTable.setIndex;
+				s.set = nullptr;
+				s.count.reserve(i->descriptorTable.numDescriptorRanges);
+				s.slot.reserve(i->descriptorTable.numDescriptorRanges);
+				s.stage.reserve(i->descriptorTable.numDescriptorRanges);
+				s.type.reserve(i->descriptorTable.numDescriptorRanges);
+				for(auto j : std::views::iota(i->descriptorTable.ranges, i->descriptorTable.ranges + i->descriptorTable.numDescriptorRanges))
 				{
-					set.count.push_back(bindings[j].count);
-					set.slot.push_back(bindings[j].bindingSlot);
-					set.stage.push_back(RHI::ShaderStage::Vertex);//todo
-					set.type.push_back(bindings[j].resourceType);
+					s.count.push_back(j->numDescriptors);
+					s.slot.push_back(j->BaseShaderRegister);
+					s.stage.push_back(j->stage);
+					s.type.push_back(j->type);
 				}
 			}
 		}
@@ -524,6 +475,7 @@ namespace Pistachio {
 		}
 		auto[rsd,_1,_2] = RHI::ShaderReflection::FillRootSignatureDesc(reflections, dynamic_sets, push_block);
 		layouts.resize(rsd.numRootParameters);
+		FillSetInfo(rsd);
 		rootSig = RendererBase::Get3dDevice()->CreateRootSignature(&rsd, layouts.data()).value();
 	}
 
@@ -644,44 +596,13 @@ namespace Pistachio {
 
 	void ComputeShader::CreateRootSignature(const RHI::ShaderCode& code, RHI::ShaderMode mode)
 	{
-		RHI::Ptr<RHI::ShaderReflection> CSReflection;
-		if (mode == RHI::ShaderMode::File) CSReflection = RHI::ShaderReflection::CreateFromFile(code.data).value();
-		else CSReflection = RHI::ShaderReflection::CreateFromMemory(code.data, code.size).value();
-		uint32_t numSets = CSReflection->GetNumDescriptorSets();
-		std::vector<RHI::SRDescriptorSet> sets(numSets);
-		CSReflection->GetAllDescriptorSets(sets.data());
-		std::vector<std::vector<RHI::DescriptorRange>> ranges_vec;
-		std::vector<RHI::RootParameterDesc> rootParams;
-		for (uint32_t i = 0; i < numSets; i++)
-		{
-			RHI::RootParameterDesc desc;
-
-			desc.type = RHI::RootParameterType::DescriptorTable;
-			desc.descriptorTable.setIndex = sets[i].setIndex;
-			desc.descriptorTable.numDescriptorRanges = sets[i].bindingCount;
-
-			std::vector<RHI::SRDescriptorBinding> bindings(sets[i].bindingCount);
-			CSReflection->GetDescriptorSetBindings(&sets[i], bindings.data());
-			std::vector<RHI::DescriptorRange>& ranges = ranges_vec.emplace_back();
-			//fill out all the ranges (descriptors)
-			for (uint32_t j = 0; j < sets[i].bindingCount; j++)
-			{
-				RHI::DescriptorRange& range = ranges.emplace_back();
-				range.BaseShaderRegister = bindings[j].bindingSlot;
-				range.numDescriptors = bindings[j].count;
-				range.type = bindings[j].resourceType;
-				range.stage = RHI::ShaderStage::Compute;
-			}
-			desc.descriptorTable.ranges = ranges.data();
-			rootParams.push_back(desc);
-			RHI::RootSignatureDesc rsDesc;
-			rsDesc.numRootParameters = (uint32_t)rootParams.size();
-			rsDesc.rootParameters = rootParams.data();
-			numLayouts = (uint32_t)rootParams.size();
-			layouts.resize(numLayouts);
-			rSig = RendererBase::device->CreateRootSignature(&rsDesc, layouts.data()).value();
-		}
-		CreateSetInfos(CSReflection);
+		std::array<RHI::Ptr<RHI::ShaderReflection>,1> CSReflection;
+		if (mode == RHI::ShaderMode::File) CSReflection[0] = RHI::ShaderReflection::CreateFromFile(code.data).value();
+		else CSReflection[0] = RHI::ShaderReflection::CreateFromMemory(code.data, code.size).value();
+		auto[rsd, _1, _2] = RHI::ShaderReflection::FillRootSignatureDesc(CSReflection, {}, std::nullopt);
+		layouts.resize(rsd.numRootParameters);
+		rSig = RendererBase::device->CreateRootSignature(&rsd, layouts.data()).value();
+		CreateSetInfos(CSReflection[0]);
 
 	}
 

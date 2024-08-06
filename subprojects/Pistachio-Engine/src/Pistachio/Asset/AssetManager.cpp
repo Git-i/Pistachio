@@ -185,7 +185,7 @@ namespace Pistachio
 			if (type == ResourceType::Texture) obj = Texture2D::Create(filename.c_str() PT_DEBUG_REGION(, filename.c_str()));
 			else if (type == ResourceType::Material) obj = Material::Create(filename.c_str());
 			else if (type == ResourceType::Shader) obj = ShaderAsset::Create(filename.c_str());
-			else if (type == ResourceType::Model) obj = Model::Create(filename.c_str());
+			else if (type == ResourceType::Model) obj = Model::Create(filename.c_str()).value();
 			else obj = new RefCountedObject;
 			assetResourceMap[uuid] = obj;
 			//obj->hold();

@@ -115,7 +115,7 @@ public:
 		
 		mat->ChangeParam("Metallic", .0f);
 		Shader& shader = asset->GetShader();
-		shader.GetPSShaderBinding(mat->mtlInfo, 3);
+		shader.GetShaderBinding(mat->mtlInfo, 3);
 		mat->mtlInfo.UpdateTextureBinding(RendererBase::GetWhiteTexture().GetView(), 0);
 		mat->mtlInfo.UpdateTextureBinding(RendererBase::GetWhiteTexture().GetView(), 1);
 		mat->mtlInfo.UpdateTextureBinding(RendererBase::GetWhiteTexture().GetView(), 2);
