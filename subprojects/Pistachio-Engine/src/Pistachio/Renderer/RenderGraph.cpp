@@ -2,6 +2,7 @@
 #include "CommandList.h"
 #include "FormatsAndTypes.h"
 #include "Pistachio/Core.h"
+#include "Pistachio/Core/Log.h"
 #include "Pistachio/Renderer/RendererBase.h"
 #include "Ptr.h"
 #include "Texture.h"
@@ -13,6 +14,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
+#include <sys/types.h>
 #include <type_traits>
 namespace Pistachio
 {
@@ -219,7 +222,7 @@ namespace Pistachio
     ComputePass& RenderGraph::AddComputePass(const char* passName)
     {
         auto& pass = computePasses.emplace_back();
-        pass.passName = passName;
+        pass.name = passName;
         dirty = true;
         return pass;
     }
@@ -541,6 +544,17 @@ namespace Pistachio
         }
         attachment.ImageView = RendererBase::GetCPUHandle(*handle);
     }
+    void RenderGraph::LogAttachmentHeader(const AttachmentInfo& att)
+    {
+        PT_CORE_VERBOSE("Texture Attachment: (format: {0}, load_op: {1}, usage: {2})",
+            static_cast<std::underlying_type_t<RHI::Format>>(att.format), 
+            static_cast<std::underlying_type_t<RHI::LoadOp>>(att.loadOp), 
+            static_cast<std::underlying_type_t<AttachmentUsage>>(att.usage));
+    } 
+    void RenderGraph::LogAttachmentBody(const AttachmentInfo& att)
+    {
+        PT_CORE_VERBOSE("Texture Attachment",att.format, att.loadOp, att.usage);
+    }    
     template<typename PassTy>
     void RenderGraph::ExecLevel(std::vector<std::pair<uint32_t, PassAction>>& levelTransitionIndices, uint32_t levelInd,
         RHI::Weak<RHI::GraphicsCommandList> currentList,
@@ -551,13 +565,16 @@ namespace Pistachio
         RHI::QueueFamily srcQueue,
         RHI::PipelineStage& stage)
     {
+        PT_CORE_INFO("Beginning RenderGraph Level Execution");
         std::vector<RHI::TextureMemoryBarrier> textureRelease;
         std::vector<RHI::BufferMemoryBarrier> bufferRelease;
         uint32_t j = levelInd == 0 ? 0 : levelTransitionIndices[levelInd - 1].first;
+        PT_CORE_VERBOSE("Level contains {0} Passes", levelTransitionIndices[levelInd].first);
         for (; j < levelTransitionIndices[levelInd].first; j++)
         {
             //transition all inputs to good state
             PassTy* pass = passes[j].first;
+            PT_CORE_VERBOSE("Pass {0} (name: {1}, queue: {2}):", j, pass->name, (uint32_t)srcQueue);
             std::vector<RHI::TextureMemoryBarrier> barriers;
             std::vector<RHI::BufferMemoryBarrier> bufferBarriers;
             barriers.reserve(pass->inputs.size() + pass->outputs.size());
@@ -569,7 +586,10 @@ namespace Pistachio
             
 
             for (auto& input : pass->inputs)
+            {
+                LogAttachment(input);
                 FillTextureBarrier(textures[input.texture.texOffset], input, barriers, textureRelease, InputLayout, InputDstAccess, srcQueue);
+            }
             for (auto& output : pass->outputs)
             {
                 RGTexture& tex = textures[output.texture.texOffset];
