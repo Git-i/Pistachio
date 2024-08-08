@@ -147,7 +147,7 @@ namespace Pistachio {
 			}
 		}
 		else {
-			uint32_t pDevInd = 0;
+			uint32_t pDevInd = 1;
 			uint32_t num_devices =  instance->GetNumPhysicalDevices();
 			PT_CORE_INFO("Found {0} physical devices: ", num_devices);
 			for (uint32_t i = 0; i < num_devices; i++)

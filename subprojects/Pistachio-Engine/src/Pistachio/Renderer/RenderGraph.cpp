@@ -552,9 +552,17 @@ namespace Pistachio
             static_cast<std::underlying_type_t<RHI::LoadOp>>(att.loadOp), 
             static_cast<std::underlying_type_t<AttachmentUsage>>(att.usage));
     } 
-    void RenderGraph::LogAttachmentBody(const AttachmentInfo& att)
+    void RenderGraph::LogAttachmentBody(const AttachmentInfo& att, std::vector<RGTexture>& textures)
     {
-        PT_CORE_VERBOSE("Texture",att.format, att.loadOp, att.usage);
+        auto& texture = textures[att.texture.texOffset];
+        RHI::Weak rhi_tex = texture.texture;
+        PT_CORE_VERBOSE("  Texture: instance: {0}, layout: {1}, access: {2}, family{3}, name: {4}",
+            att.texture.instID,
+            static_cast<std::underlying_type_t<RHI::ResourceLayout>>(texture.current_layout),
+            static_cast<std::underlying_type_t<RHI::ResourceAcessFlags>>(texture.currentAccess),
+            static_cast<std::underlying_type_t<RHI::QueueFamily>>(texture.currentFamily),
+            rhi_tex->name ? rhi_tex->name : std::string_view()
+            );
     }    
     template<typename PassTy>
     void RenderGraph::ExecLevel(std::vector<std::pair<uint32_t, PassAction>>& levelTransitionIndices, uint32_t levelInd,
@@ -588,8 +596,10 @@ namespace Pistachio
 
             for (auto& input : pass->inputs)
             {
-                LogAttachment(input);
+                LogAttachmentHeader(input);
+                LogAttachmentBody(input, textures);
                 FillTextureBarrier(textures[input.texture.texOffset], input, barriers, textureRelease, InputLayout, InputDstAccess, srcQueue);
+                LogAttachmentBody(input, textures);
             }
             for (auto& output : pass->outputs)
             {

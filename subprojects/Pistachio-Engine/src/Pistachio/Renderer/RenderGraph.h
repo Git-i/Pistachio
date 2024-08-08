@@ -267,7 +267,7 @@ namespace Pistachio
 		inline void ExecuteCMPLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::Weak<RHI::GraphicsCommandList> prevList,RHI::QueueFamily srcQueue);
 		void SortPasses();
 		static void LogAttachmentHeader(const AttachmentInfo& att);
-		static void LogAttachmentBody(const AttachmentInfo& att);
+		static void LogAttachmentBody(const AttachmentInfo& att, std::vector<RGTexture>& textures);
 	private:
 		friend class Renderer;
 		friend class Scene;
