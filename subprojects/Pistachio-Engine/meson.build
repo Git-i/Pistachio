@@ -112,7 +112,7 @@ if(build_machine.system() == 'linux')
     sources += 'src/Pistachio/Platform/Linux/LinuxWindow.cpp'
     sources += 'src/Pistachio/Platform/Linux/LinuxInputPoll.cpp'
 endif
-args += '-DVERBOSE'
+args += '-DPT_VERBOSE'
 add_project_arguments(args,language: 'cpp',)
 inc = include_directories(inc_dirs)
 lib = shared_library('Pistachio',sources,include_directories:inc,dependencies:deps,

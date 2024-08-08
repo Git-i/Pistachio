@@ -17,7 +17,7 @@ namespace Pistachio {
 		static std::shared_ptr<spdlog::logger> s_ClientLogger;
 	};
 }
-#if VERBOSE
+#if PT_VERBOSE
 #if !_DEBUG
 #error "VERBOSE" is only valid in debug builds
 #endif
