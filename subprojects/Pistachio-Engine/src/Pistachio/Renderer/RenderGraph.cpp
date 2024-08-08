@@ -417,14 +417,14 @@ namespace Pistachio
 
         
     }
-    void FillTextureBarrier(RGTexture& tex, AttachmentInfo& info, 
+    bool FillTextureBarrier(RGTexture& tex, AttachmentInfo& info, 
         std::vector<RHI::TextureMemoryBarrier>& barriers,
         std::vector<RHI::TextureMemoryBarrier>& release,
         RHI::ResourceLayout layout_fn(AttachmentUsage),
         RHI::ResourceAcessFlags access_fn(AttachmentUsage),
         RHI::QueueFamily srcQueue)
     {
-        if(info.usage == AttachmentUsage::PassThrough) return;
+        if(info.usage == AttachmentUsage::PassThrough) return false;
         auto& barrier = barriers.emplace_back();
         barrier.newLayout = layout_fn(info.usage);
         barrier.AccessFlagsAfter = access_fn(info.usage);
@@ -452,7 +452,7 @@ namespace Pistachio
             )
         {
             barriers.pop_back();
-            return;
+            return false;
         }
         
         //transition
@@ -465,6 +465,7 @@ namespace Pistachio
         tex.currentFamily = srcQueue;
         tex.current_layout = barrier.newLayout;
         tex.currentAccess = barrier.AccessFlagsAfter;
+        return true;
     }
     void FillBufferBarrier(RGBuffer& buff, BufferAttachmentInfo& info,
         std::vector<RHI::BufferMemoryBarrier>& barriers,
@@ -585,7 +586,23 @@ namespace Pistachio
                         FillAttachment<AttachDS>(pass->dsOutput, attachments, textures[pass->dsOutput.texture.texOffset]);
                         rbDesc.pDepthStencilAttachment = &attachments.back();
                     }
-                    FillTextureBarrier(tex, pass->dsOutput, barriers, textureRelease, OutputLayout, OutputDstAccess, srcQueue);
+                    if(FillTextureBarrier(tex, pass->dsOutput, barriers, textureRelease, OutputLayout, OutputDstAccess, srcQueue))
+                    {
+                        auto& ds = barriers.back();
+                        if(ds.previousQueue == ds.nextQueue &&
+                            ds.oldLayout == RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+                        {
+                            barriers.pop_back();
+                            tex.current_layout = RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                            tex.currentAccess = RHI::ResourceAcessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE;
+                        }
+                        else {
+                            ds.newLayout = RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                            ds.AccessFlagsAfter = RHI::ResourceAcessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE;
+                            tex.current_layout = ds.newLayout;
+                            tex.currentAccess = ds.AccessFlagsAfter;
+                        }
+                    }
                 }
             }
             
@@ -598,7 +615,7 @@ namespace Pistachio
             
             RHI::PipelineStage pass_stg;
             if constexpr(std::is_same_v<RenderPass, PassTy>) pass_stg = pass->stage; else pass_stg = RHI::PipelineStage::COMPUTE_SHADER_BIT;
-            currentList->PipelineBarrier(stage, pass_stg, bufferBarriers.size(), bufferBarriers.data(), barriers.size(), barriers.data());
+            currentList->PipelineBarrier(stage, pass_stg, bufferBarriers, barriers);
             if constexpr (std::is_same_v<PassTy, RenderPass>) if (pass->pso.IsValid()) currentList->SetPipelineState(pass->pso);
             if constexpr (std::is_same_v<PassTy, ComputePass>) if (pass->computePipeline.IsValid()) currentList->SetComputePipeline(pass->computePipeline);
             if (pass->rsig.IsValid()) currentList->SetRootSignature(pass->rsig);
@@ -609,7 +626,7 @@ namespace Pistachio
         }
         constexpr auto stg = std::is_same_v<PassTy, RenderPass> ?  RHI::PipelineStage::COMPUTE_SHADER_BIT : RHI::PipelineStage::ALL_GRAPHICS_BIT;
         if(bufferRelease.size() + textureRelease.size())
-        prevList->ReleaseBarrier(stg, RHI::PipelineStage::TOP_OF_PIPE_BIT, bufferRelease.size(), bufferRelease.data(), textureRelease.size(), textureRelease.data());
+        prevList->ReleaseBarrier(stg, RHI::PipelineStage::TOP_OF_PIPE_BIT, bufferRelease, textureRelease);
     }
     inline void RenderGraph::ExecuteGFXLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::Weak<RHI::GraphicsCommandList> prevList,
     RHI::QueueFamily srcQueue)

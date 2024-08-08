@@ -84,7 +84,7 @@ namespace Pistachio {
 				barr.subresourceRange.NumArraySlices = 1,
 				barr.texture = backBufferTextures[currentRTVindex];
 			barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
-			mainCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 0, 0, 1, &barr);
+			mainCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, {},{&barr,1});
 		}
 		//execute main command list
 		mainCommandList->End();
@@ -112,7 +112,7 @@ namespace Pistachio {
 			barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
 			barr.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
 			barr.texture = backBufferTextures[currentRTVindex];
-			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
+			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, {},{&barr,1});
 		}
 		//wait for the the cmd allocator to be done
 	}
@@ -147,7 +147,7 @@ namespace Pistachio {
 			}
 		}
 		else {
-			uint32_t pDevInd = 1;
+			uint32_t pDevInd = 0;
 			uint32_t num_devices =  instance->GetNumPhysicalDevices();
 			PT_CORE_INFO("Found {0} physical devices: ", num_devices);
 			for (uint32_t i = 0; i < num_devices; i++)
@@ -366,16 +366,9 @@ namespace Pistachio {
 			barr.subresourceRange.NumArraySlices = 1;
 			barr.texture = backBufferTextures[0];
 			barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
-			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, 0, nullptr, 1, &barr);
+			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, {},{&barr,1});
 		}
 		PT_CORE_INFO("Done Initializing RHI");
-		// todo find a pso handling strategy, especially for custom shaders.
-		// since every pso can only hold a single shader set, probably have a bunch of
-		// must have pso's for every shader, where they all create it with thier own programs
-		// we can also implement custom pso's for certain shaders??
-		// for some that have nice requirements like line rendering (and depth off??) and different comparison functions
-		// meaning we'll have to have a set of static samplers globally in the rendererbase??
-		MQ = false;
 		return 0;
 	}
 	void RendererBase::ClearTarget()

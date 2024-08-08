@@ -226,7 +226,7 @@ namespace Pistachio
 		ShaderDesc.DSVFormat = RHI::Format::D32_FLOAT;
 		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
-
+		PT_CORE_INFO("Creating Default Forward Shader");
 		ShaderAsset* fwdShader = new ShaderAsset();
 		fwdShader->GetShader().CreateStack(ShaderDesc, {{0,4}}, std::nullopt);
 		fwdShader->paramBufferSize = 12;
@@ -249,12 +249,14 @@ namespace Pistachio
 		ShaderDesc.DSVFormat = RHI::Format::D32_FLOAT;
 		ShaderDesc.InputDescription = Pistachio::Mesh::GetLayout();
 		ShaderDesc.numInputs = Pistachio::Mesh::GetLayoutSize();
-		shaders["Z-Prepass"] = Shader::Create(ShaderDesc, {}, std::nullopt);
+		PT_CORE_INFO("Creating Z-Prepass Shader");
+		shaders["Z-Prepass"] = Shader::Create(ShaderDesc, {{0u}}, std::nullopt);
 
 		//shadow shaders
 		ShaderDesc.VS = RHI::ShaderCode{ {"resources/shaders/vertex/Compiled/Shadow_vs"},0 };
 		ShaderDesc.RasterizerModes->cullMode = RHI::CullMode::Front;
-		shaders["Shadow Shader"] = Shader::Create(ShaderDesc, {}, 1);
+		PT_CORE_INFO("Creating Shadow Shader");
+		shaders["Shadow Shader"] = Shader::Create(ShaderDesc, {{0u}}, 1);
 
 
 		BrdfTex.CreateStack(512, 512, RHI::Format::R16G16_FLOAT, nullptr PT_DEBUG_REGION(,"Renderer -> White Texture"),TextureFlags::Compute);
@@ -266,6 +268,7 @@ namespace Pistachio
 		ShaderDesc.PS = { {"resources/shaders/pixel/Compiled/background_ps"}, 0};
 		ShaderDesc.NumRenderTargets = 1;
 		ShaderDesc.RTVFormats[0] = RHI::Format::R16G16B16A16_FLOAT;
+		PT_CORE_INFO("Creating Background Shader");
 		shaders["Background Shader"] = Shader::Create(ShaderDesc, {});
 
 		SetInfo brdfTexInfo;
@@ -284,15 +287,16 @@ namespace Pistachio
 		range.NumMipLevels = 1;
 		range.imageAspect = RHI::Aspect::COLOR_BIT;
 		barr.subresourceRange = range;
-		RendererBase::GetMainCommandList()->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::COMPUTE_SHADER_BIT, 0, 0, 1, &barr);
+		RendererBase::GetMainCommandList()->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::COMPUTE_SHADER_BIT, {}, {&barr,1});
 		brdfShader->Bind(RendererBase::GetMainCommandList());
 		brdfShader->ApplyShaderBinding(RendererBase::GetMainCommandList(), brdfTexInfo);
+		PT_CORE_INFO("Generating BRDF Look up Texture");
 		RendererBase::GetMainCommandList()->Dispatch(512,512,1);
 		barr.oldLayout = RHI::ResourceLayout::GENERAL;
 		barr.newLayout = RHI::ResourceLayout::SHADER_READ_ONLY_OPTIMAL;
 		barr.AccessFlagsBefore = RHI::ResourceAcessFlags::SHADER_WRITE;
 		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::SHADER_READ;
-		RendererBase::GetMainCommandList()->PipelineBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::FRAGMENT_SHADER_BIT, 0, 0, 1, &barr);
+		RendererBase::GetMainCommandList()->PipelineBarrier(RHI::PipelineStage::COMPUTE_SHADER_BIT, RHI::PipelineStage::FRAGMENT_SHADER_BIT, {}, {&barr,1});
 		//Replace with mesh generation engine
 		
     }
