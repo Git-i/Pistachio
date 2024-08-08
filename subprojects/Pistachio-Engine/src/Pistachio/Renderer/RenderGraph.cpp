@@ -546,6 +546,7 @@ namespace Pistachio
     }
     void RenderGraph::LogAttachmentHeader(const AttachmentInfo& att)
     {
+        //TODO reflection support
         PT_CORE_VERBOSE("Texture Attachment: (format: {0}, load_op: {1}, usage: {2})",
             static_cast<std::underlying_type_t<RHI::Format>>(att.format), 
             static_cast<std::underlying_type_t<RHI::LoadOp>>(att.loadOp), 
@@ -553,7 +554,7 @@ namespace Pistachio
     } 
     void RenderGraph::LogAttachmentBody(const AttachmentInfo& att)
     {
-        PT_CORE_VERBOSE("Texture Attachment",att.format, att.loadOp, att.usage);
+        PT_CORE_VERBOSE("Texture",att.format, att.loadOp, att.usage);
     }    
     template<typename PassTy>
     void RenderGraph::ExecLevel(std::vector<std::pair<uint32_t, PassAction>>& levelTransitionIndices, uint32_t levelInd,
