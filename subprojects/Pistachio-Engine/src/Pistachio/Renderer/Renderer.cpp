@@ -3,6 +3,7 @@
 #include "Pistachio/Renderer/RendererBase.h"
 #include "Pistachio/Renderer/RendererContext.h"
 #include "Pistachio/Renderer/Shader.h"
+#include "Pistachio/Utils/RendererUtils.h"
 #include "Texture.h"
 #include "ptpch.h"
 #include "Renderer.h"
@@ -73,8 +74,10 @@ namespace Pistachio {
 	}
 	const RendererCBHandle Renderer::AllocateConstantBuffer(uint32_t size)
 	{
-		auto [a,b] = ctx.constantBufferAllocator.Allocate(&Renderer::GrowConstantBuffer, &Renderer::DefragmentConstantBuffer, size);
-		return { a,b };
+		
+		auto [a,b] = ctx.constantBufferAllocator.Allocate(&Renderer::GrowConstantBuffer, &Renderer::DefragmentConstantBuffer,
+			RendererUtils::ConstantBufferElementSize(size));
+		return { a,size, b };
 	}
 	void Renderer::GrowMeshBuffer(uint32_t minExtraSize,
 			RHI::BufferUsage usage,
@@ -96,12 +99,12 @@ namespace Pistachio {
 		barr.nextQueue = barr.previousQueue = RHI::QueueFamily::Ignored;
 		barr.size = capacity;
 		barr.offset = 0;
-		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, 1,&barr,0,0);
+		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, {&barr,1},{});
 		//Queue it with staging stuff
 		RendererBase::stagingCommandList->CopyBufferRegion(0, 0, capacity, buffer.buffer, newBuffer);
 		barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
 		barr.buffer = newBuffer;
-		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, 1,&barr,0,0);
+		RendererBase::stagingCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::TRANSFER_BIT, {&barr,1},{});
 		//wait until copy is finished?
 		RendererBase::FlushStagingBuffer();
 		//before destroying old buffer, wait for old frames to render
@@ -226,7 +229,7 @@ namespace Pistachio {
 	}
 	void Pistachio::Renderer::FullCBUpdate(RendererCBHandle handle, void* data)
 	{
-		ctx.resources[RendererBase::currentFrameIndex].transformBuffer.Update(data, handle.size, GetCBOffset(handle));
+		ctx.resources[RendererBase::currentFrameIndex].transformBuffer.Update(data, handle.actual_size, GetCBOffset(handle));
 	}
 	RHI::Ptr<RHI::Buffer> Pistachio::Renderer::GetConstantBuffer()
 	{

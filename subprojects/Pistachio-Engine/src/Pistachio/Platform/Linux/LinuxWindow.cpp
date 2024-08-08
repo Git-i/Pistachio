@@ -62,9 +62,9 @@ namespace Pistachio {
 	{
 		Shutdown();
 	}
-	void error_callback(int, const char* details)
+	void error_callback(int code, const char* details)
 	{
-		PT_CORE_ERROR("GLFW Error: {0}", details);
+		PT_CORE_ERROR("GLFW Error({0}): {1}", code, details);
 		DEBUG_BREAK;
 	}
 	int LinuxWindow::Init(const WindowInfo& info)

@@ -6,6 +6,7 @@
 #include "Pistachio/Renderer/RenderGraph.h"
 #include "Pistachio/Renderer/Renderer.h"
 #include "Pistachio/Renderer/RendererBase.h"
+#include "Pistachio/Renderer/RendererContext.h"
 #include "ptpch.h"
 #include "Pistachio/Core/Math.h"
 #include <algorithm>
@@ -1229,7 +1230,7 @@ namespace Pistachio {
 		barr[0].subresourceRange = range;
 
 		RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::COLOR_ATTACHMENT_OUTPUT_BIT,
-			RHI::PipelineStage::TRANSFER_BIT, 0, 0, 1, barr);
+			RHI::PipelineStage::TRANSFER_BIT, {}, {barr,1});
 
 		//notify render graph of layout change
 		finalRenderTex.originVector->at(finalRenderTex.offset).current_layout = RHI::ResourceLayout::GENERAL;
@@ -1456,7 +1457,7 @@ namespace Pistachio {
 			auto [transform,mesh] = view.get(entity);
 			DirectX::XMStoreFloat4x4(&td.transform, DirectX::XMMatrixTranspose(transform.worldSpaceTransform));
 			DirectX::XMStoreFloat4x4(&td.normal,DirectX::XMMatrixInverse(nullptr, transform.worldSpaceTransform));
-			Renderer::PartialCBUpdate(mesh.handle, &td,0,sizeof(TransformData));
+			Renderer::FullCBUpdate(mesh.handle, &td);
 		}
 	}
 	void Scene::SortMeshComponents()
@@ -1634,7 +1635,7 @@ namespace Pistachio {
 	{
 		const auto& transform = m_Registry.get<TransformComponent>(entity);
 		TransformData td;
-		td.transform =Matrix4::Identity;
+		td.transform = Matrix4::Identity;
 		td.normal = Matrix4::Identity;
 		component.handle =  Renderer::AllocateConstantBuffer(sizeof(TransformData));
 		Renderer::FullCBUpdate(component.handle, &td);

@@ -11,10 +11,7 @@ yaml_dep = yaml_cpp.dependency('yaml-cpp')
 assimp = cmake.subproject('assimp')
 assimp_dep = assimp.dependency('assimp')
 
-glfw_opt = cmake.subproject_options()
-glfw_opt.add_cmake_defines({'GLFW_BUILD_WAYLAND':get_option('linux_compositor') == 'wayland'})
-glfw_opt.add_cmake_defines({'GLFW_BUILD_X11':get_option('linux_compositor') == 'x11'})
-glfw3 = cmake.subproject('glfw',options: glfw_opt)
+glfw3 = cmake.subproject('glfw')
 glfw3_dep = glfw3.dependency('glfw')
 
 angelscript = subproject('angelscript')

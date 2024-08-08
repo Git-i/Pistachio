@@ -127,9 +127,9 @@ namespace Pistachio
         barrier.subresourceRange = range;
         barrier.texture = m_ID;
         if(list)
-        list->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::ALL_GRAPHICS_BIT, 0, 0, 1, &barrier);
+        list->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::ALL_GRAPHICS_BIT, {}, {&barrier,1});
         else
-            RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::ALL_GRAPHICS_BIT, 0, 0, 1, &barrier);
+            RendererBase::mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::ALL_GRAPHICS_BIT, {}, {&barrier,1});
     }
     DepthTexture* DepthTexture::Create(uint32_t width, uint32_t height, uint32_t mipLevels, RHI::Format format PT_DEBUG_REGION(,const char* name))
     {

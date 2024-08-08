@@ -81,7 +81,7 @@ namespace Pistachio
 		friend class RenderGraph;
 		friend class Renderer;
 		friend class Scene;
-		friend void FillTextureBarrier(RGTexture&, AttachmentInfo&,
+		friend bool FillTextureBarrier(RGTexture&, AttachmentInfo&,
 			std::vector<RHI::TextureMemoryBarrier>&, std::vector<RHI::TextureMemoryBarrier>&,
 			RHI::ResourceLayout (*)(AttachmentUsage),
         	RHI::ResourceAcessFlags (*)(AttachmentUsage),
