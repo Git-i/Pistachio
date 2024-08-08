@@ -112,6 +112,7 @@ if(build_machine.system() == 'linux')
     sources += 'src/Pistachio/Platform/Linux/LinuxWindow.cpp'
     sources += 'src/Pistachio/Platform/Linux/LinuxInputPoll.cpp'
 endif
+args += '-DVERBOSE'
 add_project_arguments(args,language: 'cpp',)
 inc = include_directories(inc_dirs)
 lib = shared_library('Pistachio',sources,include_directories:inc,dependencies:deps,
@@ -119,4 +120,4 @@ lib = shared_library('Pistachio',sources,include_directories:inc,dependencies:de
 pistachio_dep = [
     declare_dependency(include_directories:inc, link_with:lib), deps
 ]
-exe = executable('Pistachio-Tests', tests_src,dependencies: pistachio_dep)
+executable('Pistachio-Tests', tests_src,dependencies: pistachio_dep)

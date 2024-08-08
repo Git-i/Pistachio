@@ -17,7 +17,14 @@ namespace Pistachio {
 		static std::shared_ptr<spdlog::logger> s_ClientLogger;
 	};
 }
-
+#if VERBOSE
+#if !_DEBUG
+#error "VERBOSE" is only valid in debug builds
+#endif
+#define PT_CORE_VERBOSE(...) Pistachio::Log::GetCoreLogger()->trace(__VA_ARGS__)
+#else
+#define PT_CORE_VERBOSE(...)
+#endif
 #if _DEBUG
 #define PT_CORE_TRACE(...) Pistachio::Log::GetCoreLogger()->trace(__VA_ARGS__)
 #define PT_CORE_INFO(...)  Pistachio::Log::GetCoreLogger()->info(__VA_ARGS__)

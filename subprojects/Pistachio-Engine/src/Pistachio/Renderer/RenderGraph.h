@@ -192,7 +192,7 @@ namespace Pistachio
 		friend class RenderGraph;
 		RHI::PipelineStage stage;
 		RHI::Area2D area;
-		const char* name;//temp
+		const char* name;
 		RHI::Ptr<RHI::PipelineStateObject> pso = nullptr;
 		RHI::Ptr<RHI::RootSignature> rsig = nullptr;
 		std::vector<AttachmentInfo> inputs;
@@ -222,7 +222,7 @@ namespace Pistachio
 		std::vector<BufferAttachmentInfo> bufferInputs;
 		std::vector<BufferAttachmentInfo> bufferOutputs;
 		bool signal = false;
-		const char* passName;
+		const char* name;
 	};
 	//we can possibly have 3 cmd lists and for every independent pass use those three
 	/*
@@ -266,6 +266,8 @@ namespace Pistachio
 		inline void ExecuteGFXLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::Weak<RHI::GraphicsCommandList> prevList,RHI::QueueFamily srcQueue);
 		inline void ExecuteCMPLevel(uint32_t levelInd, RHI::PipelineStage& stage, RHI::Weak<RHI::GraphicsCommandList> prevList,RHI::QueueFamily srcQueue);
 		void SortPasses();
+		static void LogAttachmentHeader(const AttachmentInfo& att);
+		static void LogAttachmentBody(const AttachmentInfo& att);
 	private:
 		friend class Renderer;
 		friend class Scene;
