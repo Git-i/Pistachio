@@ -11,6 +11,9 @@
 #include "Pistachio/Core/Error.h"
 #include "Util/FormatUtils.h"
 #include <cstdint>
+#include <format>
+#include <ranges>
+#include <unordered_map>
 
 RHI::Ptr<RHI::Device>              Pistachio::RendererBase::device;
 RHI::Ptr<RHI::GraphicsCommandList> Pistachio::RendererBase::mainCommandList;
@@ -115,9 +118,32 @@ namespace Pistachio {
 		}
 		//wait for the the cmd allocator to be done
 	}
-	static inline RHI::PhysicalDevice* SelectPhysicalDevice()
+	uint32_t DeviceScore(RHI::PhysicalDevice* device)
 	{
-		
+		uint32_t score = 1;
+		auto desc = device->GetDesc();
+		if(desc.type == RHI::DeviceType::Dedicated)
+		{
+			score += 5;
+		}
+		return score;
+	}
+	static inline RHI::PhysicalDevice* SelectPhysicalDevice(std::span<RHI::PhysicalDevice*> devices)
+	{
+		std::unordered_map<RHI::PhysicalDevice*, uint32_t> scores;
+		for(auto& device: devices)
+		{
+			scores[device] = DeviceScore(device);
+		}
+		std::pair<RHI::PhysicalDevice*, uint32_t> device = {nullptr, 0};
+		for(auto& score : scores)
+		{
+			if (score.second > device.second)
+			{
+				device = score;
+			}
+		}
+		return device.first;
 	}
 	bool RendererBase::Init(PlatformData* pd, InitOptions& options)
 	{
@@ -146,19 +172,18 @@ namespace Pistachio {
 			}
 		}
 		else {
-			uint32_t pDevInd = 1;
 			uint32_t num_devices =  instance->GetNumPhysicalDevices();
 			PT_CORE_INFO("Found {0} physical devices: ", num_devices);
-			for (uint32_t i = 0; i < num_devices; i++)
+			std::vector<RHI::PhysicalDevice*> pdevices(num_devices);
+			instance->GetAllPhysicalDevices(pdevices.data());
+			physicalDevice = SelectPhysicalDevice(pdevices);
+			for (auto pDevice : pdevices)
 			{
-				RHI::PhysicalDevice* pDevice;
-				instance->GetPhysicalDevice(i, &pDevice);
-				RHI::PhysicalDeviceDesc pDDesc;
-				pDevice->GetDesc(&pDDesc);
-				if(options.useLuid) if (memcmp(options.luid.data, pDDesc.AdapterLuid.data, 8) == 0) pDevInd = i;
-				std::wcout << pDDesc.Description << " [" << i << ']' << std::endl;
+				auto pDDesc = pDevice->GetDesc();
+				if(options.useLuid) if (memcmp(options.luid.data, pDDesc.AdapterLuid.data, 8) == 0) physicalDevice = pDevice;
+				PT_CORE_INFO("    {0}", pDDesc.Description);
 			}
-			instance->GetPhysicalDevice(pDevInd, &physicalDevice);
+			
 			RHI::CommandQueueDesc commandQueueDesc[2] {};
 			commandQueueDesc[0].commandListType = RHI::CommandListType::Direct;
 			commandQueueDesc[0].Priority = 1.f;//only really used in vulkan
@@ -171,7 +196,7 @@ namespace Pistachio {
 			device = dev;
 			directQueue = queue[0];
 			if(MQ) computeQueue = queue[1];
-			PT_CORE_INFO("Device Created ID:{0}, Physical Device used [{1}]", device->ID, (void*)device->ID,pDevInd);
+			PT_CORE_INFO("Device Created ID:{0}, Physical Device used [{1}]", device->ID, (void*)device->ID,physicalDevice->GetDesc().Description);
 		}
 
 
