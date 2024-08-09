@@ -112,7 +112,13 @@ if(build_machine.system() == 'linux')
     sources += 'src/Pistachio/Platform/Linux/LinuxWindow.cpp'
     sources += 'src/Pistachio/Platform/Linux/LinuxInputPoll.cpp'
 endif
+if(get_option('verbose_logging') == true)
 args += '-DPT_VERBOSE'
+endif
+if(get_option('use_magic_enum') == true)
+deps += dependency('magic_enum')
+args += '-DPT_USE_MENUM'
+endif
 add_project_arguments(args,language: 'cpp',)
 inc = include_directories(inc_dirs)
 lib = shared_library('Pistachio',sources,include_directories:inc,dependencies:deps,

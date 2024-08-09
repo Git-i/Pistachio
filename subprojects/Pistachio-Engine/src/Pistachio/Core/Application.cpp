@@ -27,6 +27,7 @@ namespace Pistachio {
 		ropt.custom_physical_device = opt.custom_physical_device;
 		ropt.custom_direct_queue = opt.custom_direct_queue;
 		ropt.custom_compute_queue = opt.custom_compute_queue;
+		ropt.forceSingleQueue = opt.forceSingleQueue;
 		ropt.indices = opt.indices;
 		if (!opt.headless)
 		{

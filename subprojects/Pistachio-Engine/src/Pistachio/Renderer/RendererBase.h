@@ -47,6 +47,7 @@ namespace Pistachio {
 			RHI::LUID luid;
 			bool useLuid = false;
 			bool exportTexture;
+			bool forceSingleQueue;
 			Internal_ID custom_device;
 			Internal_ID custom_instance;
 			Internal_ID custom_physical_device;

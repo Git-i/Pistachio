@@ -85,7 +85,7 @@ namespace Pistachio
 			std::vector<RHI::TextureMemoryBarrier>&, std::vector<RHI::TextureMemoryBarrier>&,
 			RHI::ResourceLayout (*)(AttachmentUsage),
         	RHI::ResourceAcessFlags (*)(AttachmentUsage),
-			RHI::QueueFamily);
+			RHI::QueueFamily,bool);
 		RGTexture(RHI::Ptr<RHI::Texture> _texture, RHI::ResourceLayout layout, RHI::QueueFamily family, uint32_t MipSlice, bool isArray, uint32_t Slice, uint32_t numSlices,uint32_t numMips, RHI::ResourceAcessFlags access) :
 			texture(_texture),
 			current_layout(layout),
@@ -268,6 +268,7 @@ namespace Pistachio
 		void SortPasses();
 		static void LogAttachmentHeader(const AttachmentInfo& att);
 		static void LogAttachmentBody(const AttachmentInfo& att, std::vector<RGTexture>& textures);
+		static bool LogTextureBarrier(bool value, std::vector<RHI::TextureMemoryBarrier>& barrier);
 	private:
 		friend class Renderer;
 		friend class Scene;
