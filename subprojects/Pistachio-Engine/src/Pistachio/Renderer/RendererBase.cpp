@@ -369,6 +369,7 @@ namespace Pistachio {
 			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, {},{&barr,1});
 		}
 		PT_CORE_INFO("Done Initializing RHI");
+		if(options.forceSingleQueue) MQ = false;
 		return 0;
 	}
 	void RendererBase::ClearTarget()

@@ -1,1 +1,4 @@
-option('linux_compositor', type: 'combo', choices: ['wayland', 'x11'], value: 'x11') 
+option('linux_compositor', type: 'combo', choices: ['wayland', 'x11'], value: 'x11')
+option('verbose_logging', type: 'boolean', value: true)
+#use magic enum for logging enum values
+option('use_magic_enum', type:'boolean', value:true)

@@ -25,6 +25,7 @@ namespace Pistachio {
 		bool headless = false;
 		RHI::LUID gpu_luid{};
 		bool exportTextures = false;
+		bool forceSingleQueue;
 		Internal_ID custom_device;
 		Internal_ID custom_instance;
 		Internal_ID custom_physical_device;

@@ -5,10 +5,17 @@
 #define PT_DEBUG_BREAK __debugbreak()
 #else
 #include <signal.h>
+
 #define PT_DEBUG_BREAK raise(SIGTRAP);
 #endif
 
 typedef int KeyCode;
+#ifdef PT_USE_MENUM
+#include "magic_enum.hpp"
+#define ENUM_FMT(val) magic_enum::enum_name(val)
+#else
+#define ENUM_FMT(val) static_cast<std::underlying_type_t<decltype(val)>>(val)
+#endif
 #define ENUM_FLAGS(EnumType)                      \
 inline EnumType operator|(EnumType a, EnumType b) {                             \
     return static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(a) | static_cast<std::underlying_type_t<EnumType>>(b));    \

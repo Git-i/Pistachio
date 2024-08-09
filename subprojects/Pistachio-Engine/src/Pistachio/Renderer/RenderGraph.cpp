@@ -11,6 +11,7 @@
 #include "RenderGraph.h"
 #include "Renderer.h"
 #include "Util/FormatUtils.h"
+#include "spdlog/fmt/bundled/format.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -425,12 +426,14 @@ namespace Pistachio
         std::vector<RHI::TextureMemoryBarrier>& release,
         RHI::ResourceLayout layout_fn(AttachmentUsage),
         RHI::ResourceAcessFlags access_fn(AttachmentUsage),
-        RHI::QueueFamily srcQueue)
+        RHI::QueueFamily srcQueue,
+        bool isDepth = false)
     {
         if(info.usage == AttachmentUsage::PassThrough) return false;
         auto& barrier = barriers.emplace_back();
-        barrier.newLayout = layout_fn(info.usage);
-        barrier.AccessFlagsAfter = access_fn(info.usage);
+        barrier.newLayout = isDepth ? RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL : layout_fn(info.usage);
+        barrier.AccessFlagsAfter = isDepth ? RHI::ResourceAcessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE : access_fn(info.usage);
+        barrier.AccessFlagsBefore = tex.currentAccess;
         //temporary
         RHI::SubResourceRange range;
         range.FirstArraySlice = tex.IsArray ? tex.arraySlice : 0;
@@ -440,6 +443,7 @@ namespace Pistachio
         range.NumMipLevels = tex.mipSliceCount;
         if (tex.currentFamily != srcQueue)
         {
+            barrier.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
             auto& barr = release.emplace_back();
             barr.AccessFlagsAfter = barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
             barr.previousQueue = tex.currentFamily;
@@ -459,7 +463,6 @@ namespace Pistachio
         }
         
         //transition
-        barrier.AccessFlagsBefore = tex.currentAccess;
         barrier.oldLayout = tex.current_layout;
         barrier.texture = tex.texture;
         barrier.subresourceRange = range;
@@ -548,22 +551,44 @@ namespace Pistachio
     {
         //TODO reflection support
         PT_CORE_VERBOSE("Texture Attachment: (format: {0}, load_op: {1}, usage: {2})",
-            static_cast<std::underlying_type_t<RHI::Format>>(att.format), 
-            static_cast<std::underlying_type_t<RHI::LoadOp>>(att.loadOp), 
-            static_cast<std::underlying_type_t<AttachmentUsage>>(att.usage));
+            ENUM_FMT(att.format), 
+            ENUM_FMT(att.loadOp), 
+            ENUM_FMT(att.usage));
     } 
     void RenderGraph::LogAttachmentBody(const AttachmentInfo& att, std::vector<RGTexture>& textures)
     {
         auto& texture = textures[att.texture.texOffset];
         RHI::Weak rhi_tex = texture.texture;
-        PT_CORE_VERBOSE("  Texture: instance: {0}, layout: {1}, access: {2}, family{3}, name: {4}",
+        PT_CORE_VERBOSE("  Texture -> instance: {0}, layout: {1}, access: {2}, family: {3}, name: {4}",
             att.texture.instID,
-            static_cast<std::underlying_type_t<RHI::ResourceLayout>>(texture.current_layout),
-            static_cast<std::underlying_type_t<RHI::ResourceAcessFlags>>(texture.currentAccess),
-            static_cast<std::underlying_type_t<RHI::QueueFamily>>(texture.currentFamily),
+            ENUM_FMT(texture.current_layout),
+            ENUM_FMT(texture.currentAccess),
+            ENUM_FMT(texture.currentFamily),
             rhi_tex->name ? rhi_tex->name : std::string_view()
             );
-    }    
+    }
+    bool RenderGraph::LogTextureBarrier(bool value, std::vector<RHI::TextureMemoryBarrier>& barrier)
+    {
+        if(value)
+        {
+            auto& barr = barrier.back();
+            PT_CORE_VERBOSE(
+                "  Pipeline Barrier:\n"
+                "\t\tacces src: {0} dst: {1}\n"
+                "\t\tlayout from: {2} to: {3}\n"
+                "\t\tqueue from: {4} to: {5}",
+                ENUM_FMT(barr.AccessFlagsBefore),
+                ENUM_FMT(barr.AccessFlagsAfter),
+                ENUM_FMT(barr.oldLayout),
+                ENUM_FMT(barr.newLayout),
+                ENUM_FMT(barr.previousQueue),
+                ENUM_FMT(barr.nextQueue)
+            );
+        }
+        else
+            PT_CORE_VERBOSE("Barrier Not Needed");
+        return value;
+    }
     template<typename PassTy>
     void RenderGraph::ExecLevel(std::vector<std::pair<uint32_t, PassAction>>& levelTransitionIndices, uint32_t levelInd,
         RHI::Weak<RHI::GraphicsCommandList> currentList,
@@ -574,16 +599,19 @@ namespace Pistachio
         RHI::QueueFamily srcQueue,
         RHI::PipelineStage& stage)
     {
+        
         PT_CORE_INFO("Beginning RenderGraph Level Execution");
         std::vector<RHI::TextureMemoryBarrier> textureRelease;
         std::vector<RHI::BufferMemoryBarrier> bufferRelease;
         uint32_t j = levelInd == 0 ? 0 : levelTransitionIndices[levelInd - 1].first;
-        PT_CORE_VERBOSE("Level contains {0} Passes", levelTransitionIndices[levelInd].first);
+        PT_CORE_VERBOSE("Level contains {0} Passes", levelTransitionIndices[levelInd].first - j);
         for (; j < levelTransitionIndices[levelInd].first; j++)
         {
             //transition all inputs to good state
             PassTy* pass = passes[j].first;
-            PT_CORE_VERBOSE("Pass {0} (name: {1}, queue: {2}):", j, pass->name, (uint32_t)srcQueue);
+            RHI::PipelineStage pass_stg;
+            if constexpr(std::is_same_v<RenderPass, PassTy>) pass_stg = pass->stage; else pass_stg = RHI::PipelineStage::COMPUTE_SHADER_BIT;
+            PT_CORE_VERBOSE("Pass {0} (name: {1}, queue: {2}): Before: {3}, After: {4}", j, pass->name, ENUM_FMT(srcQueue), ENUM_FMT(stage), ENUM_FMT(pass_stg));
             std::vector<RHI::TextureMemoryBarrier> barriers;
             std::vector<RHI::BufferMemoryBarrier> bufferBarriers;
             barriers.reserve(pass->inputs.size() + pass->outputs.size());
@@ -593,19 +621,27 @@ namespace Pistachio
             std::vector<RHI::RenderingAttachmentDesc> attachments;
             attachments.reserve(pass->outputs.size());
             
-
+            PT_CORE_VERBOSE("Texture Inputs:");
             for (auto& input : pass->inputs)
             {
                 LogAttachmentHeader(input);
                 LogAttachmentBody(input, textures);
-                FillTextureBarrier(textures[input.texture.texOffset], input, barriers, textureRelease, InputLayout, InputDstAccess, srcQueue);
+                LogTextureBarrier(
+                    FillTextureBarrier(textures[input.texture.texOffset], input, barriers, textureRelease, InputLayout, InputDstAccess, srcQueue),
+                    barriers);
                 LogAttachmentBody(input, textures);
             }
+            PT_CORE_VERBOSE("Texture Outputs:");
             for (auto& output : pass->outputs)
             {
                 RGTexture& tex = textures[output.texture.texOffset];
                 if (output.usage == AttachmentUsage::Graphics) FillAttachment<AttachRT>(output, attachments, tex);
-                FillTextureBarrier(tex, output, barriers, textureRelease, OutputLayout, OutputDstAccess, srcQueue);
+                LogAttachmentHeader(output);
+                LogAttachmentBody(output, textures);
+                LogTextureBarrier(
+                    FillTextureBarrier(tex, output, barriers, textureRelease, OutputLayout, OutputDstAccess, srcQueue),
+                    barriers);
+                LogAttachmentBody(output, textures);
             }
             if constexpr (std::is_same_v<PassTy, RenderPass>)
             {
@@ -617,23 +653,7 @@ namespace Pistachio
                         FillAttachment<AttachDS>(pass->dsOutput, attachments, textures[pass->dsOutput.texture.texOffset]);
                         rbDesc.pDepthStencilAttachment = &attachments.back();
                     }
-                    if(FillTextureBarrier(tex, pass->dsOutput, barriers, textureRelease, OutputLayout, OutputDstAccess, srcQueue))
-                    {
-                        auto& ds = barriers.back();
-                        if(ds.previousQueue == ds.nextQueue &&
-                            ds.oldLayout == RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-                        {
-                            barriers.pop_back();
-                            tex.current_layout = RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                            tex.currentAccess = RHI::ResourceAcessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE;
-                        }
-                        else {
-                            ds.newLayout = RHI::ResourceLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                            ds.AccessFlagsAfter = RHI::ResourceAcessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE;
-                            tex.current_layout = ds.newLayout;
-                            tex.currentAccess = ds.AccessFlagsAfter;
-                        }
-                    }
+                    FillTextureBarrier(tex, pass->dsOutput, barriers, textureRelease, OutputLayout, OutputDstAccess, srcQueue, true);
                 }
             }
             
@@ -644,8 +664,6 @@ namespace Pistachio
             rbDesc.pColorAttachments = attachments.data();
             rbDesc.numColorAttachments = attachments.size() - (rbDesc.pDepthStencilAttachment ? 1 : 0);
             
-            RHI::PipelineStage pass_stg;
-            if constexpr(std::is_same_v<RenderPass, PassTy>) pass_stg = pass->stage; else pass_stg = RHI::PipelineStage::COMPUTE_SHADER_BIT;
             currentList->PipelineBarrier(stage, pass_stg, bufferBarriers, barriers);
             if constexpr (std::is_same_v<PassTy, RenderPass>) if (pass->pso.IsValid()) currentList->SetPipelineState(pass->pso);
             if constexpr (std::is_same_v<PassTy, ComputePass>) if (pass->computePipeline.IsValid()) currentList->SetComputePipeline(pass->computePipeline);
