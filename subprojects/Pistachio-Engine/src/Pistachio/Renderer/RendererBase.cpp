@@ -93,9 +93,8 @@ namespace Pistachio {
 		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
 		if(!headless)
 		{
-			swapChain->Present(currentRTVindex, swapCycleIndex);
+			swapChain->Present(mainFence, fence_vals[currentFrameIndex]);
 			swapCycleIndex = (swapCycleIndex +1)%numSwapImages;
-			 swapChain->AcquireImage(&currentRTVindex,swapCycleIndex);
 
 		}
 		//cycle frame Index
@@ -219,7 +218,6 @@ namespace Pistachio {
 				)
 			}
 			PT_CORE_INFO("Swapchain Created Internal_ID:{0}", swapChain->ID);
-			swapChain->AcquireImage(&currentRTVindex,swapCycleIndex);
 		}
 
 		RHI::PoolSize pSize;

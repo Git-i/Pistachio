@@ -138,6 +138,8 @@ namespace Pistachio {
 		computeShaderMiscBuffer.CreateStack(nullptr, sizeof(uint32_t) * 2, SBCreateFlags::None);
 		irSkybox.CreateStack(1, 1, 1, RHI::Format::R8G8B8A8_UNORM PT_DEBUG_REGION(, "Scene -> irSkybox"));
 		pfSkybox.CreateStack(1, 1, 1, RHI::Format::R8G8B8A8_UNORM PT_DEBUG_REGION(, "Scene -> pfSkybox"));
+		irSkybox.SwitchToShaderUsageMode();
+		pfSkybox.SwitchToShaderUsageMode();
 		ComputeShader* shd_buildClusters = Renderer::GetBuiltinComputeShader("Build Clusters");
 		ComputeShader* shd_activeClusters = Renderer::GetBuiltinComputeShader("Filter Clusters");
 		ComputeShader* shd_tightenList = Renderer::GetBuiltinComputeShader("Tighten Clusters");
