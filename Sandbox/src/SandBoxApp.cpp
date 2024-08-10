@@ -1,10 +1,11 @@
-#include "Pistachio/Event/MouseEvent.h"
+#include <cstdlib>
 #define PISTACHIO_RENDER_API_DX11
 #include "Pistachio.h"
 #include "Pistachio/Core/Error.h"
 #define PT_CUSTOM_ENTRY
 #include "Pistachio/Core/EntryPoint.h"
 #include "renderdoc_app.h"
+#include "dlfcn.h"
 using namespace Pistachio;
 RHI::Viewport vp;
 struct
@@ -145,7 +146,11 @@ private:
 class Sandbox : public Pistachio::Application
 {
 public:
-	Sandbox() : Application("SandBoc", {false,{0,0,0,0,0,0,0,0}}) { PushLayer(new ExampleLayer("lol"));  }
+	Sandbox() : Application("SandBoc", 
+			{
+				.headless=false,
+				.log_file_name="Log.txt"
+			}) { PushLayer(new ExampleLayer("lol"));  }
 	~Sandbox() { }
 private:
 };
@@ -157,6 +162,9 @@ Pistachio::Application* Pistachio::CreateApplication()
 
 int main(int argc, char** argv)
 {
+	std::ofstream ofs;
+	ofs.open("Log.txt", std::ofstream::out | std::ofstream::trunc);
+	ofs.close();
 	auto app = Pistachio::CreateApplication();
 	app->Run();
 	delete app;

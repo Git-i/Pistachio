@@ -26,12 +26,16 @@ namespace Pistachio {
 		RHI::LUID gpu_luid{};
 		bool exportTextures = false;
 		bool forceSingleQueue;
-		Internal_ID custom_device;
-		Internal_ID custom_instance;
-		Internal_ID custom_physical_device;
-		Internal_ID custom_direct_queue;//required
-		Internal_ID custom_compute_queue;//optional
+		//using custom devices
+		Internal_ID custom_device = nullptr;
+		Internal_ID custom_instance = nullptr;
+		Internal_ID custom_physical_device = nullptr;
+		Internal_ID custom_direct_queue = nullptr;//required
+		Internal_ID custom_compute_queue = nullptr;//optional
 		RHI::QueueFamilyIndices indices;
+		//logger options
+		//leave null to log to stdout
+		const char* log_file_name = nullptr;
 	};
 	class PISTACHIO_API Application
 	{

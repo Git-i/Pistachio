@@ -17,7 +17,7 @@ namespace Pistachio {
 		PT_PROFILE_FUNCTION();
 		s_Instance = this;
 		m_headless = opt.headless;
-		Pistachio::Log::Init();
+		Pistachio::Log::Init(opt.log_file_name);
 		RendererBase::InitOptions ropt;
 		ropt.headless = opt.headless;
 		ropt.luid = opt.gpu_luid;

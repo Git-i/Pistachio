@@ -9,7 +9,7 @@ namespace Pistachio {
 	class PISTACHIO_API Log
 	{
 	public:
-		static void Init();
+		static void Init(const char* filename);
 		static std::shared_ptr<spdlog::logger>& GetCoreLogger();
 		static std::shared_ptr<spdlog::logger>& GetClientLogger();
 	private:

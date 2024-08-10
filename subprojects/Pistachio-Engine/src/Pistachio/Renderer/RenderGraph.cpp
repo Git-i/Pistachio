@@ -68,19 +68,18 @@ namespace Pistachio
                 cmdLists[gfxIndex]->End();
                 RendererBase::directQueue->ExecuteCommandLists(&cmdLists[gfxIndex]->ID, 1);
                 uint32_t j = gfxIndex == 0 ? 0 : levelTransitionIndices[gfxIndex - 1].first;
-                std::cout << "GFX Group " << gfxIndex;
+                PT_CORE_VERBOSE("GFX Group {0}", gfxIndex);
                 if ((levelTransitionIndices[gfxIndex].second & PassAction::Signal) != (PassAction)0)
                 {
                     RendererBase::directQueue->SignalFence(fence, passesSortedAndFence[j].second + 1 + maxFence);
-                    std::cout << "Signal Fence to " << passesSortedAndFence[j].second + 1;
+                    PT_CORE_VERBOSE("    Signal Fence to {0}", passesSortedAndFence[j].second + 1);
                 }
                 if ((levelTransitionIndices[gfxIndex].second & PassAction::Wait) != (PassAction)0)
                 {
                     uint64_t waitVal = passesSortedAndFence[levelTransitionIndices[gfxIndex].first].second;
                     RendererBase::directQueue->WaitForFence(fence, waitVal + maxFence);
-                    std::cout << "Wait for fence to reach " << waitVal;
+                    PT_CORE_VERBOSE("    Wait for fence to reach {0}", waitVal);
                 }
-                std::cout << std::endl;
                 gfxIndex++;
             }
             else
@@ -88,19 +87,18 @@ namespace Pistachio
                 uint32_t j = cmpIndex == 0 ? 0 : computeLevelTransitionIndices[cmpIndex - 1].first;
                 computeCmdLists[cmpIndex]->End();
                 RendererBase::computeQueue->ExecuteCommandLists(&computeCmdLists[cmpIndex]->ID, 1);
-                std::cout << "CMP Group " << cmpIndex;
+                PT_CORE_VERBOSE("CMP Group {0}", cmpIndex);
                 if ((computeLevelTransitionIndices[cmpIndex].second & PassAction::Signal) != (PassAction)0)
                 {
                     RendererBase::computeQueue->SignalFence(fence, computePassesSortedAndFence[j].second + 1 + maxFence);
-                    std::cout << "Signal Fence to " << computePassesSortedAndFence[j].second + 1;
+                    PT_CORE_VERBOSE("    Signal Fence to {0}", computePassesSortedAndFence[j].second + 1);
                 }
                 if ((computeLevelTransitionIndices[cmpIndex].second & PassAction::Wait) != (PassAction)0)
                 {
                     uint64_t waitVal = computePassesSortedAndFence[computeLevelTransitionIndices[cmpIndex].first].second;
                     RendererBase::computeQueue->WaitForFence(fence, waitVal + maxFence);
-                    std::cout << "Wait for fence to reach " << waitVal;
+                    PT_CORE_VERBOSE("Wait for fence to reach {0}", waitVal);
                 }
-                std::cout << std::endl;
                 cmpIndex++;
             }
         }
@@ -110,20 +108,19 @@ namespace Pistachio
             cmdLists[gfxIndex]->End();
             RendererBase::directQueue->ExecuteCommandLists(&cmdLists[gfxIndex]->ID, 1);
             uint32_t j = gfxIndex == 0 ? 0 : levelTransitionIndices[gfxIndex - 1].first;
-            std::cout << "GFX Group " << gfxIndex;
+            PT_CORE_VERBOSE("GFX Group ", gfxIndex);
             if ((levelTransitionIndices[gfxIndex].second & PassAction::Signal) != (PassAction)0)
             {
                 RendererBase::directQueue->SignalFence(fence, passesSortedAndFence[j].second + 1 + maxFence);
-                std::cout << "Signal Fence to " << passesSortedAndFence[j].second + 1;
+                PT_CORE_VERBOSE("Signal Fence to ", passesSortedAndFence[j].second + 1);
             }
             if ((levelTransitionIndices[gfxIndex].second & PassAction::Wait) != (PassAction)0)
             {
                 uint64_t waitVal = passesSortedAndFence[levelTransitionIndices[gfxIndex].first].second;
                 
                 RendererBase::directQueue->WaitForFence(fence, waitVal + maxFence);
-                std::cout << "Wait for fence to reach " << waitVal;
+                PT_CORE_VERBOSE("Wait for fence to reach ", waitVal);
             }
-            std::cout << std::endl;
             gfxIndex++;
         }
         while (cmpIndex < computeLevelTransitionIndices.size())
@@ -132,19 +129,18 @@ namespace Pistachio
             computeCmdLists[cmpIndex]->End();
             
             RendererBase::computeQueue->ExecuteCommandLists(&computeCmdLists[cmpIndex]->ID, 1);
-            std::cout << "CMP Group " << cmpIndex;
+            PT_CORE_VERBOSE("CMP Group {0}", cmpIndex);
             if ((computeLevelTransitionIndices[cmpIndex].second & PassAction::Signal) != (PassAction)0)
             {
                 RendererBase::computeQueue->SignalFence(fence, computePassesSortedAndFence[j].second + 1 + maxFence);
-                std::cout << "Signal Fence to " << computePassesSortedAndFence[j].second + 1;
+                PT_CORE_VERBOSE("    Signal Fence to {0}", computePassesSortedAndFence[j].second + 1);
             }
             if ((computeLevelTransitionIndices[cmpIndex].second & PassAction::Wait) != (PassAction)0)
             {
                 uint64_t waitVal = computePassesSortedAndFence[computeLevelTransitionIndices[cmpIndex].first].second;
                 RendererBase::computeQueue->WaitForFence(fence, waitVal + maxFence) ;
-                std::cout << "Wait for fence to reach " << waitVal;
+                PT_CORE_VERBOSE("    Wait for fence to reach {0}", waitVal);
             }
-            std::cout << std::endl;
             cmpIndex++;
         }
 
