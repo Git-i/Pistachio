@@ -17,27 +17,27 @@ typedef int KeyCode;
 #define ENUM_FMT(val) static_cast<std::underlying_type_t<decltype(val)>>(val)
 #endif
 #define ENUM_FLAGS(EnumType)                      \
-inline EnumType operator|(EnumType a, EnumType b) {                             \
+inline constexpr EnumType operator|(EnumType a, EnumType b) {                             \
     return static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(a) | static_cast<std::underlying_type_t<EnumType>>(b));    \
 }                                                                               \
-inline EnumType operator&(EnumType a, EnumType b) {                             \
+inline constexpr EnumType operator&(EnumType a, EnumType b) {                             \
     return static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(a) & static_cast<std::underlying_type_t<EnumType>>(b));    \
 }                                                                               \
-inline EnumType operator^(EnumType a, EnumType b) {                             \
+inline constexpr EnumType operator^(EnumType a, EnumType b) {                             \
     return static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(a) ^ static_cast<std::underlying_type_t<EnumType>>(b));    \
 }                                                                               \
-inline EnumType operator~(EnumType a) {                                         \
+inline constexpr EnumType operator~(EnumType a) {                                         \
     return static_cast<EnumType>(~static_cast<std::underlying_type_t<EnumType>>(a));                         \
 }                                                                               \
-inline EnumType& operator|=(EnumType& a, EnumType b) {                         \
+inline constexpr EnumType& operator|=(EnumType& a, EnumType b) {                         \
     a = a | b;                                                                 \
     return a;                                                                  \
 }                                                                               \
-inline EnumType& operator&=(EnumType& a, EnumType b) {                         \
+inline constexpr EnumType& operator&=(EnumType& a, EnumType b) {                         \
     a = a & b;                                                                 \
     return a;                                                                  \
 }                                                                               \
-inline EnumType& operator^=(EnumType& a, EnumType b) {                         \
+inline constexpr EnumType& operator^=(EnumType& a, EnumType b) {                         \
     a = a ^ b;                                                                 \
     return a;                                                                  \
 }
