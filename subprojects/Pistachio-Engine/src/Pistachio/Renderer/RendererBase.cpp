@@ -121,6 +121,7 @@ namespace Pistachio {
 		
 		//cycle frame Index
 		currentFrameIndex = (currentFrameIndex + 1) % 3;
+		currentRTVindex  = (currentRTVindex + 1) % numSwapImages;
 		//prep for next frame
 		mainFence->Wait(fence_vals[currentFrameIndex]);
 		commandAllocators[currentFrameIndex]->Reset();
