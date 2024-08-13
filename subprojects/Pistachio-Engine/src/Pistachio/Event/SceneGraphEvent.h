@@ -19,7 +19,7 @@ namespace Pistachio {
 		EVENT_CLASS_TYPE(EntityCreated)
 		EVENT_CLASS_CATEGORY(EventCategorySceneGraph)
 	private:
-		uint32_t entity_ID; //todo handle this better
+		uint32_t entity_ID; //TODO: handle this better
 	};
 
 	

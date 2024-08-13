@@ -1,6 +1,7 @@
 project('Pistachio-Engine', 'cpp',
     default_options: ['cpp_std=c++20'])
 cmake = import('cmake')
+python_exe = find_program('python3', 'python')
 
 dxc = subproject('dxc')
 dxc_dep = dxc.get_variable('dxc_dep')
@@ -104,6 +105,14 @@ sources = [
 tests_src = [
     'tests/script_test.cpp'
 ]
+# TODO: Shader Compilation
+#shaders = [
+#
+#]
+#shader_compiler = generator(python_exe,
+#    arguments: ['compile_shaders.py', '@INPUT@'],
+#    output: ['Compiled/@BASENAME@.spv', 'Compiled/@BASENAME@.cso'])
+
 args = ['-DPAL_STDCPP_COMPAT','-D_DEBUG']
 if(build_machine.system() == 'linux')
     deps += glfw3_dep

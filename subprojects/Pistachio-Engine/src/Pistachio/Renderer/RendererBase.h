@@ -77,13 +77,8 @@ namespace Pistachio {
 		static void PushTextureUpdate(RHI::Weak<RHI::Texture> texture, uint32_t imgByteSize,const void* data,RHI::SubResourceRange* range, RHI::Extent3D imageExtent, RHI::Offset3D imageOffset,RHI::Format format);
 		static RHI::Ptr<RHI::DescriptorSet> CreateDescriptorSet(RHI::Ptr<RHI::DescriptorSetLayout> layout);
 		static void FlushStagingBuffer();
-		static void SetPrimitiveTopology(PrimitiveTopology Topology);
 		static void SetClearColor(float r, float g, float b, float a);
 		static void DrawIndexed(uint32_t indexCount);
-		static void SetCullMode(CullMode cullmode);
-		static void EnableShadowMapRasetrizerState();
-		static void SetDepthStencilOp(DepthStencilOp op);
-		static void BindMainTarget();
 		static bool Init(PlatformData* pd, InitOptions& options);
 		static RHI::Ptr<RHI::Device> Get3dDevice();
 		static RHI::Instance* GetInstance();
@@ -99,8 +94,6 @@ namespace Pistachio {
 		static uint32_t GetCurrentRTVIndex();
 		static uint32_t GetCurrentFrameIndex();
 		static const constexpr uint32_t numFramesInFlight = 3;
-		//static ID3D11RenderTargetView* GetmainRenderTargetView() { return g_mainRenderTargetView.Get(); }
-		//static ID3D11DepthStencilView* GetDepthStencilView(){ return pDSV.Get(); }
 	private:
 		friend class Renderer; //easy access to avoid fn calls
 		friend class Texture2D;
@@ -125,7 +118,7 @@ namespace Pistachio {
 		static RHI::Ptr<RHI::SwapChain> swapChain;
 		static RHI::Ptr<RHI::CommandQueue> directQueue;
 		static RHI::Ptr<RHI::CommandQueue> computeQueue;
-		static std::vector<RHI::Ptr<RHI::Texture>> backBufferTextures; //todo: tripebuffering support
+		static std::vector<RHI::Ptr<RHI::Texture>> backBufferTextures;
 		static RHI::Ptr<RHI::Texture> depthTexture;
 		static RHI::Ptr<RHI::DescriptorHeap> MainRTVheap;
 		static std::vector<TrackedDescriptorHeap> rtvHeaps;

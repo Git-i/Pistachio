@@ -1,6 +1,7 @@
 #include "CommandList.h"
 #include "Device.h"
 #include "FormatsAndTypes.h"
+#include "Instance.h"
 #include "PhysicalDevice.h"
 #include "Ptr.h"
 #include "Texture.h"
@@ -13,6 +14,7 @@
 #include <cstdint>
 #include <format>
 #include <ranges>
+#include <string_view>
 #include <unordered_map>
 
 RHI::Ptr<RHI::Device>              Pistachio::RendererBase::device;
@@ -152,6 +154,16 @@ namespace Pistachio {
 		headless = options.headless;
 		if(options.custom_instance) instance = RHI::Instance::FromNativeHandle(options.custom_instance);
 		else RHICreateInstance(&instance);
+		instance->SetLoggerCallback([](RHI::LogLevel l, std::string_view str)
+		{
+			using enum RHI::LogLevel;
+			switch(l)
+			{
+				case Error: PT_CORE_ERROR("RHI: {0}", str);
+				case Warn: PT_CORE_WARN("RHI: {0}", str);
+				case Info: PT_CORE_INFO("RHI: {0}", str);
+			}
+		});
 		//todo implement device selection
 		PT_CORE_INFO("Initializing RendererBase");
 		RHI::PhysicalDevice* physicalDevice;
@@ -196,7 +208,7 @@ namespace Pistachio {
 			device = dev;
 			directQueue = queue[0];
 			if(MQ) computeQueue = queue[1];
-			PT_CORE_INFO("Device Created ID:{0}, Physical Device used [{1}]", device->ID, (void*)device->ID,physicalDevice->GetDesc().Description);
+			PT_CORE_INFO("Device Created ID:{0}, Physical Device used [{1}]", device->ID, physicalDevice->GetDesc().Description);
 		}
 
 
@@ -511,10 +523,6 @@ namespace Pistachio {
 		outstandingResourceUpdate = false;
 	}
 
-	void RendererBase::SetPrimitiveTopology(PrimitiveTopology Topology)
-	{
-		// todo replace with pso system??
-	}
 
 	void RendererBase::SetClearColor(float r, float g, float b, float a)
 	{
@@ -531,22 +539,6 @@ namespace Pistachio {
 
 
 
-	void RendererBase::SetCullMode(CullMode cullmode)
-	{
-		//todo replace with pso system
-	}
-	void RendererBase::EnableShadowMapRasetrizerState()
-	{
-		//todo replace with pso system
-	}
-	void RendererBase::SetDepthStencilOp(DepthStencilOp op)
-	{
-		//todo replace with pso system
-	}
-	void RendererBase::BindMainTarget()
-	{
-		//todo replace with begine/end calls??
-	}
 	RHI::Ptr<RHI::Device> RendererBase::Get3dDevice()
 	{
 		return device;

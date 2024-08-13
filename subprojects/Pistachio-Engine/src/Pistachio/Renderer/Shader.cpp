@@ -1,5 +1,7 @@
 #include "FormatsAndTypes.h"
 #include "PipelineStateObject.h"
+#include "Pistachio/Core.h"
+#include "Pistachio/Core/Log.h"
 #include "Pistachio/Renderer/Renderer.h"
 #include "Ptr.h"
 #include "RootSignature.h"
@@ -542,7 +544,7 @@ namespace Pistachio {
 	}
 
 
-	ComputeShader* ComputeShader::Create(const RHI::ShaderCode& code, RHI::ShaderMode mode)
+	ComputeShader* ComputeShader::	Create(const RHI::ShaderCode& code, RHI::ShaderMode mode)
 	{
 		ComputeShader* shader = new ComputeShader;
 		shader->CreateRootSignature(code, mode);
@@ -599,11 +601,14 @@ namespace Pistachio {
 		std::array<RHI::Ptr<RHI::ShaderReflection>,1> CSReflection;
 		if (mode == RHI::ShaderMode::File) CSReflection[0] = RHI::ShaderReflection::CreateFromFile(code.data).value();
 		else CSReflection[0] = RHI::ShaderReflection::CreateFromMemory(code.data, code.size).value();
+		PT_CORE_INFO("in");
 		auto[rsd, _1, _2] = RHI::ShaderReflection::FillRootSignatureDesc(CSReflection, {}, std::nullopt);
+		PT_CORE_INFO("out");
 		layouts.resize(rsd.numRootParameters);
+		PT_CORE_INFO("out2");
 		rSig = RendererBase::device->CreateRootSignature(&rsd, layouts.data()).value();
+		PT_CORE_INFO("out3");
 		CreateSetInfos(CSReflection[0]);
-
 	}
 
 	void ComputeShader::CreateSetInfos(RHI::Weak<RHI::ShaderReflection> reflection)

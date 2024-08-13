@@ -525,7 +525,8 @@ namespace Pistachio
     void RenderGraph::FillAttachment(AttachmentInfo& info, std::vector<RHI::RenderingAttachmentDesc>& desc, RGTexture& tex)
     {
         auto& attachment = desc.emplace_back();
-        attachment.clearColor = { 0,0,0,0 };
+        if constexpr (type == AttachRT) attachment.clearColor = { 0,0,0,0 };
+        if constexpr (type == AttachDS) attachment.clearColor = { 1,0,0,0 };
         attachment.loadOp = info.loadOp;
         attachment.storeOp = RHI::StoreOp::Store;
         typename AttachmentType_t<(AttachmentType)type>::handle_type* handle;

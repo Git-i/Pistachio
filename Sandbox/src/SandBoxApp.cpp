@@ -5,7 +5,7 @@
 #define PT_CUSTOM_ENTRY
 #include "Pistachio/Core/EntryPoint.h"
 #include "renderdoc_app.h"
-#include "dlfcn.h"
+#include <dlfcn.h>
 using namespace Pistachio;
 RHI::Viewport vp;
 struct
@@ -146,10 +146,10 @@ private:
 class Sandbox : public Pistachio::Application
 {
 public:
-	Sandbox() : Application("SandBoc", 
+	Sandbox(bool use_file) : Application("SandBoc", 
 			{
 				.headless=false,
-				.log_file_name="Log.txt"
+				.log_file_name=use_file ? "Log.txt" : nullptr
 			}) { PushLayer(new ExampleLayer("lol"));  }
 	~Sandbox() { }
 private:
@@ -157,15 +157,23 @@ private:
 
 Pistachio::Application* Pistachio::CreateApplication()
 {
-	return new Sandbox;
+	//return new Sandbox;
 }
 
 int main(int argc, char** argv)
 {
+
+	RENDERDOC_API_1_1_2 *rdoc_api = NULL;
+	if(void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD))
+	{
+	    pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+	    int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+	    assert(ret == 1);
+	}
 	std::ofstream ofs;
 	ofs.open("Log.txt", std::ofstream::out | std::ofstream::trunc);
 	ofs.close();
-	auto app = Pistachio::CreateApplication();
+	auto app = new Sandbox(rdoc_api);
 	app->Run();
 	delete app;
 }

@@ -104,7 +104,7 @@ namespace Pistachio {
 	
 }
 #ifdef _DEBUG
-#define PT_CORE_ASSERT(...) if(__VA_ARGS__){}else{PT_DEBUG_BREAK}
+#define PT_CORE_ASSERT(...) if(__VA_ARGS__){}else{PT_CORE_ERROR("Assertion Failed");PT_DEBUG_BREAK}
 #else
 #define PT_CORE_ASSERT(...) __VA_ARGS__
 #endif // _DEBUG

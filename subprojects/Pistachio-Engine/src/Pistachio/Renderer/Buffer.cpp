@@ -113,7 +113,7 @@ namespace Pistachio {
 	}
 	void StructuredBuffer::Bind(std::uint32_t slot) const
 	{
-		//todo
+		//TODO
 	}
 	void StructuredBuffer::Update(const void* data, std::uint32_t size, std::uint32_t offset)
 	{
