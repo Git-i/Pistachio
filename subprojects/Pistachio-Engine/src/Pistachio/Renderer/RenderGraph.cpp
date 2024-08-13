@@ -296,6 +296,16 @@ namespace Pistachio
         auto info = RHI::Util::GetFormatInfo(format);
         return info == RHI::Util::FormatInfo::Color ? RHI::Aspect::COLOR_BIT : RHI::Aspect::DEPTH_BIT;
     }
+    RHI::LoadOp LoadOpFrom(AttachmentAccess access)
+    {
+        using enum AttachmentAccess;
+        switch (access)
+        {
+            case Read: return RHI::LoadOp::Load;
+            case Write: return RHI::LoadOp::DontCare;
+            case ReadWrite: return RHI::LoadOp::Load;
+        }
+    }
     RHI::ResourceLayout InputLayout(AttachmentUsage usage)
     {
         switch (usage)
@@ -527,7 +537,7 @@ namespace Pistachio
         auto& attachment = desc.emplace_back();
         if constexpr (type == AttachRT) attachment.clearColor = { 0,0,0,0 };
         if constexpr (type == AttachDS) attachment.clearColor = { 1,0,0,0 };
-        attachment.loadOp = info.loadOp;
+        attachment.loadOp = LoadOpFrom(info.access);
         attachment.storeOp = RHI::StoreOp::Store;
         typename AttachmentType_t<(AttachmentType)type>::handle_type* handle;
         if constexpr (type == AttachRT) handle = &tex.rtvHandle;
@@ -546,10 +556,9 @@ namespace Pistachio
     }
     void RenderGraph::LogAttachmentHeader(const AttachmentInfo& att)
     {
-        //TODO reflection support
         PT_CORE_VERBOSE("Texture Attachment: (format: {0}, load_op: {1}, usage: {2})",
             ENUM_FMT(att.format), 
-            ENUM_FMT(att.loadOp), 
+            ENUM_FMT(LoadOpFrom(att.access)), 
             ENUM_FMT(att.usage));
     } 
     void RenderGraph::LogAttachmentBody(const AttachmentInfo& att, std::vector<RGTexture>& textures)

@@ -19,7 +19,7 @@ namespace Pistachio
 	};
 	enum class AttachmentAccess
 	{
-		Read = 1, Write = 2
+		Read = 1, Write = 2, ReadWrite = 1|2
 	};
 	ENUM_FLAGS(AttachmentAccess);
 	class RenderPass;
