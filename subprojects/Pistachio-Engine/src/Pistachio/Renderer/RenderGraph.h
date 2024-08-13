@@ -17,6 +17,11 @@ namespace Pistachio
 		PassThrough,//Doesn't transition, only there for dependencies
 		Unspec //Same as graphics but doesnt make attachments
 	};
+	enum class AttachmentAccess
+	{
+		Read = 1, Write = 2
+	};
+	ENUM_FLAGS(AttachmentAccess);
 	class RenderPass;
 	enum class PassType
 	{
@@ -167,7 +172,7 @@ namespace Pistachio
 	{
 		RHI::Format format;
 		RGTextureInstance texture;
-		RHI::LoadOp loadOp = RHI::LoadOp::Clear;
+		AttachmentAccess access;
 		AttachmentUsage usage = AttachmentUsage::Graphics;
 	};
 	struct BufferAttachmentInfo

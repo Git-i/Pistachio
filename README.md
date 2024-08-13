@@ -1,5 +1,5 @@
 # Pistachio
-Pistachio Game Engine is a C++ 17 game engine utilizing vulkan and d3d12 (currently broken).
+Pistachio Game Engine is a C++ 20 game engine utilizing vulkan and d3d12 (currently broken).
 
 ## Building
 ### Requirements

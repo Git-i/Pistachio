@@ -1,4 +1,5 @@
 #pragma once
+#include "FormatsAndTypes.h"
 #include "Pistachio/Core.h"
 #include "Buffer.h"
 #include "../Core/Instance.h"
@@ -95,6 +96,8 @@ namespace Pistachio {
 		static uint32_t GetCurrentFrameIndex();
 		static const constexpr uint32_t numFramesInFlight = 3;
 	private:
+		static void BackBufferBarrier(RHI::PipelineStage before,RHI::PipelineStage after,RHI::ResourceLayout oldLayout, RHI::ResourceLayout newLayout,
+			RHI::ResourceAcessFlags prevAccess, RHI::ResourceAcessFlags currAccess);
 		friend class Renderer; //easy access to avoid fn calls
 		friend class Texture2D;
 		friend class Shader;

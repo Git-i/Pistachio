@@ -104,7 +104,7 @@ public:
 		
 		cmp = &tc;
 		cmp->Translation = Vector3{ 0.f,0.f,2.f };
-		cmp->Scale.z = 1.f;
+		cmp->Scale.z = 3.f;
 		cmp->Scale.x = 3.f;
 		cmp->Scale.y = 3.f;
 		mat = new Material();

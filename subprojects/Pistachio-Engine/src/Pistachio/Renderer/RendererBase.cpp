@@ -1,3 +1,4 @@
+#include "Barrier.h"
 #include "CommandList.h"
 #include "Device.h"
 #include "FormatsAndTypes.h"
@@ -72,24 +73,39 @@ namespace Pistachio {
 	{
 		mainFence->Wait(fence_vals[(currentFrameIndex+2)%3]);
 	}
+	void RendererBase::BackBufferBarrier(RHI::PipelineStage before,RHI::PipelineStage after,RHI::ResourceLayout oldLayout, RHI::ResourceLayout newLayout,
+				RHI::ResourceAcessFlags prevAccess, RHI::ResourceAcessFlags currAccess)
+	{
+		RHI::TextureMemoryBarrier barr{};
+		barr.oldLayout = oldLayout;
+		barr.newLayout = newLayout;
+		barr.AccessFlagsBefore = prevAccess;
+		barr.AccessFlagsAfter = currAccess;
+		barr.subresourceRange = 
+		{	
+			.imageAspect = RHI::Aspect::COLOR_BIT,
+			.IndexOrFirstMipLevel = 0,
+			.NumMipLevels = 1,
+			.FirstArraySlice = 0,
+			.NumArraySlices = 1,
+		};
+		barr.texture = backBufferTextures[currentRTVindex];
+		barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
+		mainCommandList->PipelineBarrier(before, after, {},{&barr,1});
+	}
 	void RendererBase::EndFrame()
 	{
-
-		RHI::TextureMemoryBarrier barr{};
 		if (!headless)
 		{
-			barr.oldLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
-			barr.newLayout = RHI::ResourceLayout::PRESENT;
-			barr.AccessFlagsBefore = RHI::ResourceAcessFlags::TRANSFER_WRITE;
-			barr.AccessFlagsAfter = RHI::ResourceAcessFlags::NONE;
-			barr.subresourceRange.imageAspect = RHI::Aspect::COLOR_BIT,
-				barr.subresourceRange.IndexOrFirstMipLevel = 0,
-				barr.subresourceRange.NumMipLevels = 1,
-				barr.subresourceRange.FirstArraySlice = 0,
-				barr.subresourceRange.NumArraySlices = 1,
-				barr.texture = backBufferTextures[currentRTVindex];
-			barr.previousQueue = barr.nextQueue = RHI::QueueFamily::Ignored;
-			mainCommandList->PipelineBarrier(RHI::PipelineStage::TRANSFER_BIT, RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, {},{&barr,1});
+			BackBufferBarrier(
+				RHI::PipelineStage::TRANSFER_BIT,
+				RHI::PipelineStage::BOTTOM_OF_PIPE_BIT, 
+
+				RHI::ResourceLayout::TRANSFER_DST_OPTIMAL,
+				RHI::ResourceLayout::PRESENT, 
+
+				RHI::ResourceAcessFlags::TRANSFER_WRITE, 
+				RHI::ResourceAcessFlags::NONE);
 		}
 		//execute main command list
 		mainCommandList->End();
@@ -111,12 +127,15 @@ namespace Pistachio {
 		mainCommandList->Begin(commandAllocators[currentFrameIndex]);
 		if (!headless)
 		{
-			barr.AccessFlagsBefore = RHI::ResourceAcessFlags::NONE;
-			barr.AccessFlagsAfter = RHI::ResourceAcessFlags::TRANSFER_WRITE;
-			barr.oldLayout = RHI::ResourceLayout::UNDEFINED;
-			barr.newLayout = RHI::ResourceLayout::TRANSFER_DST_OPTIMAL;
-			barr.texture = backBufferTextures[currentRTVindex];
-			mainCommandList->PipelineBarrier(RHI::PipelineStage::TOP_OF_PIPE_BIT, RHI::PipelineStage::TRANSFER_BIT, {},{&barr,1});
+			BackBufferBarrier(
+				RHI::PipelineStage::TOP_OF_PIPE_BIT,
+				RHI::PipelineStage::TRANSFER_BIT, 
+
+				RHI::ResourceLayout::UNDEFINED,
+				RHI::ResourceLayout::TRANSFER_DST_OPTIMAL, 
+
+				RHI::ResourceAcessFlags::NONE, 
+				RHI::ResourceAcessFlags::TRANSFER_WRITE);
 		}
 		//wait for the the cmd allocator to be done
 	}
@@ -709,6 +728,8 @@ namespace Pistachio {
 	RHI::Ptr<RHI::Texture>        RendererBase::GetDefaultDepthTexture() { return depthTexture; }
 	uint32_t             RendererBase::GetCurrentRTVIndex() { return currentRTVindex; }
 	uint32_t             RendererBase::GetCurrentFrameIndex() { return currentFrameIndex;}
+	
+	
 	Texture2D& RendererBase::GetWhiteTexture() { return whiteTexture; }
 	Texture2D& RendererBase::GetBlackTexture() { return blackTexture; }
 }
