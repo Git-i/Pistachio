@@ -118,6 +118,7 @@ namespace Pistachio {
 			swapCycleIndex = (swapCycleIndex +1)%numSwapImages;
 
 		}
+		
 		//cycle frame Index
 		currentFrameIndex = (currentFrameIndex + 1) % 3;
 		//prep for next frame
@@ -231,7 +232,7 @@ namespace Pistachio {
 		}
 
 
-
+		device->SetName("RHI Device");
 		RHI::Surface surface;
 		//todo handle multiplatform surface creation
 		unsigned int height = 1280;
@@ -274,6 +275,7 @@ namespace Pistachio {
 				)
 			}
 			PT_CORE_INFO("Swapchain Created Internal_ID:{0}", swapChain->ID);
+			swapChain->SetName("SwapChain");
 		}
 
 		RHI::PoolSize pSize;

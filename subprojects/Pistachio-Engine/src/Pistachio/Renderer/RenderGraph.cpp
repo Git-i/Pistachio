@@ -302,7 +302,7 @@ namespace Pistachio
         switch (access)
         {
             case Read: return RHI::LoadOp::Load;
-            case Write: return RHI::LoadOp::DontCare;
+            case Write: return RHI::LoadOp::Clear;
             case ReadWrite: return RHI::LoadOp::Load;
         }
     }

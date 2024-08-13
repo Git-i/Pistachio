@@ -242,7 +242,7 @@ namespace Pistachio {
 		RenderPass& zprepass = graph.AddPass(RHI::PipelineStage::LATE_FRAGMENT_TESTS_BIT, "Z-Prepass");
 		{
 			a_info.format = RHI::Format::D32_FLOAT;//?
-			a_info.loadOp = RHI::LoadOp::Clear;
+			a_info.access = AttachmentAccess::Write;
 			a_info.usage = AttachmentUsage::Graphics;
 			a_info.texture = depthTex;
 			zprepass.SetDepthStencilOutput(&a_info);
@@ -278,7 +278,7 @@ namespace Pistachio {
 		RenderPass& dirShadow = graph.AddPass(RHI::PipelineStage::LATE_FRAGMENT_TESTS_BIT, "Directional Shadow");
 		{
 			a_info.format = RHI::Format::D32_FLOAT;//?
-			a_info.loadOp = RHI::LoadOp::Load;
+			a_info.access = AttachmentAccess::ReadWrite;
 			a_info.usage = AttachmentUsage::Unspec;
 			a_info.texture = shadowMap;
 			b_info.buffer = LightList;
@@ -346,7 +346,7 @@ namespace Pistachio {
 		RenderPass& pntShadow = graph.AddPass(RHI::PipelineStage::LATE_FRAGMENT_TESTS_BIT, "Point Shadow");
 		{
 			a_info.format = RHI::Format::D32_FLOAT;//?
-			a_info.loadOp = RHI::LoadOp::Load;//dont clear the shadow map
+			a_info.access = AttachmentAccess::ReadWrite;//dont clear the shadow map
 			a_info.usage = AttachmentUsage::Graphics;
 			a_info.texture = shadowMap;
 			pntShadow.SetDepthStencilOutput(&a_info);
@@ -358,7 +358,7 @@ namespace Pistachio {
 		RenderPass& sptShadow = graph.AddPass(RHI::PipelineStage::ALL_GRAPHICS_BIT, "Spot Shadow");
 		{
 			a_info.format = RHI::Format::D32_FLOAT;//?
-			a_info.loadOp = RHI::LoadOp::Clear;
+			a_info.access = AttachmentAccess::Write;
 			a_info.usage = AttachmentUsage::Unspec;
 			a_info.texture = shadowMap;
 			b_info.buffer = LightList;
@@ -430,7 +430,7 @@ namespace Pistachio {
 		ComputePass& filterClusters = graph.AddComputePass("Filter Clusters");
 		{
 			a_info.format = RHI::Format::D32_FLOAT;
-			a_info.loadOp = RHI::LoadOp::Load;
+			a_info.access = AttachmentAccess::ReadWrite;
 			a_info.texture = depthTex;
 			a_info.usage = AttachmentUsage::Compute;
 			filterClusters.AddColorInput(&a_info);
@@ -500,16 +500,16 @@ namespace Pistachio {
 			fwdShading.AddBufferInput(&b_info3);
 			a_info.format = RHI::Format::D32_FLOAT;
 			a_info.texture = shadowMap;
-			a_info.loadOp = RHI::LoadOp::Load;
+			a_info.access = AttachmentAccess::Read;
 			a_info.usage = AttachmentUsage::Graphics;
 			fwdShading.AddColorInput(&a_info);
 			a_info.format = RHI::Format::R16G16B16A16_FLOAT;
 			a_info.texture = finalRenderTex;
-			a_info.loadOp = RHI::LoadOp::Clear;
+			a_info.access = AttachmentAccess::Write;
 			fwdShading.AddColorOutput(&a_info);
 			a_info.format = RHI::Format::D32_FLOAT;
 			a_info.texture = depthTex;
-			a_info.loadOp = RHI::LoadOp::Load;
+			a_info.access = AttachmentAccess::Read;
 			a_info.usage = AttachmentUsage::Graphics;
 			fwdShading.SetDepthStencilOutput(&a_info);
 			//fwdShading.SetShader(); we dont set shader because of custom shader support
@@ -550,13 +550,13 @@ namespace Pistachio {
 		{
 			a_info.format = RHI::Format::R16G16B16A16_FLOAT;
 			a_info.texture = finalRenderTex;
-			a_info.loadOp = RHI::LoadOp::Load;
+			a_info.access = AttachmentAccess::Read;
 			backgroundPass.AddColorInput(&a_info);
 			a_info.texture = finalRenderWithBackground;
 			backgroundPass.AddColorOutput(&a_info);
 			a_info.format = RHI::Format::D32_FLOAT;
 			a_info.texture = depthTex;
-			a_info.loadOp = RHI::LoadOp::Load;
+			a_info.access = AttachmentAccess::Read;
 			a_info.usage = AttachmentUsage::Graphics;
 			backgroundPass.SetDepthStencilOutput(&a_info);
 			backgroundPass.SetShader(shd_background);
