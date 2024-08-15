@@ -1,4 +1,3 @@
-#include <cstdlib>
 #define PISTACHIO_RENDER_API_DX11
 #include "Pistachio.h"
 #include "Pistachio/Core/Error.h"
@@ -21,6 +20,7 @@ struct
 decltype(CBData) CBData2;
 struct BackgroundCBStruct
 {
+
 	Pistachio::Matrix4 pad[4];
 	Pistachio::Matrix4 viewProj;
 	Pistachio::Matrix4 invViewProj;
@@ -154,15 +154,12 @@ public:
 	~Sandbox() { }
 private:
 };
-
 Pistachio::Application* Pistachio::CreateApplication()
 {
 	//return new Sandbox;
 }
-
 int main(int argc, char** argv)
 {
-
 	RENDERDOC_API_1_1_2 *rdoc_api = NULL;
 	if(void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD))
 	{
@@ -173,7 +170,7 @@ int main(int argc, char** argv)
 	std::ofstream ofs;
 	ofs.open("Log.txt", std::ofstream::out | std::ofstream::trunc);
 	ofs.close();
-	auto app = new Sandbox(rdoc_api);
+	auto app = new Sandbox(rdoc_api || 1);
 	app->Run();
 	delete app;
 }

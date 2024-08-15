@@ -601,13 +601,9 @@ namespace Pistachio {
 		std::array<RHI::Ptr<RHI::ShaderReflection>,1> CSReflection;
 		if (mode == RHI::ShaderMode::File) CSReflection[0] = RHI::ShaderReflection::CreateFromFile(code.data).value();
 		else CSReflection[0] = RHI::ShaderReflection::CreateFromMemory(code.data, code.size).value();
-		PT_CORE_INFO("in");
 		auto[rsd, _1, _2] = RHI::ShaderReflection::FillRootSignatureDesc(CSReflection, {}, std::nullopt);
-		PT_CORE_INFO("out");
 		layouts.resize(rsd.numRootParameters);
-		PT_CORE_INFO("out2");
 		rSig = RendererBase::device->CreateRootSignature(&rsd, layouts.data()).value();
-		PT_CORE_INFO("out3");
 		CreateSetInfos(CSReflection[0]);
 	}
 
