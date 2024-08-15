@@ -3,6 +3,7 @@
 #include "FormatsAndTypes.h"
 #include "Pistachio/Core.h"
 #include "Pistachio/Core/Log.h"
+#include "Pistachio/Debug/Instrumentor.h"
 #include "Pistachio/Renderer/RendererBase.h"
 #include "Ptr.h"
 #include "Texture.h"
@@ -372,8 +373,13 @@ namespace Pistachio
             break;
         }
     }
+    void RenderGraph::SetName(std::string_view _name)
+    {
+        name = _name;
+    }
     void RenderGraph::Execute()
     {
+        PT_PROFILE_FUNCTION();
         if (dirty) Compile();
         NewFrame();
         RHI::PipelineStage GFXstage = RHI::PipelineStage::TOP_OF_PIPE_BIT;
@@ -605,7 +611,7 @@ namespace Pistachio
         RHI::QueueFamily srcQueue,
         RHI::PipelineStage& stage)
     {
-        
+        PT_PROFILE_FUNCTION();
         PT_CORE_INFO("Beginning RenderGraph Level Execution");
         std::vector<RHI::TextureMemoryBarrier> textureRelease;
         std::vector<RHI::BufferMemoryBarrier> bufferRelease;
@@ -699,6 +705,7 @@ namespace Pistachio
 
     void RenderGraph::SortPasses()
     {
+        PT_PROFILE_FUNCTION();
         std::vector<RenderPass*> passesLeft;
         std::vector<ComputePass*> computePassesLeft;
         for (auto& pass : passes) { passesLeft.push_back(&pass); }
@@ -936,6 +943,7 @@ namespace Pistachio
     }
     void RenderGraph::Compile()
     {
+        PT_PROFILE_FUNCTION();  
         SortPasses();
         for(auto& buf : this->buffers)
             PT_CORE_ASSERT(buf.buffer.IsValid());

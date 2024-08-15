@@ -5,6 +5,7 @@
 #include "Shader.h"
 #include "RenderTexture.h"
 #include "RendererBase.h"
+#include <string_view>
 
 namespace Pistachio
 {
@@ -243,6 +244,7 @@ namespace Pistachio
 		void Compile();
 		void SubmitToQueue();
 		void NewFrame();
+		void SetName(std::string_view name);
 		RenderPass& AddPass(RHI::PipelineStage stage, const char* passName);
 		ComputePass& AddComputePass(const char* passName);
 		void RemovePass(const char* passName);
@@ -278,6 +280,7 @@ namespace Pistachio
 		friend class Renderer;
 		friend class Scene;
 		bool dirty = true;
+		std::string name;
 		RHI::Ptr<RHI::DebugBuffer> dbgBufferGFX;
 		RHI::Ptr<RHI::DebugBuffer> dbgBufferCMP;
 		RHI::Ptr<RHI::Fence> fence;

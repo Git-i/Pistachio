@@ -1,6 +1,7 @@
 #include "CommandList.h"
 #include "DirectXMath.h"
 #include "FormatsAndTypes.h"
+#include "Pistachio/Debug/Instrumentor.h"
 #include "Pistachio/Renderer/BufferHandles.h"
 #include "Pistachio/Renderer/Mesh.h"
 #include "Pistachio/Renderer/RenderGraph.h"
@@ -11,9 +12,7 @@
 #include "Pistachio/Core/Math.h"
 #include <algorithm>
 #include <cstdint>
-#define NOMINMAX //temporary till i find the root file to include this
 #include "Scene.h"
-#include "ptpch.h"
 #include "Scene.h"
 #include "Components.h"
 #include "Pistachio/Renderer/Renderer2D.h"
@@ -110,9 +109,9 @@ namespace Pistachio {
 	static Shader* envshader;
 	Scene::Scene(SceneDesc desc) : sm_allocator({ 4096, 4096 }, { 256, 256 })
 	{
+		PT_PROFILE_FUNCTION();
 		using namespace DirectX;
 		AssetManager* assetMan = GetAssetManager();
-		PT_PROFILE_FUNCTION();
 		root = CreateRootEntity(UUID());
 		ScreenSpaceQuad = MeshFactory::CreatePlane();
 		RHI::UVector2D resolution = { (uint32_t)desc.Resolution.x, (uint32_t)desc.Resolution.y };
@@ -1202,6 +1201,7 @@ namespace Pistachio {
 		* traverse a scene from the root entity and dirty/update the world space transfrom for the
 		* remainder of the frame. then after the frame everything is "undirtied"
 		*/
+		PT_PROFILE_FUNCTION();
 		meshesToDraw.clear();
 		shadowLights.clear();
 		regularLights.clear();

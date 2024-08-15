@@ -4,6 +4,7 @@
 #include "FormatsAndTypes.h"
 #include "Instance.h"
 #include "PhysicalDevice.h"
+#include "Pistachio/Debug/Instrumentor.h"
 #include "Ptr.h"
 #include "Texture.h"
 #include "ptpch.h"
@@ -95,6 +96,7 @@ namespace Pistachio {
 	}
 	void RendererBase::EndFrame()
 	{
+		PT_PROFILE_FUNCTION();
 		if (!headless)
 		{
 			BackBufferBarrier(
@@ -123,7 +125,10 @@ namespace Pistachio {
 		currentFrameIndex = (currentFrameIndex + 1) % 3;
 		currentRTVindex  = (currentRTVindex + 1) % numSwapImages;
 		//prep for next frame
-		mainFence->Wait(fence_vals[currentFrameIndex]);
+		{
+			PT_PROFILE_SCOPE("Wait For Past Frame To Complete");
+			mainFence->Wait(fence_vals[currentFrameIndex]);
+		}
 		commandAllocators[currentFrameIndex]->Reset();
 		if(MQ) computeCommandAllocators[currentFrameIndex]->Reset();
 		mainCommandList->Begin(commandAllocators[currentFrameIndex]);

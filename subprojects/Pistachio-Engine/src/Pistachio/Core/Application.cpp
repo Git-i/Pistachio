@@ -7,7 +7,55 @@
 #include "Pistachio/Physics/Physics.h"
 #include "Pistachio/Renderer/Renderer2D.h"
 #include "imgui.h"
+#include "tracy/Tracy.hpp"
 #include <memory>
+#if PT_PROFILE_TRACY
+	void* operator new(std::size_t sz)
+	{
+		if (sz == 0)
+			++sz; 
+		if (void *ptr = std::malloc(sz))
+		{
+			TracyAlloc(ptr, sz);
+			return ptr;
+		}
+		abort();
+	}
+	void* operator new[](std::size_t sz)
+	{
+		if (sz == 0)
+			++sz; 
+		if (void *ptr = std::malloc(sz))
+		{
+			TracyAlloc(ptr, sz);
+			return ptr;
+		}
+		abort();
+	}
+	void operator delete(void* ptr) noexcept
+	{
+	    free(ptr);
+		TracyFree(ptr);
+	}
+	
+	void operator delete(void* ptr, std::size_t size) noexcept
+	{
+	    free(ptr);
+		TracyFree(ptr);
+	}
+	
+	void operator delete[](void* ptr) noexcept
+	{
+	    free(ptr);
+		TracyFree(ptr);
+	}
+	
+	void operator delete[](void* ptr, std::size_t size) noexcept
+	{
+	    free(ptr);
+		TracyFree(ptr);
+	}
+#endif
 namespace Pistachio {
 	extern InputHandler* CreateDefaultInputHandler();
 	Application* Application::s_Instance = nullptr;
@@ -114,8 +162,6 @@ namespace Pistachio {
 	}
 	void Application::Run()
 	{
-		PT_PROFILE_FUNCTION();
-		
 		while (m_Running) {
 			auto now = std::chrono::high_resolution_clock::now();
 			std::chrono::milliseconds time = std::chrono::duration_cast<std::chrono::milliseconds>(now - InitTime);
