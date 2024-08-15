@@ -9,53 +9,7 @@
 #include "imgui.h"
 #include "tracy/Tracy.hpp"
 #include <memory>
-#if PT_PROFILE_TRACY
-	void* operator new(std::size_t sz)
-	{
-		if (sz == 0)
-			++sz; 
-		if (void *ptr = std::malloc(sz))
-		{
-			TracyAlloc(ptr, sz);
-			return ptr;
-		}
-		abort();
-	}
-	void* operator new[](std::size_t sz)
-	{
-		if (sz == 0)
-			++sz; 
-		if (void *ptr = std::malloc(sz))
-		{
-			TracyAlloc(ptr, sz);
-			return ptr;
-		}
-		abort();
-	}
-	void operator delete(void* ptr) noexcept
-	{
-	    free(ptr);
-		TracyFree(ptr);
-	}
-	
-	void operator delete(void* ptr, std::size_t size) noexcept
-	{
-	    free(ptr);
-		TracyFree(ptr);
-	}
-	
-	void operator delete[](void* ptr) noexcept
-	{
-	    free(ptr);
-		TracyFree(ptr);
-	}
-	
-	void operator delete[](void* ptr, std::size_t size) noexcept
-	{
-	    free(ptr);
-		TracyFree(ptr);
-	}
-#endif
+
 namespace Pistachio {
 	extern InputHandler* CreateDefaultInputHandler();
 	Application* Application::s_Instance = nullptr;

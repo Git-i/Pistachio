@@ -5,6 +5,7 @@
 #include "Instance.h"
 #include "PhysicalDevice.h"
 #include "Pistachio/Debug/Instrumentor.h"
+#include "Pistachio/Renderer/RenderGraph.h"
 #include "Ptr.h"
 #include "Texture.h"
 #include "ptpch.h"
@@ -116,9 +117,11 @@ namespace Pistachio {
 		directQueue->SignalFence(mainFence, currentFenceVal); //todo add fence signaling together with queue
 		if(!headless)
 		{
-			swapChain->Present(mainFence, fence_vals[currentFrameIndex]);
-			swapCycleIndex = (swapCycleIndex +1)%numSwapImages;
-
+			{
+				PT_PROFILE_SCOPE("SwapChain Present");
+				swapChain->Present(mainFence, fence_vals[currentFrameIndex]);
+				swapCycleIndex = (swapCycleIndex +1)%numSwapImages;
+			}
 		}
 		
 		//cycle frame Index
@@ -129,9 +132,12 @@ namespace Pistachio {
 			PT_PROFILE_SCOPE("Wait For Past Frame To Complete");
 			mainFence->Wait(fence_vals[currentFrameIndex]);
 		}
-		commandAllocators[currentFrameIndex]->Reset();
-		if(MQ) computeCommandAllocators[currentFrameIndex]->Reset();
-		mainCommandList->Begin(commandAllocators[currentFrameIndex]);
+		{
+			PT_PROFILE_SCOPE("Prep Command List and Allocators for Next Frame");
+			commandAllocators[currentFrameIndex]->Reset();
+			if(MQ) computeCommandAllocators[currentFrameIndex]->Reset();
+			mainCommandList->Begin(commandAllocators[currentFrameIndex]);
+		}
 		if (!headless)
 		{
 			BackBufferBarrier(
@@ -153,6 +159,10 @@ namespace Pistachio {
 		if(desc.type == RHI::DeviceType::Dedicated)
 		{
 			score += 5;
+		}
+		else if(desc.type == RHI::DeviceType::Integrated)
+		{
+			score += 2;
 		}
 		return score;
 	}
