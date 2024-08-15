@@ -34,7 +34,7 @@ namespace Pistachio {
 	
 	void Renderer::EndScene()
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 		RendererBase::EndFrame();
 	}
 	void Renderer::Shutdown() {

@@ -21,7 +21,7 @@ namespace Pistachio {
 	}
 	void EditorLayer::OnUpdate(float delta)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 			imguiLayer->Begin();
 		switch(m_SceneState)
 		{

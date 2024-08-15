@@ -26,7 +26,7 @@ namespace Pistachio {
     }
     Error Model::loadModel(const char* path)
     {
-        PT_PROFILE_FUNCTION()
+        PT_PROFILE_FUNCTION();
         PT_CORE_INFO("Loading Model {0}", path);
         if (!Pistachio::Error::CheckFileExistence(path))
             return Error(ErrorType::NonExistentFile, std::string(__FUNCTION__) + ", filename: " + path);
@@ -43,7 +43,7 @@ namespace Pistachio {
     }
     void Model::processNode(aiNode* node, const aiScene* scene)
     {
-        PT_PROFILE_FUNCTION()
+        PT_PROFILE_FUNCTION();
         // process each mesh located at the current node
         for (unsigned int i = 0; i < node->mNumMeshes; i++)
         {
@@ -61,7 +61,7 @@ namespace Pistachio {
     }
     void Model::processMesh(aiMesh* mesh, const aiScene* scene)
     {
-        PT_PROFILE_FUNCTION()
+        PT_PROFILE_FUNCTION();
         // data to fill
         std::vector<Vertex> vertices;
         std::vector<unsigned int> indices;

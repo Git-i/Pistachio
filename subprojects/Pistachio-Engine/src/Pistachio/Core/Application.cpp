@@ -6,7 +6,6 @@
 #include "Pistachio/Core/Input.h"
 #include "Pistachio/Physics/Physics.h"
 #include "Pistachio/Renderer/Renderer2D.h"
-#include "Tracy.hpp"
 #include "imgui.h"
 #include <memory>
 namespace Pistachio {
@@ -95,7 +94,7 @@ namespace Pistachio {
 	}
 	bool Application::OnWindowResize(WindowResizeEvent& e)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 		if (e.GetWidth() == 0)
 			m_minimized = true;
 		else

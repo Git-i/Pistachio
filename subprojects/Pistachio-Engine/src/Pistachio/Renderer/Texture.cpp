@@ -181,7 +181,7 @@ namespace Pistachio
     }
     Texture2D* Texture2D::Create(uint32_t width, uint32_t height, RHI::Format format, void* data PT_DEBUG_REGION(, const char* name), TextureFlags flags)
     {
-        PT_PROFILE_FUNCTION()
+        PT_PROFILE_FUNCTION();
             Texture2D* result = new Texture2D;
         result->m_Width = width;
         result->m_Height = height;

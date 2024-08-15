@@ -60,7 +60,7 @@ namespace Pistachio {
 	}
 	Error IndexBuffer::CreateStack(const void* indices, unsigned int size, unsigned int stride)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 		count = size / stride;
 		RHI::BufferDesc desc;
 		desc.size = size;

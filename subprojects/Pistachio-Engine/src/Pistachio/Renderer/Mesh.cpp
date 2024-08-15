@@ -27,7 +27,7 @@ void ProcessIndices(const aiMesh* pMesh, std::vector<unsigned int>& indices)
 namespace Pistachio {
 	Result<Mesh*> Mesh::Create(const char* filepath, std::uint32_t index)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 		Mesh* result = new Mesh;
 		auto err = result->CreateStack(filepath, index);
 		if(err.GetErrorType() != ErrorType::Success)
@@ -39,7 +39,7 @@ namespace Pistachio {
 	}
 	Error Mesh::CreateStack(const char* filepath, std::uint32_t index)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 		m_vertices.clear();
 		m_indices.clear();
 		PT_CORE_INFO("Loading Mesh {0}", filepath);
@@ -69,7 +69,7 @@ namespace Pistachio {
 	}
 	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 		m_vertices = vertices;
 		m_indices = indices;
 		m_VertexBuffer = Renderer::AllocateVertexBuffer((uint32_t)(sizeof(Vertex) * m_vertices.size()), m_vertices.data());
@@ -77,7 +77,7 @@ namespace Pistachio {
 	}
 	Mesh::Mesh(const std::vector<Vertex>&& vertices, const std::vector<unsigned int>&& indices)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 		m_vertices = vertices;
 		m_indices = indices;
 		m_VertexBuffer = Renderer::AllocateVertexBuffer((uint32_t)(sizeof(Vertex) * m_vertices.size()), m_vertices.data());

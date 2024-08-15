@@ -97,7 +97,7 @@ namespace Pistachio {
 
 	void Renderer2D::BeginScene(const EditorCamera& camera)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 		//s_Data._2DShader->Bind();
 		auto viewproj = DirectX::XMMatrixTranspose(camera.GetViewProjection());
 		
@@ -134,7 +134,7 @@ namespace Pistachio {
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 			if (s_Data.QuadIndexCount >= s_Data.MaxIndices)
 				FlushAndReset();
 		DirectX::XMMATRIX transform = DirectX::XMMatrixScaling(size.x, size.y, 1);
@@ -209,7 +209,7 @@ namespace Pistachio {
 	}
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture, const DirectX::XMFLOAT4& color)
 	{
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 			if (s_Data.QuadIndexCount >= s_Data.MaxIndices)
 				FlushAndReset();
 		float textureindex = 0.f;
@@ -334,7 +334,7 @@ namespace Pistachio {
 	{
 		if (s_Data.QuadIndexCount >= s_Data.MaxIndices)
 			FlushAndReset();
-		PT_PROFILE_FUNCTION()
+		PT_PROFILE_FUNCTION();
 		DirectX::XMMATRIX transform = DirectX::XMMatrixScaling(size.x, size.y, 1);
 		transform *= DirectX::XMMatrixRotationZ(DirectX::XMConvertToRadians(angle));
 		transform *= DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&position));

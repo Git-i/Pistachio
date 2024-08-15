@@ -1,7 +1,7 @@
 project('Pistachio-Engine', 'cpp',
     default_options: ['cpp_std=c++20'])
+args = ['-DPAL_STDCPP_COMPAT','-D_DEBUG']
 cmake = import('cmake')
-python_exe = find_program('python3', 'python')
 
 dxc = subproject('dxc')
 dxc_dep = dxc.get_variable('dxc_dep')
@@ -51,13 +51,20 @@ deps = [
     as_addons_dep,
     dxc_dep,]
 
+if(get_option('profiler_support') == 'tracy')
+tracy = subproject('tracy')
+tracy_dep = tracy.get_variable('tracy_dep')
+deps += tracy_dep
+args += '-DPT_PROFILE_TRACY'
+elif (get_option('profiler_support') == 'json')
+args += '-DPT_PROFILE_JSON'
+endif
+
 inc_dirs = ['src/',
     'vendor/entt/include/',
     'vendor/sal',
     'vendor/SimpleMath',
     'vendor/stb_image/',
-    'vendor/tcb_span/',
-    'vendor/tracy/tracy',
     'vendor/DirectXMath/',]
 
 sources = [
@@ -113,7 +120,7 @@ tests_src = [
 #    arguments: ['compile_shaders.py', '@INPUT@'],
 #    output: ['Compiled/@BASENAME@.spv', 'Compiled/@BASENAME@.cso'])
 
-args = ['-DPAL_STDCPP_COMPAT','-D_DEBUG']
+
 if(build_machine.system() == 'linux')
     deps += glfw3_dep
     args += '-DUSE_GLFW'
