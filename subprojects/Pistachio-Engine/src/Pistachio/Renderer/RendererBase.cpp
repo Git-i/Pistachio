@@ -380,7 +380,7 @@ namespace Pistachio {
 		PT_CORE_INFO("Created fence(s)");
 
 		PT_CORE_INFO("Creating Trace Context");
-		traceRHICtx = TraceRHI::Context(instance, physicalDevice, device, directQueue, mainCommandList);
+		traceRHICtx = TraceRHIContext(instance, physicalDevice, device, directQueue, mainCommandList);
 
 		RHI::PoolSize HeapSizes[3];
 
