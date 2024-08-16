@@ -1,5 +1,6 @@
 #pragma once
 #include "FormatsAndTypes.h"
+#include "PhysicalDevice.h"
 #include "Pistachio/Core.h"
 #include "Buffer.h"
 #include "../Core/Instance.h"
@@ -56,6 +57,7 @@ namespace Pistachio {
 			Internal_ID custom_direct_queue;//required
 			Internal_ID custom_compute_queue;//optional
 			RHI::QueueFamilyIndices indices;
+			std::function<RHI::PhysicalDevice*(std::span<RHI::PhysicalDevice*>)> custom_fn;
 		};
 		static bool IsDeviceNull;
 		static void Shutdown();

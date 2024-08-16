@@ -168,7 +168,7 @@ namespace Pistachio {
 		}
 		return score;
 	}
-	static inline RHI::PhysicalDevice* SelectPhysicalDevice(std::span<RHI::PhysicalDevice*> devices)
+	static RHI::PhysicalDevice* SelectPhysicalDevice(std::span<RHI::PhysicalDevice*> devices)
 	{
 		std::unordered_map<RHI::PhysicalDevice*, uint32_t> scores;
 		for(auto& device: devices)
@@ -226,7 +226,7 @@ namespace Pistachio {
 			PT_CORE_INFO("Found {0} physical devices: ", num_devices);
 			std::vector<RHI::PhysicalDevice*> pdevices(num_devices);
 			instance->GetAllPhysicalDevices(pdevices.data());
-			physicalDevice = SelectPhysicalDevice(pdevices);
+			physicalDevice = options.custom_fn ?  options.custom_fn(pdevices) : SelectPhysicalDevice(pdevices);
 			for (auto pDevice : pdevices)
 			{
 				auto pDDesc = pDevice->GetDesc();

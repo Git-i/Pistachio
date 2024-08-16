@@ -36,6 +36,7 @@ namespace Pistachio {
 		//logger options
 		//leave null to log to stdout
 		const char* log_file_name = nullptr;
+		std::function<RHI::PhysicalDevice*(std::span<RHI::PhysicalDevice*>)> select_physical_device;
 	};
 	class PISTACHIO_API Application
 	{

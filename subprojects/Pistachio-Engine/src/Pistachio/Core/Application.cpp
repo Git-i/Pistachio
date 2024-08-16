@@ -30,6 +30,7 @@ namespace Pistachio {
 		ropt.custom_compute_queue = opt.custom_compute_queue;
 		ropt.forceSingleQueue = opt.forceSingleQueue;
 		ropt.indices = opt.indices;
+		ropt.custom_fn = std::move(opt.select_physical_device);
 		if (!opt.headless)
 		{
 			WindowInfo info;
