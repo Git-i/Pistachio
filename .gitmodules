@@ -20,3 +20,6 @@
 [submodule "subprojects/tracy"]
 	path = subprojects/tracy
 	url = https://github.com/wolfpld/tracy.git
+[submodule "subprojects/TraceRHI"]
+	path = subprojects/TraceRHI
+	url = https://github.com/Git-i/TraceRHI.git
