@@ -1,3 +1,4 @@
+#include "PhysicalDevice.h"
 #define PISTACHIO_RENDER_API_DX11
 #include "Pistachio.h"
 #include "Pistachio/Core/Error.h"
@@ -149,7 +150,18 @@ public:
 	Sandbox(bool use_file) : Application("SandBoc", 
 			{
 				.headless=false,
-				.log_file_name=use_file ? "Log.txt" : nullptr
+				.forceSingleQueue=true,
+				.log_file_name=use_file ? "Log.txt" : nullptr,
+				.select_physical_device=[](std::span<RHI::PhysicalDevice*> devices){
+					for(auto dev: devices)
+					{
+						if (dev->GetDesc().type == RHI::DeviceType::Integrated)
+						{
+							return dev;
+						}
+					}
+					return devices[0];
+				}
 			}) { PushLayer(new ExampleLayer("lol"));  }
 	~Sandbox() { }
 private:
@@ -170,7 +182,7 @@ int main(int argc, char** argv)
 	std::ofstream ofs;
 	ofs.open("Log.txt", std::ofstream::out | std::ofstream::trunc);
 	ofs.close();
-	auto app = new Sandbox(rdoc_api || 1);
+	auto app = new Sandbox(rdoc_api);
 	app->Run();
 	delete app;
 }

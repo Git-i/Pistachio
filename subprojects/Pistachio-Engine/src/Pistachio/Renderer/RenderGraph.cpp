@@ -681,10 +681,12 @@ namespace Pistachio
             if constexpr (std::is_same_v<PassTy, RenderPass>) if (pass->pso.IsValid()) currentList->SetPipelineState(pass->pso);
             if constexpr (std::is_same_v<PassTy, ComputePass>) if (pass->computePipeline.IsValid()) currentList->SetComputePipeline(pass->computePipeline);
             if (pass->rsig.IsValid()) currentList->SetRootSignature(pass->rsig);
-            TraceRHIZone("RenderGraph", currentList, RendererBase::TraceContext());
-            if (std::is_same_v<PassTy, RenderPass> && attachments.size()) currentList->BeginRendering(rbDesc);
-            pass->pass_fn(currentList);
-            stage = pass_stg;
+            {
+                if (std::is_same_v<PassTy, RenderPass> && attachments.size()) currentList->BeginRendering(rbDesc);
+                TraceRHIZone("RenderGraph", currentList, RendererBase::TraceContext());
+                pass->pass_fn(currentList);
+                stage = pass_stg;
+            }
             if (std::is_same_v<PassTy, RenderPass> && attachments.size()) currentList->EndRendering();
         }
         constexpr auto stg = std::is_same_v<PassTy, RenderPass> ?  RHI::PipelineStage::COMPUTE_SHADER_BIT : RHI::PipelineStage::ALL_GRAPHICS_BIT;
