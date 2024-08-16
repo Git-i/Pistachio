@@ -54,7 +54,10 @@ deps = [
 if(get_option('profiler_support') == 'tracy')
 tracy = subproject('tracy')
 tracy_dep = tracy.get_variable('tracy_dep')
+trace_rhi = subproject('TraceRHI')
+trace_rhi_dep = trace_rhi.get_variable('trace_rhi_dep')
 deps += tracy_dep
+deps += trace_rhi_dep
 args += '-DPT_PROFILE_TRACY'
 elif (get_option('profiler_support') == 'json')
 args += '-DPT_PROFILE_JSON'

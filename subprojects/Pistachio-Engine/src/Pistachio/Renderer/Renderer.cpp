@@ -5,6 +5,8 @@
 #include "Pistachio/Renderer/Shader.h"
 #include "Pistachio/Utils/RendererUtils.h"
 #include "Texture.h"
+#include "client/TracyProfiler.hpp"
+#include "common/TracyQueue.hpp"
 #include "ptpch.h"
 #include "Renderer.h"
 #include "Material.h"
@@ -35,6 +37,7 @@ namespace Pistachio {
 	void Renderer::EndScene()
 	{
 		RendererBase::EndFrame();
+		PT_PROFILE_FRAME_MARK;
 	}
 	void Renderer::Shutdown() {
 		

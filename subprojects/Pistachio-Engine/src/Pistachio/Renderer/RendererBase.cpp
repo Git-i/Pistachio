@@ -8,6 +8,7 @@
 #include "Pistachio/Renderer/RenderGraph.h"
 #include "Ptr.h"
 #include "Texture.h"
+#include "TraceRHI.h"
 #include "ptpch.h"
 #include "RendererBase.h"
 #include "Pistachio/Core/Log.h"
@@ -44,6 +45,7 @@ RHI::Ptr<RHI::Buffer>              Pistachio::RendererBase::stagingBuffer;
 RHI::Ptr<RHI::Texture>			  Pistachio::RendererBase::depthTexture;
 uint32_t                  Pistachio::RendererBase::staginBufferPortionUsed = 0;
 uint32_t                  Pistachio::RendererBase::stagingBufferSize;
+TraceRHI::Context		  Pistachio::RendererBase::traceRHICtx;
 bool                      Pistachio::RendererBase::outstandingResourceUpdate = 0;
 bool                      Pistachio::RendererBase::MQ = false;
 bool					  Pistachio::RendererBase::headless;
@@ -377,6 +379,8 @@ namespace Pistachio {
 		stagingFence = device->CreateFence(0).value();
 		PT_CORE_INFO("Created fence(s)");
 
+		PT_CORE_INFO("Creating Trace Context");
+		traceRHICtx = TraceRHI::Context(instance, physicalDevice, device, directQueue, mainCommandList);
 
 		RHI::PoolSize HeapSizes[3];
 
@@ -737,6 +741,10 @@ namespace Pistachio {
 		retVal.val = samplerHeaps[handle.heapIndex].heap->GetCpuHandle().val +
 			device->GetDescriptorHeapIncrementSize(RHI::DescriptorType::Sampler) * handle.heapOffset;
 		return retVal;
+	}
+	TraceRHI::Context& RendererBase::TraceContext()
+	{
+		return traceRHICtx;
 	}
 	RHI::Ptr<RHI::SwapChain>      RendererBase::GetSwapChain() { return swapChain; }
 	RHI::Ptr<RHI::DescriptorHeap> RendererBase::GetRTVDescriptorHeap() { return MainRTVheap; }

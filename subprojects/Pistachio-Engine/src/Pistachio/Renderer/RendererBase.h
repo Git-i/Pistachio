@@ -6,6 +6,7 @@
 #include "Pistachio/Core/Window.h"
 #include "Pistachio/Renderer/Texture.h"
 #include "Ptr.h"
+#include "TraceRHI.h"
 namespace Pistachio {
 	enum class CullMode {
 		None, Front, Back
@@ -94,6 +95,7 @@ namespace Pistachio {
 		static Texture2D& GetBlackTexture();
 		static uint32_t GetCurrentRTVIndex();
 		static uint32_t GetCurrentFrameIndex();
+		static TraceRHI::Context& TraceContext();
 		static const constexpr uint32_t numFramesInFlight = 3;
 	private:
 		static void BackBufferBarrier(RHI::PipelineStage before,RHI::PipelineStage after,RHI::ResourceLayout oldLayout, RHI::ResourceLayout newLayout,
@@ -109,6 +111,7 @@ namespace Pistachio {
 		friend class ComputeShader;
 		friend class FrameComposer;
 		friend class Scene;
+		static TraceRHI::Context traceRHICtx;
 		static RHI::Ptr<RHI::Device> device;
 		static RHI::Ptr<RHI::GraphicsCommandList> mainCommandList;
 		static RHI::Ptr<RHI::GraphicsCommandList> stagingCommandList;

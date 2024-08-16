@@ -7,6 +7,7 @@
 #include "Pistachio/Renderer/RendererBase.h"
 #include "Ptr.h"
 #include "Texture.h"
+#include "TraceRHI.h"
 #include "ptpch.h"
 #include "Core/Device.h"
 #include "RenderGraph.h"
@@ -680,6 +681,7 @@ namespace Pistachio
             if constexpr (std::is_same_v<PassTy, RenderPass>) if (pass->pso.IsValid()) currentList->SetPipelineState(pass->pso);
             if constexpr (std::is_same_v<PassTy, ComputePass>) if (pass->computePipeline.IsValid()) currentList->SetComputePipeline(pass->computePipeline);
             if (pass->rsig.IsValid()) currentList->SetRootSignature(pass->rsig);
+            TraceRHIZone("RenderGraph", currentList, RendererBase::TraceContext());
             if (std::is_same_v<PassTy, RenderPass> && attachments.size()) currentList->BeginRendering(rbDesc);
             pass->pass_fn(currentList);
             stage = pass_stg;
