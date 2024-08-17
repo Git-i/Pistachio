@@ -126,8 +126,8 @@ float GeometrySchlickGGX(float NdotV, float roughness);
 float GeometrySmith(float3 N, float3 V, float3 L, float roughness);
 float3 fresnelSchlick(float cosTheta, float3 F0);
 float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness);
-float DirShadow(float3 projCoords, int layer, uint2 Offset, uint2 Size);
-float SpotShadow(float3 projCoords, uint2 Offset, uint2 Size);
+float DirShadow(float3 projCoords, int layer, uint2 Offset, uint2 Size, float2 shadowMapSize);
+float SpotShadow(float3 projCoords, uint2 Offset, uint2 Size, float2 shadowMapSize);
 float Window(float distance, float max_distance);
 float3 PBR(float3 N, float3 L, float3 V, Light light, float roughness, float attenuation, float3 diffuse, float3 F0, float metallic);
 uint getSlice(float z, float scale, float bias)
@@ -140,8 +140,10 @@ float4 main(PSINTPUT input) : SV_TARGET
     float3 normal = input.Normal; //todo normal mapping
     float metallic = metallicFac * mettalicTex.Sample(textureSampler, input.uv).r;
     float roughness = roughnessFac * roughnessTex.Sample(textureSampler, input.uv).r;
-    
+
     float2 tileSize = float2(screenSize) / float2(numClusters.xy);
+    float2 shadowMapSize;
+    shadowMap.GetDimensions(shadowMapSize[0], shadowMapSize[1]);
     //uint zslice = getSlice(input.depthViewSpace, scale, bias);
     float4 viewSpace = mul(float4(input.WorldPos, 1.0), View);
     float depthViewSpace = viewSpace.z;
@@ -186,7 +188,7 @@ float4 main(PSINTPUT input) : SV_TARGET
         {
             float4 lightSpacePos = mul(float4(WorldPos, 1.0), light.projection[0]);
             lightSpacePos = lightSpacePos / lightSpacePos.w;
-            shadow = SpotShadow(lightSpacePos.xyz, light.shadowMapOffset, light.shadowMapSize);
+            shadow = SpotShadow(lightSpacePos.xyz, light.shadowMapOffset, light.shadowMapSize, shadowMapSize);
         }
         
         //return shadow.xxxx;
@@ -231,7 +233,7 @@ float4 main(PSINTPUT input) : SV_TARGET
         }
         float4 lightSpacePos = mul(float4(WorldPos, 1.0), light.projection[shadowMaplayer]);
         lightSpacePos = lightSpacePos / lightSpacePos.w;
-        float shadow = DirShadow(lightSpacePos.xyz, shadowMaplayer, light.shadowMapOffset, light.shadowMapSize);
+        float shadow = DirShadow(lightSpacePos.xyz, shadowMaplayer, light.shadowMapOffset, light.shadowMapSize, shadowMapSize);
         float3 L = normalize(light.light.rotation.xyz);
         
 
@@ -311,7 +313,7 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
     return ggx1 * ggx2;
 }
 
-float DirShadow(float3 projCoords, int layer, uint2 Offset, uint2 Size)
+float DirShadow(float3 projCoords, int layer, uint2 Offset, uint2 Size, float2 shadowMapSize)
 {
     //ndc to uv space
     projCoords.x = (projCoords.x + 1) * 0.5;
@@ -322,8 +324,8 @@ float DirShadow(float3 projCoords, int layer, uint2 Offset, uint2 Size)
     {
         return 0.0;
     }
-    float2 offset_uv = Offset / 1024.f.xx;
-    float2 size_uv = Size / 2048.f.xx;
+    float2 offset_uv = Offset / shadowMapSize;
+    float2 size_uv = Size / (shadowMapSize * 2.f.xx);
     projCoords.xy *= size_uv;
     float4 x = { offset_uv.x, offset_uv.x + size_uv.x, offset_uv.x, offset_uv.x + size_uv.x };
     float4 y = { offset_uv.y, offset_uv.x, offset_uv.y + size_uv.y, offset_uv.y + size_uv.y };
@@ -332,7 +334,7 @@ float DirShadow(float3 projCoords, int layer, uint2 Offset, uint2 Size)
     float closestDepth1 = shadowMap.SampleCmpLevelZero(ShadowSampler, uv, currentDepth).r;
     return closestDepth1;
 }
-float SpotShadow(float3 projCoords, uint2 Offset, uint2 Size)
+float SpotShadow(float3 projCoords, uint2 Offset, uint2 Size, float2 shadowMapSize)
 {
     projCoords.x = (projCoords.x + 1) * 0.5;
     projCoords.y = (1 - projCoords.y) * 0.5;
@@ -342,8 +344,8 @@ float SpotShadow(float3 projCoords, uint2 Offset, uint2 Size)
     {
         return 0.0;
     }
-    projCoords.xy *= Size / 1024.f.xx;
-    projCoords.xy += Offset / 1024.f.xx;
+    projCoords.xy *= Size / shadowMapSize;
+    projCoords.xy += Offset / shadowMapSize;
     float closestDepth1 = shadowMap.SampleCmpLevelZero(ShadowSampler, projCoords.xy, currentDepth).r;
     return closestDepth1;
 }

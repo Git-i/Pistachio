@@ -155,7 +155,7 @@ public:
 				.select_physical_device=[](std::span<RHI::PhysicalDevice*> devices){
 					for(auto dev: devices)
 					{
-						if (dev->GetDesc().type == RHI::DeviceType::Integrated)
+						if (dev->GetDesc().type == RHI::DeviceType::Dedicated)
 						{
 							return dev;
 						}

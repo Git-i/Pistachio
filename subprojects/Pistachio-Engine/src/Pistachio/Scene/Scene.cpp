@@ -133,7 +133,7 @@ namespace Pistachio {
 		zPrepass.CreateStack(resolution.x, resolution.y, 1, RHI::Format::D32_FLOAT PT_DEBUG_REGION(, "Scene -> ZPrepass"));
 		finalRender.CreateStack(resolution.x, resolution.y, 1, RHI::Format::R16G16B16A16_FLOAT PT_DEBUG_REGION(, "Scene -> Final Render"));
 		shadowMarker.CreateStack(nullptr, sizeof(uint32_t));
-		shadowMapAtlas.CreateStack(1024, 1024,1, RHI::Format::D32_FLOAT PT_DEBUG_REGION(, "Scene -> Shadow Map"));
+		shadowMapAtlas.CreateStack(4096, 4096,1, RHI::Format::D32_FLOAT PT_DEBUG_REGION(, "Scene -> Shadow Map"));
 		computeShaderMiscBuffer.CreateStack(nullptr, sizeof(uint32_t) * 2, SBCreateFlags::None);
 		irSkybox.CreateStack(1, 1, 1, RHI::Format::R8G8B8A8_UNORM PT_DEBUG_REGION(, "Scene -> irSkybox"));
 		pfSkybox.CreateStack(1, 1, 1, RHI::Format::R8G8B8A8_UNORM PT_DEBUG_REGION(, "Scene -> pfSkybox"));
@@ -1243,197 +1243,6 @@ namespace Pistachio {
 	{
 
 	}
-	/*void Scene::OnUpdateRuntime(float delta)
-	{
-		PT_PROFILE_FUNCTION();
-		auto transfromMesh = m_Registry.view<TransformComponent, MeshRendererComponent>();
-		{
-			m_Registry.view<NativeScriptComponent>().each([=](auto entity, auto& nsc) {
-				if (!nsc.Instance) {
-					nsc.InstantiateFunction();
-					nsc.Instance->m_Entity = { entity, this };
-					nsc.OnCreateFunction(nsc.Instance);
-				}
-			nsc.OnUpdateFunction(nsc.Instance, delta);
-				});
-		}
-		{
-			m_PhysicsScene->simulate(delta);
-			m_PhysicsScene->fetchResults(true);
-			auto view = m_Registry.view<RigidBodyComponent>();
-			for (auto e : view) {
-				Entity entity = { e, this };
-				auto& tc = entity.GetComponent<TransformComponent>();
-				auto& rigidBody = entity.GetComponent<RigidBodyComponent>();
-				physx::PxTransform transform = ((physx::PxRigidActor*)rigidBody.RuntimeBody)->getGlobalPose();
-				// roll (x-axis rotation)
-				double sinr_cosp = 2 * (transform.q.w * transform.q.x + transform.q.y * transform.q.z);
-				double cosr_cosp = 1 - 2 * (transform.q.x * transform.q.x + transform.q.y * transform.q.y);
-				float roll = std::atan2(sinr_cosp, cosr_cosp);
-
-				// pitch (y-axis rotation)
-				double sinp = std::sqrt(1 + 2 * (transform.q.w * transform.q.y - transform.q.x * transform.q.z));
-				double cosp = std::sqrt(1 - 2 * (transform.q.w * transform.q.y - transform.q.x * transform.q.z));
-				float pitch = 2 * std::atan2(sinp, cosp) - 3.1415927 / 2;
-
-				// yaw (z-axis rotation)
-				double siny_cosp = 2 * (transform.q.w * transform.q.z + transform.q.x * transform.q.y);
-				double cosy_cosp = 1 - 2 * (transform.q.y * transform.q.y + transform.q.z * transform.q.z);
-				float yaw = std::atan2(siny_cosp, cosy_cosp);
-				tc.RotationEulerHint = { roll, pitch, yaw, 1.f };
-				tc.Translation = DirectX::XMVectorSet(transform.p.x, transform.p.y, transform.p.z, 1.f);
-				tc.Rotation = DirectX::XMVectorSet(transform.q.x, transform.q.y, transform.q.z, transform.q.w);
-			}
-		}
-
-		
-		//TO-DO: Use Rigid-Body Transform Inverse for Camera Components
-		//Negative Translation * Rotation Transposed
-		SceneCamera* mainCamera = nullptr;
-		DirectX::XMMATRIX cameraTransform = DirectX::XMMatrixIdentity();
-		{
-			auto group = m_Registry.view<TransformComponent, CameraComponent>();
-			for (auto entity : group)
-			{
-				auto [transform, camera] = group.get<TransformComponent, CameraComponent>(entity);
-				if (camera.Primary)
-				{
-					mainCamera = &camera.camera;
-					cameraTransform = transform.GetTransform({ (entt::entity)m_Registry.get<HierarchyComponent>(entity).parentID, this });
-					
-					break;
-				}
-			}
-		}
-		if (mainCamera) {
-			SortMeshComponents();
-			UpdateObjectCBs();
-			float color[4] = { 0,0,0,0 };
-			m_gBuffer.ClearAll(color);
-			m_finalRender.Clear(color, 0);
-			m_gBuffer.Bind(0, 4);
-			DirectX::XMMATRIX view = DirectX::XMMatrixInverse(nullptr, cameraTransform);
-			{
-				Renderer::whiteTexture.Bind(9);
-				auto group = m_Registry.view<TransformComponent, LightComponent>();
-				for (auto& entity : group)
-				{
-					Light light;
-					auto [tc, lightcomponent] = group.get<TransformComponent, LightComponent>(entity);
-					DirectX::XMStoreFloat3(&light.position, tc.Translation);
-					light.type = lightcomponent.Type;
-					DirectX::XMVECTOR lightTransform = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.f, 0.f, -1.f, 1.f), tc.Rotation);
-					DirectX::XMStoreFloat4(&light.rotation, lightTransform);
-					light.exData = { lightcomponent.exData.x , lightcomponent.exData.y, lightcomponent.exData.z, (float)lightcomponent.CastShadow };
-					light.colorxintensity = { lightcomponent.color.x, lightcomponent.color.y, lightcomponent.color.z, lightcomponent.Intensity };
-					DirectX::XMMATRIX lightMatrix[4] = { DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity(),DirectX::XMMatrixIdentity() };
-					if (lightcomponent.CastShadow)
-					{
-						RendererBase::SetCullMode(CullMode::Front);
-						if (lightcomponent.Type == LightType::Directional)
-						{
-							float aspect = (float)m_viewportWidth / (float)m_ViewportHeight;
-							lightMatrix[0] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, mainCamera->GetPerspNear(), 30.f), light, 1.05f);
-							lightMatrix[1] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 30.f, 100.f), light, 1.2f);
-							lightMatrix[2] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 100.f, 500.f), light, 1.f);
-							lightMatrix[3] = GetLightMatrixFromCamera(view, DirectX::XMMatrixPerspectiveFovLH(mainCamera->GetPerspSize(), aspect, 500.f, mainCamera->GetPerspFar()), light, 1.f);
-						}
-						else if (lightcomponent.Type == LightType::Spot)
-						{
-							lightMatrix[0] = lightMatrix[1] = lightMatrix[2] = lightMatrix[3] = DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(tc.Translation, DirectX::XMVectorAdd(tc.Translation, DirectX::XMLoadFloat4(&light.rotation)), DirectX::XMVectorSet(0, 1, 0, 0)) * DirectX::XMMatrixPerspectiveFovLH(DirectX::XMScalarACos(lightcomponent.exData.x) * 2, 1, 0.1f, lightcomponent.exData.z));
-						}
-						lightcomponent.shadowMap.Clear();
-						lightcomponent.shadowMap.Bind();
-						RendererBase::Getd3dDeviceContext()->PSSetShader(nullptr, nullptr, 0);
-						Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Vertex);
-						Renderer::GetShaderLibrary().Get("Shadow-Shader")->Bind(ShaderType::Geometry);
-						Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x * 4) + 0] = lightMatrix[0];
-						Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x * 4) + 1] = lightMatrix[1];
-						Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x * 4) + 2] = lightMatrix[2];
-						Renderer::passConstants.lightSpaceMatrix[((int)Renderer::passConstants.numlights.x * 4) + 3] = lightMatrix[3];
-						Renderer::passConstants.EyePosW.w = lightcomponent.shadowMap.GetSize();
-						ChangeVP(lightcomponent.shadowMap.GetSize() / 2);
-						RendererBase::Getd3dDeviceContext()->RSSetViewports(4, vp);
-						Renderer::UpdatePassConstants();
-						for (auto& entity : group)
-						{
-							//TO-DO MATERIALS
-							auto [transform, mesh] = transfromMesh.get(entity);
-							auto model = GetAssetManager()->GetModelResource(mesh.Model);
-							if (model) {
-								auto& VB = model->meshes[mesh.modelIndex].GetVertexBuffer();
-								auto& IB = model->meshes[mesh.modelIndex].GetIndexBuffer();
-								Buffer buffer = { &VB,&IB };
-								RendererBase::DrawIndexed(buffer);
-							}
-						}
-						RendererBase::ChangeViewport(m_gBuffer.GetWidth(), m_gBuffer.GetHeight());
-						m_gBuffer.Bind(0, 4);
-						lightcomponent.shadowMap.BindResource(9 + Renderer::passConstants.numlights.x);
-						RendererBase::SetCullMode(CullMode::Back);
-					}
-					Renderer::AddLight(light);
-					RendererBase::Getd3dDeviceContext()->GSSetShader(nullptr, nullptr, 0);
-				}
-			}
-			Renderer::BeginScene(mainCamera, cameraTransform);
-			//3D Rendering
-			{
-				for (auto& entity : transfromMesh)
-				{
-					auto [transform, mesh] = transfromMesh.get(entity);
-					auto mat = GetAssetManager()->GetMaterialResource(mesh.material);
-					auto model = GetAssetManager()->GetModelResource(mesh.Model);
-					if (model) {
-
-						Shader::SetVSBuffer(Renderer::TransformationBuffer[mesh.cbIndex], 1);
-						if (!mat)
-							Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), &Renderer::DefaultMaterial, (uint32_t)entity);
-						else
-							Renderer::Submit(&model->meshes[mesh.modelIndex], Renderer::GetShaderLibrary().Get("GBuffer-Shader").get(), mat, (uint32_t)entity);
-					}
-				}
-			}
-			m_finalRender.Bind(0, 1);
-			m_gBuffer.BindResource(3, 4);
-			Texture2D dst = m_finalRender.GetDepthTexture();
-			Texture2D src = m_gBuffer.GetDepthTexture();
-			auto& VB = ScreenSpaceQuad->GetVertexBuffer();
-			auto& IB = ScreenSpaceQuad->GetIndexBuffer();
-			Buffer buffer = { &VB,&IB };
-			Renderer::GetShaderLibrary().Get("PBR-Deffered-Shader").get()->Bind(ShaderType::Vertex);
-			Renderer::GetShaderLibrary().Get("PBR-Deffered-Shader").get()->Bind(ShaderType::Pixel);
-			RendererBase::DrawIndexed(buffer);
-			Renderer::whiteTexture.Bind(3);
-			Renderer::whiteTexture.Bind(4);
-			Renderer::whiteTexture.Bind(5);
-			Renderer::whiteTexture.Bind(6);
-			dst.CopyInto(src);
-			//2D Rendering
-			Renderer2D::BeginScene(*mainCamera, cameraTransform);
-			{
-				auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-				for (auto& entity : group)
-				{
-					auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-					const auto& transformMatrix = transform.GetTransform({ (entt::entity)m_Registry.get<HierarchyComponent>(entity).parentID, this });
-					if ((transform.NumNegativeScaleComps % 2))
-					{
-						RendererBase::SetCullMode(CullMode::Front);
-					}
-					else
-					{
-						RendererBase::SetCullMode(CullMode::Back);
-					}
-					Renderer2D::DrawQuad(transformMatrix, sprite.Color);
-				}
-			}
-			Renderer2D::EndScene();
-		}
-		
-		
-	}
-	*/
 	void Scene::OnViewportResize(unsigned int width, unsigned int height)
 	{
 		PT_PROFILE_FUNCTION();
@@ -1502,6 +1311,7 @@ namespace Pistachio {
     
     	return lambda*uni + (1-lambda)*log;
 	}
+	constexpr const uint32_t shadow_size = 512;
 	void Scene::FrustumCull(const Matrix4& view, const Matrix4& proj, float fovRad, float nearClip, float farClip, float aspect)
 	{
 		auto mesh_transform = m_Registry.view<MeshRendererComponent, TransformComponent>();
@@ -1559,7 +1369,7 @@ namespace Pistachio {
 					sclight = &*shadowLights.insert(shadowLights.begin(),ShadowCastingLight());
 					sclight->light = light;
 					numShadowDirLights++;
-					allocation_size = { 256 * 4, 256 * 4 };
+					allocation_size = { shadow_size * 4, shadow_size * 4 };
 					float pss_vals[3];
 					for(uint32_t i = 0; i < 3; i++) pss_vals[i] = pss(i+1,4,0.3,nearClip,farClip);
 					/*
@@ -1575,7 +1385,7 @@ namespace Pistachio {
 				{
 					sclight = &shadowLights.emplace_back();
 					sclight->light = light;
-					allocation_size = { 512, 512 };
+					allocation_size = { shadow_size, shadow_size };
 					DirectX::XMStoreFloat4x4(&sclight->projection[0],DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(tc.Translation, DirectX::XMVectorAdd(tc.Translation, DirectX::XMLoadFloat4(&light.rotation)), DirectX::XMVectorSet(0, 1, 0, 0)) * DirectX::XMMatrixPerspectiveFovLH(DirectX::XMScalarACos(lightcomponent.exData.x) * 2, 1, 0.1f, lightcomponent.exData.z)));
 				}
 				else if (lightcomponent.Type == LightType::Point)
