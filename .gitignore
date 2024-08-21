@@ -469,3 +469,4 @@ Sandbox/resources/textures/hdr/golden_bay_1k.hdr
 compile_commands.json
 *.spv
 Sandbox/Log.txt
+*.kdev4
