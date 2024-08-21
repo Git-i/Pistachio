@@ -2,3 +2,4 @@ option('linux_compositor', type: 'combo', choices: ['wayland', 'x11'], value: 'x
 option('verbose_logging', type: 'boolean', value: true)
 option('use_magic_enum', type:'boolean', value:true, description:'use magic enum for logging enum values')
 option('profiler_support', type:'combo', choices: ['none', 'tracy', 'json'], value:'tracy')
+option('fetch_dependencies', type: 'boolean', value: false)

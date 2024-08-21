@@ -1,19 +1,29 @@
 project('Pistachio-Engine', 'cpp',
     default_options: ['cpp_std=c++20'])
+deps_required = not get_option('fetch_dependencies')
 args = ['-DPAL_STDCPP_COMPAT','-D_DEBUG']
 cmake = import('cmake')
 
 dxc = subproject('dxc')
 dxc_dep = dxc.get_variable('dxc_dep')
 
-yaml_cpp = cmake.subproject('yaml-cpp')
-yaml_dep = yaml_cpp.dependency('yaml-cpp')
+yaml_dep = dependency('yaml-cpp', required: deps_required)
+if not yaml_dep.found()
+    yaml_cpp = cmake.subproject('yaml-cpp')
+    yaml_dep = yaml_cpp.dependency('yaml-cpp')
+endif
 
-assimp = cmake.subproject('assimp')
-assimp_dep = assimp.dependency('assimp')
+assimp_dep = dependency('assimp', required: deps_required)
+if not assimp_dep.found()
+    assimp = cmake.subproject('assimp')
+    assimp_dep = assimp.dependency('assimp')
+endif
 
-glfw3 = cmake.subproject('glfw')
-glfw3_dep = glfw3.dependency('glfw')
+glfw3_dep = dependency('glfw', required: deps_required)
+if not glfw3_dep.found()
+    glfw3 = cmake.subproject('glfw')
+    glfw3_dep = glfw3.dependency('glfw')
+endif
 
 angelscript = subproject('angelscript')
 angelscript_dep = angelscript.get_variable('angelscript_dep')
@@ -22,16 +32,25 @@ as_addons_dep = angelscript.get_variable('as_addons_dep')
 rhi = subproject('RHI')
 rhi_dep = rhi.get_variable('rhi_dep')
 
-imgui = subproject('imgui')
-imgui_dep = imgui.get_variable('imgui_dep')
+imgui_dep = dependency('imgui', required: deps_required)
+if not imgui_dep.found()
+    imgui = subproject('imgui')
+    imgui_dep = imgui.get_variable('imgui_dep')
+endif
 
-spdlog_opt = cmake.subproject_options()
-spdlog_opt.add_cmake_defines({'SPDLOG_BUILD_PIC':true})
-spdlog = cmake.subproject('spdlog',options:spdlog_opt)
-spdlog_dep = spdlog.dependency('spdlog')
+spdlog_dep = dependency('spdlog', required: deps_required)
+if not spdlog_dep.found()
+    spdlog_opt = cmake.subproject_options()
+    spdlog_opt.add_cmake_defines({'SPDLOG_BUILD_PIC':true})
+    spdlog = cmake.subproject('spdlog',options:spdlog_opt)
+    spdlog_dep = spdlog.dependency('spdlog')
+endif
 
-xxhash = subproject('xxhash')
-xxhash_dep = xxhash.get_variable('xxhash_dep')
+xxhash_dep = dependency('xxhash', required: deps_required)
+if not xxhash_dep.found()
+    xxhash = subproject('xxhash')
+    xxhash_dep = xxhash.get_variable('xxhash_dep')
+endif
 
 physx = subproject('physx')
 px_deps = physx.get_variable('px_all_deps')
