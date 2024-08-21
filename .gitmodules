@@ -7,9 +7,6 @@
 [submodule "subprojects/assimp"]
 	path = subprojects/assimp
 	url = git@github.com:assimp/assimp.git
-[submodule "subprojects/spdlog"]
-	path = subprojects/spdlog
-	url = git@github.com:gabime/spdlog.git
 [submodule "subprojects/tracy"]
 	path = subprojects/tracy
 	url = https://github.com/wolfpld/tracy.git

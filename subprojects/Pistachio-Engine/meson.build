@@ -19,11 +19,7 @@ if not assimp_dep.found()
     assimp_dep = assimp.dependency('assimp')
 endif
 
-glfw3_dep = dependency('glfw3', required: deps_required)
-if not glfw3_dep.found()
-    glfw3 = cmake.subproject('glfw')
-    glfw3_dep = glfw3.dependency('glfw')
-endif
+glfw3_dep = dependency('glfw3')
 
 angelscript = subproject('angelscript')
 angelscript_dep = angelscript.get_variable('angelscript_dep')
@@ -32,28 +28,12 @@ as_addons_dep = angelscript.get_variable('as_addons_dep')
 rhi = subproject('RHI')
 rhi_dep = rhi.get_variable('rhi_dep')
 
-imgui_dep = dependency('imgui', required: deps_required)
-if not imgui_dep.found()
-    imgui = subproject('imgui')
-    imgui_dep = imgui.get_variable('imgui_dep')
-endif
+imgui_dep = dependency('imgui')
 
-spdlog_dep = dependency('spdlog', required: deps_required)
-if not spdlog_dep.found()
-    spdlog_opt = cmake.subproject_options()
-    spdlog_opt.add_cmake_defines({'SPDLOG_BUILD_PIC':true})
-    spdlog = cmake.subproject('spdlog',options:spdlog_opt)
-    spdlog_dep = spdlog.dependency('spdlog')
-endif
+spdlog_dep = dependency('spdlog')
 
-xxhash_dep = dependency('libxxhash', required: deps_required)
-if not xxhash_dep.found()
-    xxhash = subproject('xxhash')
-    xxhash_dep = xxhash.get_variable('xxhash_dep')
-endif
+xxhash_dep = dependency('libxxhash')
 
-physx = subproject('physx')
-px_deps = physx.get_variable('px_all_deps')
 
 # Normally we would depend on ezr but RHI provides it
 # ezr = subproject('ezr')
@@ -65,7 +45,6 @@ deps = [
     imgui_dep,
     spdlog_dep,
     xxhash_dep,
-    px_deps,
     angelscript_dep,
     as_addons_dep,
     dxc_dep,]
