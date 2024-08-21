@@ -19,7 +19,7 @@ if not assimp_dep.found()
     assimp_dep = assimp.dependency('assimp')
 endif
 
-glfw3_dep = dependency('glfw', required: deps_required)
+glfw3_dep = dependency('glfw3', required: deps_required)
 if not glfw3_dep.found()
     glfw3 = cmake.subproject('glfw')
     glfw3_dep = glfw3.dependency('glfw')
@@ -46,7 +46,7 @@ if not spdlog_dep.found()
     spdlog_dep = spdlog.dependency('spdlog')
 endif
 
-xxhash_dep = dependency('xxhash', required: deps_required)
+xxhash_dep = dependency('libxxhash', required: deps_required)
 if not xxhash_dep.found()
     xxhash = subproject('xxhash')
     xxhash_dep = xxhash.get_variable('xxhash_dep')

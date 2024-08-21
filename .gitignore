@@ -470,3 +470,5 @@ compile_commands.json
 *.spv
 Sandbox/Log.txt
 *.kdev4
+/subprojects/*
+!/subprojects/*.wrap
