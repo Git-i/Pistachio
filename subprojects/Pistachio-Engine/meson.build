@@ -4,8 +4,6 @@ deps_required = not get_option('fetch_dependencies')
 args = ['-DPAL_STDCPP_COMPAT','-D_DEBUG']
 cmake = import('cmake')
 
-dxc = subproject('dxc')
-dxc_dep = dxc.get_variable('dxc_dep')
 
 yaml_dep = dependency('yaml-cpp', required: deps_required)
 if not yaml_dep.found()
@@ -46,8 +44,7 @@ deps = [
     spdlog_dep,
     xxhash_dep,
     angelscript_dep,
-    as_addons_dep,
-    dxc_dep,]
+    as_addons_dep,]
 
 if(get_option('profiler_support') == 'tracy')
 tracy = subproject('tracy')
