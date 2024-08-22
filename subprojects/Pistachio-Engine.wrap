@@ -1,0 +1,6 @@
+[wrap-git]
+url =   https://github.com/Git-i/Pistachio-Engine.git
+revision = head
+depth = 1
+[provide]
+pistachio = pistachio_dep
