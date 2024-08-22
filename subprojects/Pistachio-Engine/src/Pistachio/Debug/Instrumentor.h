@@ -155,4 +155,5 @@ namespace Pistachio {
     #define PT_PROFILE_END_SESSION()
     #define PT_PROFILE_SCOPE(name)
     #define PT_PROFILE_FUNCTION()
+    #define PT_PROFILE_FRAME_MARK
 #endif

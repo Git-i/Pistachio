@@ -24,7 +24,6 @@
 
 #endif // IMGUI
 
-#include "PxPhysicsAPI.h"
 #include "ScriptableComponent.h"
 #include "Pistachio/Physics/Physics.h"
 #include "Pistachio/Renderer/MeshFactory.h"
@@ -655,84 +654,8 @@ namespace Pistachio {
 		root_children.chilren.push_back(entity);
 		return entity;
 	}
-	void Scene::OnRuntimeStart()
-	{
-		physx::PxSceneDesc sceneDesc(Physics::gPhysics->getTolerancesScale());
-		sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
-		Physics::gDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
-		sceneDesc.cpuDispatcher = Physics::gDispatcher;
-		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
-		m_PhysicsScene = Physics::gPhysics->createScene(sceneDesc);
-
-		physx::PxPvdSceneClient* pvdClient = m_PhysicsScene->getScenePvdClient();
-		if (pvdClient)
-		{
-			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
-			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
-			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
-		}
-		auto view = m_Registry.view<RigidBodyComponent>();
-		for (auto e : view)
-		{
-			Entity entity = { e, this };
-			auto& transform = entity.GetComponent<TransformComponent>();
-			auto& rigidBody = view.get<RigidBodyComponent>(e);
-			Physics::gMaterial = Physics::gPhysics->createMaterial(rigidBody.StaticFriction, rigidBody.DynamicFriction, rigidBody.Restitution);
-			if (rigidBody.type == RigidBodyComponent::BodyType::Dynamic)
-			{
-				physx::PxQuat rotation(transform.Rotation.x, transform.Rotation.y, transform.Rotation.z, transform.Rotation.w);
-				physx::PxTransform pxtransform(transform.Translation.x, transform.Translation.y, transform.Translation.z, rotation);
-				rigidBody.RuntimeBody = Physics::gPhysics->createRigidDynamic(pxtransform);
-				physx::PxRigidBodyExt::updateMassAndInertia(*((physx::PxRigidBody*)rigidBody.RuntimeBody), rigidBody.Density);
-				m_PhysicsScene->addActor(*((physx::PxRigidDynamic*)rigidBody.RuntimeBody));
-			}
-			else if (rigidBody.type == RigidBodyComponent::BodyType::Static)
-			{
-				physx::PxQuat rotation(DirectX::XMVectorGetX(transform.Rotation), DirectX::XMVectorGetY(transform.Rotation), DirectX::XMVectorGetZ(transform.Rotation), DirectX::XMVectorGetW(transform.Rotation));
-				physx::PxTransform pxtransform(DirectX::XMVectorGetX(transform.Translation), DirectX::XMVectorGetY(transform.Translation), DirectX::XMVectorGetZ(transform.Translation), rotation);
-				rigidBody.RuntimeBody = Physics::gPhysics->createRigidStatic(pxtransform);
-				m_PhysicsScene->addActor(*((physx::PxRigidStatic*)rigidBody.RuntimeBody));
-			}
-
-			if (entity.HasComponent<BoxColliderComponent>())
-			{
-				auto& bc = entity.GetComponent<BoxColliderComponent>();
-				physx::PxShape* shape = Physics::gPhysics->createShape(physx::PxBoxGeometry(bc.size.x * DirectX::XMVectorGetX(transform.Scale), bc.size.y * DirectX::XMVectorGetY(transform.Scale), bc.size.z * DirectX::XMVectorGetZ(transform.Scale)), *Physics::gMaterial);
-				physx::PxTransform pose(bc.offset.x, bc.offset.y, bc.offset.z);
-				shape->setLocalPose(pose);
-				((physx::PxRigidActor*)rigidBody.RuntimeBody)->attachShape(*shape);
-			}
-			if (entity.HasComponent<SphereColliderComponent>())
-			{
-				auto& sc = entity.GetComponent<SphereColliderComponent>();
-				physx::PxShape* shape = Physics::gPhysics->createShape(physx::PxSphereGeometry(sc.size), *Physics::gMaterial);
-				physx::PxTransform pose(sc.offset.x, sc.offset.y, sc.offset.z);
-				shape->setLocalPose(pose);
-				((physx::PxRigidActor*)rigidBody.RuntimeBody)->attachShape(*shape);
-			}
-			if (entity.HasComponent<CapsuleColliderComponent>())
-			{
-				auto& cc = entity.GetComponent<CapsuleColliderComponent>();
-				physx::PxShape* shape = Physics::gPhysics->createShape(physx::PxCapsuleGeometry(cc.radius, cc.height), *Physics::gMaterial);
-				physx::PxTransform pose(cc.offset.x, cc.offset.y, cc.offset.z);
-				shape->setLocalPose(pose);
-				((physx::PxRigidActor*)rigidBody.RuntimeBody)->attachShape(*shape);
-			}
-			if (entity.HasComponent<PlaneColliderComponent>())
-			{
-				auto& pc = entity.GetComponent<PlaneColliderComponent>();
-				physx::PxShape* shape = Physics::gPhysics->createShape(physx::PxPlaneGeometry(), *Physics::gMaterial);
-				physx::PxTransform pose(pc.offset.x, pc.offset.y, pc.offset.z);
-				shape->setLocalPose(pose);
-				((physx::PxRigidActor*)rigidBody.RuntimeBody)->attachShape(*shape);
-			}
-			Physics::gMaterial->release();
-		}
-	}
 	void Scene::OnRuntimeStop()
 	{
-		m_PhysicsScene->release();
-		m_PhysicsScene = nullptr;
 	}
 	void Scene::DestroyEntity(Entity entity)
 	{

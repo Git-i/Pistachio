@@ -64,7 +64,6 @@ namespace Pistachio {
 	Application::~Application()
 	{
 		Pistachio::Renderer::Shutdown();
-		Pistachio::Physics::Shutdown();
 	}
 
 	void Application::PushLayer(Layer* layer)

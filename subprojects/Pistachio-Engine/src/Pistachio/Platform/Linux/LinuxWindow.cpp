@@ -1,17 +1,12 @@
 #include "Core.h"
 #include "GLFW/glfw3.h"
 #include "Pistachio/Core/Application.h"
-#include "ptpch.h"
 #include "LinuxWindow.h"
 #include "Pistachio/Core/Log.h"
 #ifdef IMGUI
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #endif
-
-#include "Pistachio/Event/ApplicationEvent.h"
-#include "Pistachio/Event/KeyEvent.h"
-#include "Pistachio/Event/MouseEvent.h"
 #include "Pistachio/Core/InputCallbacks.h"
 
 void* WindowDataPtr;
@@ -30,7 +25,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
     if (action == GLFW_PRESS)
         Pistachio::OnKeyDown(key);
-    else if (action == GLFW_RELEASE);
+    else if (action == GLFW_RELEASE)
         Pistachio::OnKeyUp(key);
     
 }
