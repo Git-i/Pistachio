@@ -1,3 +1,0 @@
-# UUID
-
-A UUID is a unique identifier for a Pistachio Object, it is most commonly used in [`Asset`s](Asset.md) and [`Entity`s](Entity.md). It consists of a single 64 bit integer, UUIDs will not be the same for any two distinct objects of the same kind within an application, meaning two entities will not have the same UUID even if they exist at completely different times, but an entity may share the same UUID with an asset.
