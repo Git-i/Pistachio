@@ -13,7 +13,6 @@
 #include "RenderGraph.h"
 #include "Renderer.h"
 #include "Util/FormatUtils.h"
-#include "spdlog/fmt/bundled/format.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

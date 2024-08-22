@@ -1,13 +1,16 @@
-#include "ptpch.h"
+#include "Pistachio/Core/Log.h"
+#include "RootSignature.h"
 #include "ShaderAssetCompiler.h"
+#include <iostream>
+#include <memory>
 #include <string_view>
 #include <sstream>
 #include <charconv>
 #include "Pistachio/Utils/PlatformUtils.h"
+#include "rhi_sc.h"
 namespace Pistachio
 {
-	IDxcLibrary*  ShaderAssetCompiler::library  = nullptr;
-	IDxcCompiler* ShaderAssetCompiler::compiler = nullptr;
+	std::unique_ptr<RHI::ShaderCompiler::Compiler> ShaderAssetCompiler::compiler = nullptr;
 	static inline bool starts_with(const std::string_view& view, const char* string)
 	{
 		size_t length = strlen(string);
@@ -100,7 +103,7 @@ namespace Pistachio
 	
 	uint32_t ShaderAssetCompiler::Compile(const char* filename, const char* outfileName)
 	{
-		if (!library || !compiler)
+		if (!compiler)
 		{
 			errorBuf = "Shader Compiler was not properly initialized";
 			return 1;
@@ -308,7 +311,7 @@ namespace Pistachio
 		* str-size, param-name, param offset, param type [np-times]
 		* number of bindings (nb),
 		* str-size, binding-name, binding index [nb-times]
-		* spirv-code size, spirv-code, dxil-code size, dxil-code
+		* valid rbc code
 		*/
 		uint32_t paramsOffsetSize = Pistachio::Edian::ConvertToBigEndian((uint32_t)paramsOffset.size());
 		outFile.write((const char*)&paramsOffsetSize, sizeof(uint32_t));
@@ -332,62 +335,21 @@ namespace Pistachio
 			uint32_t indexEdian = Pistachio::Edian::ConvertToBigEndian(index);
 			outFile.write((const char*)&indexEdian, sizeof(uint32_t));
 		}
-		IDxcBlobEncoding* blob;
-		library->CreateBlobWithEncodingFromPinned(ostream.str().c_str(), (uint32_t)ostream.str().size(), CP_UTF8, &blob);
-		wchar_t filename_ws[512];
-		mbstowcs(filename_ws, filename, 511);
-		//spirv compile
-		const wchar_t* args[] = { L"-spirv" };
-		IDxcOperationResult* result = nullptr;
-		HRESULT hr = compiler->Compile(blob, filename_ws, L"main", L"ps_6_0", args, 1, nullptr, 0, nullptr, &result);
-		if (FAILED(hr))
+		std::vector<char> rbc;
+		RHI::ShaderCompiler::ShaderSource src;
+		src.source = RHI::ShaderCompiler::ShaderSource::StringSource{
+			ostream.str(),
+			filename
+		};
+		src.stage = RHI::ShaderStage::Pixel;
+		auto res = compiler->CompileToBuffer(RHI::API::DX12, src, nullptr, rbc, false);
+		if(res.error != RHI::ShaderCompiler::CompilationError::None)
 		{
-			if (result)
-			{
-				IDxcBlobEncoding* errorsBlob;
-				hr = result->GetErrorBuffer(&errorsBlob);
-				if (SUCCEEDED(hr) && errorsBlob)
-				{
-					errorBuf = "Code Compilation Failed";
-					errorBuf += (const char*)errorsBlob->GetBufferPointer();
-					errorsBlob->Release();
-					return 1;
-				}
-			}
-			errorBuf = "Code Compilation Failed with Unknown Error";
+			PT_CORE_ERROR(res.messages);
 			return 1;
 		}
-		result->GetStatus(&hr);
-		IDxcBlob* spvCode;
-		result->GetResult(&spvCode);
-		uint32_t spirvSize = Pistachio::Edian::ConvertToBigEndian((uint32_t)spvCode->GetBufferSize());
-		outFile.write((char*)&spirvSize, sizeof(uint32_t));
-		outFile.write((char*)spvCode->GetBufferPointer(), spvCode->GetBufferSize());
-		spvCode->Release();
-		hr = compiler->Compile(blob, filename_ws, L"main", L"ps_6_0", nullptr, 0, nullptr, 0, nullptr, &result);
-		if (FAILED(hr))
-		{
-			if(result)
-			{
-				IDxcBlobEncoding* errorsBlob;
-				hr = result->GetErrorBuffer(&errorsBlob);
-				if (SUCCEEDED(hr) && errorsBlob)
-				{
-					errorBuf = "Code Compilation Failed";
-					errorBuf += (const char*)errorsBlob->GetBufferPointer();
-					errorsBlob->Release();
-					return 1;
-				}
-			}
-			errorBuf = "Code Compilation Failed with Unknown Error";
-			return 1;
-		}
-		IDxcBlob* dxilCode;
-		result->GetResult(&dxilCode);
-		uint32_t dxilSize = (uint32_t)dxilCode->GetBufferSize();
-		outFile.write((char*)&dxilSize, sizeof(uint32_t));
-		outFile.write((char*)dxilCode->GetBufferPointer(), dxilSize);
-		dxilCode->Release();
+		PT_CORE_WARN(res.messages);
+		outFile.write(rbc.data(), rbc.size());
 		return 0;
 	}
 }

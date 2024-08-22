@@ -26,6 +26,10 @@ as_addons_dep = angelscript.get_variable('as_addons_dep')
 rhi = subproject('RHI')
 rhi_dep = rhi.get_variable('rhi_dep')
 
+rhi_sc = subproject('rhi_sc')
+rhi_sc_dep = rhi_sc.get_variable('rhi_sc_dep')
+rhi_sc_exe = rhi_sc.get_variable('rhi_sc_exe')
+
 imgui_dep = dependency('imgui')
 
 spdlog_dep = dependency('spdlog')
@@ -44,7 +48,8 @@ deps = [
     spdlog_dep,
     xxhash_dep,
     angelscript_dep,
-    as_addons_dep,]
+    as_addons_dep,
+    rhi_sc_dep,]
 
 if(get_option('profiler_support') == 'tracy')
 tracy = subproject('tracy')
@@ -114,9 +119,9 @@ tests_src = [
 #shaders = [
 #
 #]
-#shader_compiler = generator(python_exe,
-#    arguments: ['compile_shaders.py', '@INPUT@'],
-#    output: ['Compiled/@BASENAME@.spv', 'Compiled/@BASENAME@.cso'])
+shader_compiler = generator(rhi_sc_exe,
+    arguments: ['@INPUT@'],
+    output: ['@BASENAME@.rbc'])
 
 
 if(build_machine.system() == 'linux')

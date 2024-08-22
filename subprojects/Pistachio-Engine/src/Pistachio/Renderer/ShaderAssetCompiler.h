@@ -1,5 +1,7 @@
 #pragma once
-#include <dxcapi.h>
+#include "rhi_sc.h"
+#include <memory>
+#include <unordered_map>
 namespace Pistachio
 {
 	enum class ShaderType
@@ -32,23 +34,9 @@ namespace Pistachio
 	public:
 		ShaderAssetCompiler()
 		{
-			if (!library)
-			{
-				HRESULT hr = DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&library));
-				if (FAILED(hr))
-				{
-					PT_CORE_ERROR("Couldn't Initialize Shader Compiler");
-					library = nullptr;
-				}
-			}
 			if (!compiler)
 			{
-				HRESULT hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler));
-				if (FAILED(hr))
-				{
-					PT_CORE_ERROR("Couldn't Initialize Shader Compiler");
-					compiler = nullptr;
-				}
+				compiler = RHI::ShaderCompiler::Compiler::New();
 			}
 		}
 		uint32_t Compile(const char* filename, const char* outfile);//0 means fail, 1 means success
@@ -60,8 +48,7 @@ namespace Pistachio
 		std::unordered_map<std::string, uint32_t> textureIndex; 
 		ShaderType type;
 		std::string errorBuf;
-		static IDxcLibrary* library;
-		static IDxcCompiler* compiler;
+		static std::unique_ptr<RHI::ShaderCompiler::Compiler> compiler;
 		uint32_t FindSection(const char* sectionName);
 		uint32_t GetSectionLineCount(const char* sectionName);
 		uint32_t GetSectionLineCount(uint32_t sectionOffset);
