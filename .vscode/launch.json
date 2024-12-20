@@ -6,7 +6,7 @@
             "request": "launch",
             "MIMode": "gdb",
             "program": "${workspaceRoot}/builddir/Sandbox-app",
-            "cwd": "${workspaceRoot}/Sandbox","setupCommands": [
+            "cwd": "${workspaceRoot}/builddir","setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
